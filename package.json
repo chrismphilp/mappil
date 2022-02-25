@@ -21,6 +21,7 @@
     "@types/node": "^16.11.25",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
+    "@types/react-modal": "^3.13.1",
     "@types/topojson": "^3.2.3"
   },
   "scripts": {

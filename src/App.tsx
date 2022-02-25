@@ -1,7 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {geoEquirectangular, geoPath, select, zoom} from 'd3';
+import {geoMercator, geoPath, select, zoom} from 'd3';
 import countries from './custom.geo.json';
 import './App.css';
+import MenuModal from "./modal/MenuModal";
 
 const width = 1200;
 const height = 500;
@@ -30,50 +31,50 @@ const App = () => {
         select(d.target).attr("fill", 'red');
     }
 
-    function mouseOutHandler(d: any, i: any) {
-        select(d.target).attr("fill", 'black');
+    const mouseOutHandler = (d: any, i: any) => {
+        select(d.target).attr("fill", 'green');
     }
 
     useEffect(() => {
-        const projection = geoEquirectangular();
+        const projection = geoMercator()
+            .center([114.1095, 45])
+            .scale(95)
+            .translate([width / 2, height / 2]);
+
         const geoGenerator = geoPath().projection(projection);
 
-        select(".App")
+
+        function handleZoom({transform}: any) {
+            g.attr('transform', transform);
+        }
+
+        const svg = select(".App")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height)
+            .attr("viewBox", [0, 0, width, height]);
+
+        const g = svg
+            .append("g")
+            .attr("fill", "green")
             .selectAll('path')
             .data(countries.features)
             .join('path')
             .attr('d', geoGenerator as any)
             .attr("stroke", "#FFF")
+            .attr("stroke-width", 0.5)
             .on("mousedown", mouseDownHandler)
             .on("mouseover", mouseOverHandler)
             .on("mouseover", mouseOverHandler)
-            .on("mouseout", mouseOutHandler);
-
+            .on("mouseout", mouseOutHandler)
+            .call(zoom()
+                .on('zoom', handleZoom)
+                .scaleExtent([1, 8])
+                .extent([[0, 0], [width, height]]) as any
+            );
     }, []);
-
-    let zooms = zoom()
-        .on('zoom', handleZoom)
-        .scaleExtent([1, Infinity])
-        .translateExtent([[0, 0], [width, height]])
-        .extent([[0, 0], [width, height]])
-
-    function handleZoom(e: any) {
-        select('svg')
-            .attr('transform', e.transform);
-    }
-
-    function initZoom() {
-        select('svg')
-            .call(zooms as any);
-    }
-
-    initZoom();
 
     return (
         <>
+            <MenuModal/>
             <div className="App"/>
             {countryToFind} - {selectedCounty}
         </>
