@@ -5,4 +5,5 @@ html, body, #root {
 
 .App {
     background-color: deepskyblue;
+    height: 100%;
 }
