@@ -18,23 +18,6 @@ const App = () => {
     const [countryToFind, setCountryToFind] = useState<string>(getNextCountry());
     const [selectedCounty, setSelectedCountry] = useState<string>();
 
-    const mouseDownHandler = (d: any, i: any) => {
-        const country = i.properties.name_long;
-        console.log(countryToFind, country);
-        if (countryToFind === country) {
-            setCountryToFind(getNextCountry());
-        }
-        setSelectedCountry(country);
-    }
-
-    const mouseOverHandler = (d: any, i: any) => {
-        select(d.target).attr("fill", 'red');
-    }
-
-    const mouseOutHandler = (d: any, i: any) => {
-        select(d.target).attr("fill", 'green');
-    }
-
     useEffect(() => {
         const projection = geoMercator()
             .center([114.1095, 45])
@@ -43,33 +26,51 @@ const App = () => {
 
         const geoGenerator = geoPath().projection(projection);
 
-
-        function handleZoom({transform}: any) {
+        const handleZoom = ({transform}: any) => {
             g.attr('transform', transform);
         }
 
         const svg = select(".App")
             .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
             .attr("viewBox", [0, 0, width, height]);
 
-        const g = svg
-            .append("g")
-            .attr("fill", "green")
+        const zooms = zoom()
+            .scaleExtent([1, 7])
+            .on("zoom", handleZoom);
+
+        const g = svg.call(zooms as any).append("g");
+
+        const mouseDownHandler = (d: any, i: any) => {
+            const country = i.properties.name_long;
+            console.log(countryToFind, country);
+            if (countryToFind === country) {
+                setCountryToFind(getNextCountry());
+            }
+            setSelectedCountry(country);
+        }
+
+        const mouseOverHandler = (d: any, i: any) => {
+            select(d.target).attr("fill", 'red');
+        }
+
+        const mouseOutHandler = (d: any, i: any) => {
+            select(d.target).attr("fill", 'green');
+        }
+
+        g.attr("fill", "green")
             .selectAll('path')
             .data(countries.features)
             .join('path')
             .attr('d', geoGenerator as any)
             .attr("stroke", "#FFF")
-            .attr("stroke-width", 0.5)
+            .attr("stroke-width", 0.1)
             .on("mousedown", mouseDownHandler)
             .on("mouseover", mouseOverHandler)
-            .on("mouseover", mouseOverHandler)
-            .on("mouseout", mouseOutHandler)
-            .call(zoom()
-                .on('zoom', handleZoom)
-                .scaleExtent([1, 8])
-                .extent([[0, 0], [width, height]]) as any
-            );
+            .on("mouseout", mouseOutHandler);
+
+
     }, []);
 
     return (
