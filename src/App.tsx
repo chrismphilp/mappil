@@ -1,11 +1,15 @@
 import {FC, useEffect, useState} from 'react';
 import {geoMercator, geoPath, select, zoom} from 'd3';
 import countries from './custom.geo.json';
-import './App.css';
 import ScoreContainer from "./score/ScoreContainer";
+import './App.css';
 
 const width = 1200;
 const height = 500;
+
+// https://github.com/ivan-ha/d3-hk-map/blob/development/map.js
+// https://bl.ocks.org/HarryStevens/75b3eb474527c10055618fa00123ba44
+// https://bl.ocks.org/HarryStevens/raw/75b3eb474527c10055618fa00123ba44/?raw=true
 
 const App: FC = () => {
 
@@ -17,6 +21,9 @@ const App: FC = () => {
     const countryList = countries.features.map(feature => feature.properties.name_long);
     const [countryToFind, setCountryToFind] = useState<string>(getNextCountry());
     const [selectedCounty, setSelectedCountry] = useState<string>();
+    const [score, setScore] = useState<number>(0);
+    const [errors, setErrors] = useState<number>(0);
+    const [streak, setStreak] = useState<number>(0);
 
     useEffect(() => {
         const projection = geoMercator()
@@ -37,7 +44,7 @@ const App: FC = () => {
             .attr("viewBox", [0, 0, width, height]);
 
         const zooms = zoom()
-            .scaleExtent([1, 7])
+            .scaleExtent([0.75, 7])
             .translateExtent([[0, 0], [width, height]])
             .on("zoom", handleZoom);
 
@@ -45,15 +52,10 @@ const App: FC = () => {
 
         const mouseDownHandler = (d: any, i: any) => {
             const country = i.properties.name_long;
-            checkIfCountryFound(country);
-            setSelectedCountry(country);
-        }
-
-        const checkIfCountryFound = (country: string) => {
-            console.log(countryToFind, country);
             if (countryToFind === country) {
                 setCountryToFind(getNextCountry());
             }
+            setSelectedCountry(country);
         }
 
         const mouseOverHandler = (d: any, i: any) => {
@@ -78,7 +80,7 @@ const App: FC = () => {
 
     return (
         <>
-            <ScoreContainer/>
+            <ScoreContainer countryToFind={countryToFind} score={score} errors={errors} streak={streak}/>
             <div className="App"/>
         </>
     );
