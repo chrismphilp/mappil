@@ -10,6 +10,8 @@ import './App.css';
 
 const App: FC = () => {
 
+    const audio = new Audio("/click.mp3")
+
     const getNextCountry = () => {
         const nextIndex = Math.floor(Math.random() * countryList.length);
         return countryList[nextIndex];
@@ -25,6 +27,7 @@ const App: FC = () => {
     const [streak, setStreak] = useState<number>(0);
 
     const updateSelectedCountry = (country: string) => {
+        audio.play();
         if (country === countryToFind) {
             const nextCountry: string = getNextCountry();
             setCountriesFound([country, ...countriesFound]);

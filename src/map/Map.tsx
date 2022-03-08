@@ -1,4 +1,4 @@
-import {FC, useEffect} from "react";
+import {FC, useEffect, useState} from "react";
 import {geoMercator, geoPath, select, zoom} from "d3";
 import countries from "../custom.geo.json";
 
@@ -14,9 +14,14 @@ type ScoreContainerProps = {
 
 const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, selectedCountry, countriesFound}) => {
 
-    const mouseDownHandler = (d: any, i: any) => {
-        const country = i.properties.name_long;
-        updateSelectedCountry(country);
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    const handleResize = () => {
+        setIsDesktop(window.innerWidth < 720);
+    }
+
+    const mouseDownHandler = (_: any, {properties: {name_long}}: any) => {
+        updateSelectedCountry(name_long);
     };
 
     const mouseOverHandler = (d: any, {properties: {name_long}}: any) => {
@@ -30,6 +35,10 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
             select(d.target).attr("fill", 'green');
         }
     };
+
+    useEffect(() => {
+        window.addEventListener("resize", handleResize);
+    }, []);
 
     useEffect(() => {
         const projection = geoMercator()
@@ -50,7 +59,7 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
         }
 
         const zooms = zoom()
-            .scaleExtent([0.75, 7])
+            .scaleExtent([0.75, isDesktop ? 7 : 25])
             .translateExtent([[0, 0], [width, height]])
             .on("zoom", handleZoom);
 
@@ -75,7 +84,8 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
             .on("mouseover", mouseOverHandler)
             .on("mouseout", mouseOutHandler)
             .filter(({properties: {name_long}}: any) => countriesFound.includes(name_long))
-            .attr("fill", "orange");
+            .attr("fill", "orange")
+            .attr("stroke", "black");
     }, [countryToFind, selectedCountry, countriesFound]);
 
     return (
