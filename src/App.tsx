@@ -59,7 +59,7 @@ const App: FC = () => {
             setState({
                 ...state,
                 selectedCountry: country,
-                countriesFound: [country, ...state.countriesFound],
+                countriesFound: [state.countryToFind, ...state.countriesFound],
                 countryToFind: nextCountry,
                 streak: state.currentGuessErrors > 0 ? 1 : state.streak + 1,
                 score: state.score + 1,
@@ -71,7 +71,7 @@ const App: FC = () => {
                 ...state,
                 selectedCountry: country,
                 errors: state.errors + 1,
-                countriesFound: [country, ...state.countriesFound],
+                countriesFound: [state.countryToFind, ...state.countriesFound],
                 countryToFind: nextCountry,
                 streak: 0,
                 currentGuessErrors: 0
