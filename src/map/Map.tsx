@@ -78,11 +78,13 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
     }, []);
 
     useEffect(() => {
+        console.log({countriesFound});
         select('g')
             .selectAll('path')
             .on("mousedown", mouseDownHandler)
             .on("mouseover", mouseOverHandler)
             .on("mouseout", mouseOutHandler)
+            .attr("fill", "green")
             .filter(({properties: {name_long}}: any) => countriesFound.includes(name_long))
             .attr("fill", "orange")
             .attr("stroke", "black");

@@ -12,7 +12,7 @@ import {filterCountriesOnDifficulty} from "./util/Map.util";
 // https://bl.ocks.org/HarryStevens/raw/75b3eb474527c10055618fa00123ba44/?raw=true
 
 type AppState = {
-    countryList: string[];
+    countriesToFind: string[];
     countryToFind: string;
     selectedCountry: string;
     countriesFound: string[];
@@ -28,7 +28,7 @@ const App: FC = () => {
 
     const audio = new Audio("/click.mp3")
 
-    const countryList = countries.features.map(feature => feature.properties.name_long);
+    const jsonCountries = countries.features.map(feature => feature.properties.name_long);
 
     const getNextCountry = (countryList: string[]) => {
         const nextIndex = Math.floor(Math.random() * countryList.length);
@@ -36,8 +36,8 @@ const App: FC = () => {
     }
 
     const [state, setState] = useState<AppState>({
-        countryList: countryList,
-        countryToFind: getNextCountry(countryList),
+        countriesToFind: filterCountriesOnDifficulty(DifficultyEnum.MEDIUM, countries),
+        countryToFind: getNextCountry(jsonCountries),
         selectedCountry: '',
         countriesFound: [],
         difficulty: DifficultyEnum.MEDIUM,
@@ -52,7 +52,7 @@ const App: FC = () => {
         const countriesWithDifficulty = filterCountriesOnDifficulty(difficulty, countries);
         setState({
             ...state,
-            countryList: countriesWithDifficulty,
+            countriesToFind: countriesWithDifficulty,
             countryToFind: getNextCountry(countriesWithDifficulty),
             selectedCountry: '',
             difficulty: difficulty,
@@ -65,11 +65,13 @@ const App: FC = () => {
     }
 
     const resetGame = () => {
-        const countriesWithDifficulty = filterCountriesOnDifficulty(state.difficulty, countries);
+        const countriesWithDifficulty: string[] = filterCountriesOnDifficulty(state.difficulty, countries);
+        const nextCountry: string = getNextCountry(countriesWithDifficulty);
+
         setState({
             ...state,
-            countryList: countriesWithDifficulty,
-            countryToFind: getNextCountry(countriesWithDifficulty),
+            countriesToFind: countriesWithDifficulty.filter(v => v !== nextCountry),
+            countryToFind: nextCountry,
             selectedCountry: '',
             countriesFound: [],
             score: 0,
@@ -84,10 +86,13 @@ const App: FC = () => {
         audio.play();
         console.log(state);
         if (country === state.countryToFind) {
-            if (state.countryList.length - 1 === 0) {
+            const newCountryList: string[] = state.countriesToFind.filter(v => v !== country);
+            const nextCountry: string = getNextCountry(newCountryList);
+
+            if (state.countriesToFind.length - 1 === 0) {
                 setState({
                     ...state,
-                    countryList: state.countryList.filter(v => v !== country),
+                    countriesToFind: newCountryList.filter(v => v !== nextCountry),
                     selectedCountry: country,
                     countriesFound: [state.countryToFind, ...state.countriesFound],
                     countryToFind: '',
@@ -97,10 +102,9 @@ const App: FC = () => {
                     gameOver: true,
                 });
             } else {
-                const nextCountry: string = getNextCountry(state.countryList);
                 setState({
                     ...state,
-                    countryList: state.countryList.filter(v => v !== country),
+                    countriesToFind: newCountryList.filter(v => v !== nextCountry),
                     selectedCountry: country,
                     countriesFound: [state.countryToFind, ...state.countriesFound],
                     countryToFind: nextCountry,
@@ -110,10 +114,12 @@ const App: FC = () => {
                 });
             }
         } else if (state.currentGuessErrors >= 2) {
-            const nextCountry: string = getNextCountry(state.countryList);
+            const newCountryList: string[] = state.countriesToFind.filter(v => v !== country || v !== state.countryToFind);
+            const nextCountry: string = getNextCountry(newCountryList);
+
             setState({
                 ...state,
-                countryList: state.countryList.filter(v => v !== nextCountry),
+                countriesToFind: newCountryList.filter(v => v !== nextCountry),
                 selectedCountry: country,
                 errors: state.errors + 1,
                 countriesFound: [state.countryToFind, ...state.countriesFound],
