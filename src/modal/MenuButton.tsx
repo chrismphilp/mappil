@@ -35,7 +35,7 @@ const MenuButton: FC<MenuButtonProps> = ({resetGame, changeDifficulty, difficult
 
     const openModal = () => {
         setIsOpen(true);
-    }
+    };
 
     const closeModal = () => {
         setIsOpen(false);

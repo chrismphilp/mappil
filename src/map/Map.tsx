@@ -2,17 +2,23 @@ import {FC, useEffect, useState} from "react";
 import {geoMercator, geoPath, select, zoom} from "d3";
 import countries from "../custom.geo.json";
 
-const width = 1200;
-const height = 500;
+const WIDTH: number = 1200;
+const HEIGHT: number = 500;
 
 type ScoreContainerProps = {
     updateSelectedCountry: (country: string) => void;
-    countryToFind: string;
+    countryToFind: string | undefined;
     selectedCountry: undefined | string;
     countriesFound: string[];
 };
 
-const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, selectedCountry, countriesFound}) => {
+const Map: FC<ScoreContainerProps> = (
+    {
+        updateSelectedCountry,
+        countryToFind,
+        selectedCountry,
+        countriesFound
+    }) => {
 
     const [isDesktop, setIsDesktop] = useState(false);
 
@@ -44,7 +50,7 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
         const projection = geoMercator()
             .center([14.1095, 45])
             .scale(155)
-            .translate([width / 2, height / 2]);
+            .translate([WIDTH / 2, HEIGHT / 2]);
 
         const geoGenerator = geoPath().projection(projection);
 
@@ -52,7 +58,7 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
             .append("svg")
             .attr("width", "100%")
             .attr("height", "100%")
-            .attr("viewBox", [0, 0, width, height]);
+            .attr("viewBox", [0, 0, WIDTH, HEIGHT]);
 
         const handleZoom = ({transform}: any) => {
             g.attr('transform', transform);
@@ -60,7 +66,7 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
 
         const zooms = zoom()
             .scaleExtent([0.75, isDesktop ? 7 : 25])
-            .translateExtent([[0, 0], [width, height]])
+            .translateExtent([[0, 0], [WIDTH, HEIGHT]])
             .on("zoom", handleZoom);
 
         const g = svg.call(zooms as any).append("g");
@@ -78,7 +84,6 @@ const Map: FC<ScoreContainerProps> = ({updateSelectedCountry, countryToFind, sel
     }, []);
 
     useEffect(() => {
-        console.log({countriesFound});
         select('g')
             .selectAll('path')
             .on("mousedown", mouseDownHandler)

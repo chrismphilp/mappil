@@ -13,8 +13,8 @@ import {filterCountriesOnDifficulty} from "./util/Map.util";
 
 type AppState = {
     countriesToFind: string[];
-    countryToFind: string;
-    selectedCountry: string;
+    countryToFind: string | undefined;
+    selectedCountry: string | undefined;
     countriesFound: string[];
     difficulty: DifficultyEnum;
     score: number;
@@ -38,7 +38,7 @@ const App: FC = () => {
     const [state, setState] = useState<AppState>({
         countriesToFind: filterCountriesOnDifficulty(DifficultyEnum.MEDIUM, countries),
         countryToFind: getNextCountry(jsonCountries),
-        selectedCountry: '',
+        selectedCountry: undefined,
         countriesFound: [],
         difficulty: DifficultyEnum.MEDIUM,
         score: 0,
@@ -54,7 +54,7 @@ const App: FC = () => {
             ...state,
             countriesToFind: countriesWithDifficulty,
             countryToFind: getNextCountry(countriesWithDifficulty),
-            selectedCountry: '',
+            selectedCountry: undefined,
             difficulty: difficulty,
             countriesFound: [],
             score: 0,
@@ -72,7 +72,7 @@ const App: FC = () => {
             ...state,
             countriesToFind: countriesWithDifficulty.filter(v => v !== nextCountry),
             countryToFind: nextCountry,
-            selectedCountry: '',
+            selectedCountry: undefined,
             countriesFound: [],
             score: 0,
             errors: 0,
@@ -95,7 +95,7 @@ const App: FC = () => {
                     countriesToFind: newCountryList.filter(v => v !== nextCountry),
                     selectedCountry: country,
                     countriesFound: [state.countryToFind, ...state.countriesFound],
-                    countryToFind: '',
+                    countryToFind: undefined,
                     streak: state.currentGuessErrors > 0 ? 1 : state.streak + 1,
                     score: state.score + 1,
                     currentGuessErrors: 0,
@@ -122,7 +122,7 @@ const App: FC = () => {
                 countriesToFind: newCountryList.filter(v => v !== nextCountry),
                 selectedCountry: country,
                 errors: state.errors + 1,
-                countriesFound: [state.countryToFind, ...state.countriesFound],
+                countriesFound: state.countryToFind ? [state.countryToFind, ...state.countriesFound] : state.countriesFound,
                 countryToFind: nextCountry,
                 streak: 0,
                 currentGuessErrors: 0,
