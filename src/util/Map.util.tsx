@@ -14,7 +14,7 @@ const processDifficultyPopulationEstimates = (difficulty: DifficultyEnum): numbe
         case DifficultyEnum.MEDIUM:
             return 25_000_000;
         case DifficultyEnum.HARD:
-            return -1;
+            return 10_000;
     }
 }
 

@@ -3,9 +3,9 @@ import countries from './custom.geo.json';
 import ScoreBoard from "./score/ScoreBoard";
 import Map from "./map/Map";
 import MenuButton from "./modal/MenuButton";
-import './App.css';
 import {DifficultyEnum} from "./map/Difficulty.enum";
 import {filterCountriesOnDifficulty} from "./util/Map.util";
+import './App.css';
 
 // https://github.com/ivan-ha/d3-hk-map/blob/development/map.js
 // https://bl.ocks.org/HarryStevens/75b3eb474527c10055618fa00123ba44
@@ -84,7 +84,6 @@ const App: FC = () => {
 
     const updateSelectedCountry = (country: string) => {
         audio.play();
-        console.log(state);
         if (country === state.countryToFind) {
             const newCountryList: string[] = state.countriesToFind.filter(v => v !== country);
             const nextCountry: string = getNextCountry(newCountryList);
