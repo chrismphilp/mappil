@@ -1,17 +1,49 @@
 import {FC} from "react";
 import Modal from 'react-modal';
 import {DifficultyEnum} from "../map/Difficulty.enum";
+import {MapType} from "../map/MapType.enum";
+import SwitchModeButton from "./SwitchModeButton";
 
 Modal.setAppElement('#root');
 
 type MenuModalProps = {
     closeModal: () => void;
     resetGame: () => void;
+    changeMap: (mapType: MapType) => void;
+    map: MapType;
     changeDifficulty: (difficulty: DifficultyEnum) => void;
     difficulty: DifficultyEnum;
 };
 
-const MenuModal: FC<MenuModalProps> = ({closeModal, resetGame, changeDifficulty, difficulty}) => {
+const MenuModal: FC<MenuModalProps> = (
+    {
+        closeModal,
+        resetGame,
+        changeMap,
+        map,
+        changeDifficulty,
+        difficulty
+    }) => {
+
+    const reduceMap = () => {
+        switch (map) {
+            case MapType.WORLD_COUNTRIES:
+                changeMap(MapType.UK_ADMINISTRATIVE_REGIONS);
+                break;
+            case MapType.UK_ADMINISTRATIVE_REGIONS:
+                changeMap(MapType.WORLD_COUNTRIES);
+        }
+    }
+
+    const increaseMap = () => {
+        switch (map) {
+            case MapType.WORLD_COUNTRIES:
+                changeMap(MapType.UK_ADMINISTRATIVE_REGIONS);
+                break;
+            case MapType.UK_ADMINISTRATIVE_REGIONS:
+                changeMap(MapType.WORLD_COUNTRIES);
+        }
+    }
 
     const reduceDifficulty = () => {
         switch (difficulty) {
@@ -42,24 +74,22 @@ const MenuModal: FC<MenuModalProps> = ({closeModal, resetGame, changeDifficulty,
     return (
         <div className="font-mono">
             <button className="float-right border-2 rounded-full cursor-pointer" onClick={closeModal}>x</button>
-            <br/><br/>
-            <div className="flex border-2 h-20">
-                <button className="flex-1 hover:bg-sky-700 cursor-pointer" onClick={reduceDifficulty}>
-                    &lt;
-                </button>
-                <button className="flex-auto w-64 h-full text-center align-middle"
-                        onClick={resetGame}>
-                    Difficulty: {difficulty}
-                </button>
-                <button className="flex-1 hover:bg-sky-700 cursor-pointer" onClick={increaseDifficulty}>
-                    &gt;
-                </button>
+            <div className="pt-10">
+                <SwitchModeButton leftClick={reduceMap}
+                                  rightClick={increaseMap}
+                                  buttonText={`Map: ${map}`}/>
             </div>
-            <br/>
-            <div className="w-full border-2 h-20 text-center align-middle">
-                <button className="w-full h-full hover:bg-sky-700 cursor-pointer" onClick={resetGame}>
-                    Reset Game
-                </button>
+            <div className="pt-5">
+                <SwitchModeButton leftClick={reduceDifficulty}
+                                  rightClick={increaseDifficulty}
+                                  buttonText={`Difficulty: ${difficulty}`}/>
+            </div>
+            <div className="pt-5">
+                <div className="w-full border-2 h-20 text-center align-middle">
+                    <button className="w-full h-full hover:bg-sky-700 cursor-pointer" onClick={resetGame}>
+                        Reset Game
+                    </button>
+                </div>
             </div>
         </div>
     );

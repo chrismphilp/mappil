@@ -1,11 +1,13 @@
 import {FC, useEffect, useState} from "react";
 import {geoMercator, geoPath, select, zoom} from "d3";
-import countries from "../custom.geo.json";
+import {MapDetails} from "./Map.data";
 
 const WIDTH: number = 1200;
 const HEIGHT: number = 500;
 
 type ScoreContainerProps = {
+    geoJsonData: any;
+    mapDetails: MapDetails;
     updateSelectedCountry: (country: string) => void;
     countryToFind: string | undefined;
     selectedCountry: undefined | string;
@@ -14,6 +16,8 @@ type ScoreContainerProps = {
 
 const Map: FC<ScoreContainerProps> = (
     {
+        geoJsonData,
+        mapDetails,
         updateSelectedCountry,
         countryToFind,
         selectedCountry,
@@ -48,14 +52,17 @@ const Map: FC<ScoreContainerProps> = (
 
     useEffect(() => {
         const projection = geoMercator()
-            .center([14.1095, 45])
-            .scale(155)
+            .center(mapDetails.center)
+            .scale(mapDetails.scale)
             .translate([WIDTH / 2, HEIGHT / 2]);
 
         const geoGenerator = geoPath().projection(projection);
 
+        select("#map").remove();
+
         const svg = select(".App")
             .append("svg")
+            .attr("id", "map")
             .attr("width", "100%")
             .attr("height", "100%")
             .attr("viewBox", [0, 0, WIDTH, HEIGHT]);
@@ -65,7 +72,7 @@ const Map: FC<ScoreContainerProps> = (
         }
 
         const zooms = zoom()
-            .scaleExtent([0.75, isDesktop ? 7 : 25])
+            .scaleExtent( isDesktop ? mapDetails.scaleExtent : mapDetails.mobileScaleExtent)
             .translateExtent([[0, 0], [WIDTH, HEIGHT]])
             .on("zoom", handleZoom);
 
@@ -73,7 +80,7 @@ const Map: FC<ScoreContainerProps> = (
 
         g.attr("fill", "green")
             .selectAll('path')
-            .data(countries.features)
+            .data(geoJsonData.features)
             .join('path')
             .attr('d', geoGenerator as any)
             .attr("stroke", "#FFF")
@@ -81,7 +88,7 @@ const Map: FC<ScoreContainerProps> = (
             .on("mousedown", mouseDownHandler)
             .on("mouseover", mouseOverHandler)
             .on("mouseout", mouseOutHandler);
-    }, []);
+    }, [geoJsonData]);
 
     useEffect(() => {
         select('g')

@@ -1,17 +1,20 @@
 import {FC, useState} from 'react';
-import countries from './custom.geo.json';
 import ScoreBoard from "./score/ScoreBoard";
 import Map from "./map/Map";
 import MenuButton from "./modal/MenuButton";
 import {DifficultyEnum} from "./map/Difficulty.enum";
-import {filterCountriesOnDifficulty} from "./util/Map.util";
+import {fetchJsonData, filterCountriesOnDifficulty} from "./map/Map.util";
+import {MapType} from "./map/MapType.enum";
 import './App.css';
+import {MapData} from "./map/Map.data";
 
 // https://github.com/ivan-ha/d3-hk-map/blob/development/map.js
 // https://bl.ocks.org/HarryStevens/75b3eb474527c10055618fa00123ba44
 // https://bl.ocks.org/HarryStevens/raw/75b3eb474527c10055618fa00123ba44/?raw=true
 
 type AppState = {
+    geoJsonData: any;
+    map: MapType;
     countriesToFind: string[];
     countryToFind: string | undefined;
     selectedCountry: string | undefined;
@@ -28,7 +31,8 @@ const App: FC = () => {
 
     const audio = new Audio("/click.mp3")
 
-    const jsonCountries = countries.features.map(feature => feature.properties.name_long);
+    const geoJsonData = fetchJsonData(MapType.WORLD_COUNTRIES);
+    let jsonCountries: string[] = geoJsonData.features.map((feature: any) => feature.properties.name_long);
 
     const getNextCountry = (countryList: string[]) => {
         const nextIndex = Math.floor(Math.random() * countryList.length);
@@ -36,7 +40,9 @@ const App: FC = () => {
     }
 
     const [state, setState] = useState<AppState>({
-        countriesToFind: filterCountriesOnDifficulty(DifficultyEnum.MEDIUM, countries),
+        geoJsonData: fetchJsonData(MapType.WORLD_COUNTRIES),
+        map: MapType.WORLD_COUNTRIES,
+        countriesToFind: filterCountriesOnDifficulty(MapType.WORLD_COUNTRIES, DifficultyEnum.MEDIUM, geoJsonData),
         countryToFind: getNextCountry(jsonCountries),
         selectedCountry: undefined,
         countriesFound: [],
@@ -48,8 +54,30 @@ const App: FC = () => {
         gameOver: false,
     });
 
+    const changeMap = (mapType: MapType) => {
+        const geoData = fetchJsonData(mapType);
+        jsonCountries = geoData.features.map((feature: any) => feature.properties.name_long);
+        const countriesWithDifficulty = filterCountriesOnDifficulty(mapType, state.difficulty, geoData);
+        const nextCountry: string = getNextCountry(countriesWithDifficulty);
+
+        setState({
+            ...state,
+            geoJsonData: geoData,
+            map: mapType,
+            countriesToFind: countriesWithDifficulty.filter(v => v !== nextCountry),
+            countryToFind: nextCountry,
+            selectedCountry: undefined,
+            countriesFound: [],
+            score: 0,
+            errors: 0,
+            currentGuessErrors: 0,
+            streak: 0,
+            gameOver: false,
+        });
+    }
+
     const changeDifficulty = (difficulty: DifficultyEnum) => {
-        const countriesWithDifficulty = filterCountriesOnDifficulty(difficulty, countries);
+        const countriesWithDifficulty = filterCountriesOnDifficulty(state.map, difficulty, geoJsonData);
         setState({
             ...state,
             countriesToFind: countriesWithDifficulty,
@@ -65,7 +93,7 @@ const App: FC = () => {
     }
 
     const resetGame = () => {
-        const countriesWithDifficulty: string[] = filterCountriesOnDifficulty(state.difficulty, countries);
+        const countriesWithDifficulty: string[] = filterCountriesOnDifficulty(state.map, state.difficulty, geoJsonData);
         const nextCountry: string = getNextCountry(countriesWithDifficulty);
 
         setState({
@@ -84,6 +112,7 @@ const App: FC = () => {
 
     const updateSelectedCountry = (country: string) => {
         audio.play();
+        console.log(state);
         if (country === state.countryToFind) {
             const newCountryList: string[] = state.countriesToFind.filter(v => v !== country);
             const nextCountry: string = getNextCountry(newCountryList);
@@ -140,13 +169,17 @@ const App: FC = () => {
     return (
         <>
             <MenuButton resetGame={resetGame}
+                        changeMap={changeMap}
+                        map={state.map}
                         changeDifficulty={changeDifficulty}
                         difficulty={state.difficulty}/>
             <ScoreBoard countryToFind={state.countryToFind}
                         score={state.score}
                         errors={state.errors}
                         streak={state.streak}/>
-            <Map updateSelectedCountry={updateSelectedCountry}
+            <Map geoJsonData={state.geoJsonData}
+                 mapDetails={MapData[state.map]}
+                 updateSelectedCountry={updateSelectedCountry}
                  countriesFound={state.countriesFound}
                  countryToFind={state.countryToFind}
                  selectedCountry={state.selectedCountry}/>
