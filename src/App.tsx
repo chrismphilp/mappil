@@ -31,7 +31,7 @@ const App: FC = () => {
 
     const audio = new Audio("/click.mp3")
 
-    const geoJsonData = fetchJsonData(MapType.WORLD_COUNTRIES);
+    const geoJsonData = fetchJsonData(MapType.MODERN_WORLD_COUNTRIES);
     let jsonRegions: string[] = geoJsonData.features.map((feature: any) => feature.properties.name_long);
 
     const getNextRegion = (countryList: string[]) => {
@@ -40,9 +40,9 @@ const App: FC = () => {
     }
 
     const [state, setState] = useState<AppState>({
-        geoJsonData: fetchJsonData(MapType.WORLD_COUNTRIES),
-        map: MapType.WORLD_COUNTRIES,
-        regionsToFind: filterRegionOnDifficulty(MapType.WORLD_COUNTRIES, DifficultyEnum.MEDIUM, geoJsonData),
+        geoJsonData: fetchJsonData(MapType.MODERN_WORLD_COUNTRIES),
+        map: MapType.MODERN_WORLD_COUNTRIES,
+        regionsToFind: filterRegionOnDifficulty(MapType.MODERN_WORLD_COUNTRIES, DifficultyEnum.MEDIUM, geoJsonData),
         regionToFind: getNextRegion(jsonRegions),
         selectedRegion: undefined,
         regionsFound: [],
@@ -112,6 +112,7 @@ const App: FC = () => {
 
     const updateSelectedRegion = (region: string) => {
         audio.play();
+        console.log(state);
         if (region === state.regionToFind) {
             const newRegionList: string[] = state.regionsToFind.filter(v => v !== region);
             const nextRegion: string = getNextRegion(newRegionList);

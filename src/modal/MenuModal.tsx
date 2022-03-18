@@ -27,21 +27,27 @@ const MenuModal: FC<MenuModalProps> = (
 
     const reduceMap = () => {
         switch (map) {
-            case MapType.WORLD_COUNTRIES:
+            case MapType.MODERN_WORLD_COUNTRIES:
                 changeMap(MapType.UK_ADMINISTRATIVE_REGIONS);
                 break;
+            case MapType.US_STATES:
+                changeMap(MapType.MODERN_WORLD_COUNTRIES);
+                break;
             case MapType.UK_ADMINISTRATIVE_REGIONS:
-                changeMap(MapType.WORLD_COUNTRIES);
+                changeMap(MapType.US_STATES);
         }
     }
 
     const increaseMap = () => {
         switch (map) {
-            case MapType.WORLD_COUNTRIES:
+            case MapType.MODERN_WORLD_COUNTRIES:
+                changeMap(MapType.US_STATES);
+                break;
+            case MapType.US_STATES:
                 changeMap(MapType.UK_ADMINISTRATIVE_REGIONS);
                 break;
             case MapType.UK_ADMINISTRATIVE_REGIONS:
-                changeMap(MapType.WORLD_COUNTRIES);
+                changeMap(MapType.MODERN_WORLD_COUNTRIES);
         }
     }
 
