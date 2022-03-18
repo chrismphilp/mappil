@@ -12,7 +12,7 @@ const fetchJsonData = (mapType: MapType) => {
     }
 };
 
-const filterCountriesOnDifficulty = (mapType: MapType, difficulty: DifficultyEnum, geoJsonData: any): string[] => {
+const filterRegionOnDifficulty = (mapType: MapType, difficulty: DifficultyEnum, geoJsonData: any): string[] => {
     switch (mapType) {
         case MapType.WORLD_COUNTRIES:
             const populationEstimate: number = processDifficultyPopulationEstimates(difficulty);
@@ -38,5 +38,5 @@ const processDifficultyPopulationEstimates = (difficulty: DifficultyEnum): numbe
 
 export {
     fetchJsonData,
-    filterCountriesOnDifficulty,
+    filterRegionOnDifficulty,
 }

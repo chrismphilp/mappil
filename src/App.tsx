@@ -1,12 +1,12 @@
-import {FC, useState} from 'react';
+import {FC, useMemo, useState} from 'react';
 import ScoreBoard from "./score/ScoreBoard";
 import Map from "./map/Map";
 import MenuButton from "./modal/MenuButton";
 import {DifficultyEnum} from "./map/Difficulty.enum";
-import {fetchJsonData, filterCountriesOnDifficulty} from "./map/Map.util";
+import {fetchJsonData, filterRegionOnDifficulty} from "./map/Map.util";
 import {MapType} from "./map/MapType.enum";
-import './App.css';
 import {MapData} from "./map/Map.data";
+import './App.css';
 
 // https://github.com/ivan-ha/d3-hk-map/blob/development/map.js
 // https://bl.ocks.org/HarryStevens/75b3eb474527c10055618fa00123ba44
@@ -15,10 +15,10 @@ import {MapData} from "./map/Map.data";
 type AppState = {
     geoJsonData: any;
     map: MapType;
-    countriesToFind: string[];
-    countryToFind: string | undefined;
-    selectedCountry: string | undefined;
-    countriesFound: string[];
+    regionsToFind: string[];
+    regionToFind: string | undefined;
+    selectedRegion: string | undefined;
+    regionsFound: string[];
     difficulty: DifficultyEnum;
     score: number;
     errors: number;
@@ -32,9 +32,9 @@ const App: FC = () => {
     const audio = new Audio("/click.mp3")
 
     const geoJsonData = fetchJsonData(MapType.WORLD_COUNTRIES);
-    let jsonCountries: string[] = geoJsonData.features.map((feature: any) => feature.properties.name_long);
+    let jsonRegions: string[] = geoJsonData.features.map((feature: any) => feature.properties.name_long);
 
-    const getNextCountry = (countryList: string[]) => {
+    const getNextRegion = (countryList: string[]) => {
         const nextIndex = Math.floor(Math.random() * countryList.length);
         return countryList[nextIndex];
     }
@@ -42,10 +42,10 @@ const App: FC = () => {
     const [state, setState] = useState<AppState>({
         geoJsonData: fetchJsonData(MapType.WORLD_COUNTRIES),
         map: MapType.WORLD_COUNTRIES,
-        countriesToFind: filterCountriesOnDifficulty(MapType.WORLD_COUNTRIES, DifficultyEnum.MEDIUM, geoJsonData),
-        countryToFind: getNextCountry(jsonCountries),
-        selectedCountry: undefined,
-        countriesFound: [],
+        regionsToFind: filterRegionOnDifficulty(MapType.WORLD_COUNTRIES, DifficultyEnum.MEDIUM, geoJsonData),
+        regionToFind: getNextRegion(jsonRegions),
+        selectedRegion: undefined,
+        regionsFound: [],
         difficulty: DifficultyEnum.MEDIUM,
         score: 0,
         errors: 0,
@@ -54,54 +54,54 @@ const App: FC = () => {
         gameOver: false,
     });
 
-    const changeMap = (mapType: MapType) => {
+    const changeMap = (mapType: MapType) => useMemo(() => {
         const geoData = fetchJsonData(mapType);
-        jsonCountries = geoData.features.map((feature: any) => feature.properties.name_long);
-        const countriesWithDifficulty = filterCountriesOnDifficulty(mapType, state.difficulty, geoData);
-        const nextCountry: string = getNextCountry(countriesWithDifficulty);
+        jsonRegions = geoData.features.map((feature: any) => feature.properties.name_long);
+        const regionsWithDifficulty = filterRegionOnDifficulty(mapType, state.difficulty, geoData);
+        const nextRegion: string = getNextRegion(regionsWithDifficulty);
 
         setState({
             ...state,
             geoJsonData: geoData,
             map: mapType,
-            countriesToFind: countriesWithDifficulty.filter(v => v !== nextCountry),
-            countryToFind: nextCountry,
-            selectedCountry: undefined,
-            countriesFound: [],
+            regionsToFind: regionsWithDifficulty.filter(v => v !== nextRegion),
+            regionToFind: nextRegion,
+            selectedRegion: undefined,
+            regionsFound: [],
             score: 0,
             errors: 0,
             currentGuessErrors: 0,
             streak: 0,
             gameOver: false,
         });
-    }
+    }, [mapType]);
 
-    const changeDifficulty = (difficulty: DifficultyEnum) => {
-        const countriesWithDifficulty = filterCountriesOnDifficulty(state.map, difficulty, geoJsonData);
+    const changeDifficulty = (difficulty: DifficultyEnum) => useMemo(() => {
+        const regionsWithDifficulty = filterRegionOnDifficulty(state.map, difficulty, state.geoJsonData);
         setState({
             ...state,
-            countriesToFind: countriesWithDifficulty,
-            countryToFind: getNextCountry(countriesWithDifficulty),
-            selectedCountry: undefined,
+            regionsToFind: regionsWithDifficulty,
+            regionToFind: getNextRegion(regionsWithDifficulty),
+            selectedRegion: undefined,
             difficulty: difficulty,
-            countriesFound: [],
+            regionsFound: [],
             score: 0,
             errors: 0,
             currentGuessErrors: 0,
             streak: 0,
         });
-    }
+    }, [difficulty]);
 
     const resetGame = () => {
-        const countriesWithDifficulty: string[] = filterCountriesOnDifficulty(state.map, state.difficulty, geoJsonData);
-        const nextCountry: string = getNextCountry(countriesWithDifficulty);
+        const regionsWithDifficulty: string[] = filterRegionOnDifficulty(state.map, state.difficulty, geoJsonData);
+        const nextRegion: string = getNextRegion(regionsWithDifficulty);
 
         setState({
             ...state,
-            countriesToFind: countriesWithDifficulty.filter(v => v !== nextCountry),
-            countryToFind: nextCountry,
-            selectedCountry: undefined,
-            countriesFound: [],
+            regionsToFind: regionsWithDifficulty.filter(v => v !== nextRegion),
+            regionToFind: nextRegion,
+            selectedRegion: undefined,
+            regionsFound: [],
             score: 0,
             errors: 0,
             currentGuessErrors: 0,
@@ -110,20 +110,19 @@ const App: FC = () => {
         });
     };
 
-    const updateSelectedCountry = (country: string) => {
+    const updateSelectedRegion = (region: string) => {
         audio.play();
-        console.log(state);
-        if (country === state.countryToFind) {
-            const newCountryList: string[] = state.countriesToFind.filter(v => v !== country);
-            const nextCountry: string = getNextCountry(newCountryList);
+        if (region === state.regionToFind) {
+            const newRegionList: string[] = state.regionsToFind.filter(v => v !== region);
+            const nextRegion: string = getNextRegion(newRegionList);
 
-            if (state.countriesToFind.length - 1 === 0) {
+            if (state.regionsToFind.length - 1 === 0) {
                 setState({
                     ...state,
-                    countriesToFind: newCountryList.filter(v => v !== nextCountry),
-                    selectedCountry: country,
-                    countriesFound: [state.countryToFind, ...state.countriesFound],
-                    countryToFind: undefined,
+                    regionsToFind: newRegionList.filter(v => v !== nextRegion),
+                    selectedRegion: region,
+                    regionsFound: [state.regionToFind, ...state.regionsFound],
+                    regionToFind: undefined,
                     streak: state.currentGuessErrors > 0 ? 1 : state.streak + 1,
                     score: state.score + 1,
                     currentGuessErrors: 0,
@@ -132,33 +131,33 @@ const App: FC = () => {
             } else {
                 setState({
                     ...state,
-                    countriesToFind: newCountryList.filter(v => v !== nextCountry),
-                    selectedCountry: country,
-                    countriesFound: [state.countryToFind, ...state.countriesFound],
-                    countryToFind: nextCountry,
+                    regionsToFind: newRegionList.filter(v => v !== nextRegion),
+                    selectedRegion: region,
+                    regionsFound: [state.regionToFind, ...state.regionsFound],
+                    regionToFind: nextRegion,
                     streak: state.currentGuessErrors > 0 ? 1 : state.streak + 1,
                     score: state.score + 1,
                     currentGuessErrors: 0,
                 });
             }
         } else if (state.currentGuessErrors >= 2) {
-            const newCountryList: string[] = state.countriesToFind.filter(v => v !== country || v !== state.countryToFind);
-            const nextCountry: string = getNextCountry(newCountryList);
+            const newRegionList: string[] = state.regionsToFind.filter(v => v !== region || v !== state.regionToFind);
+            const nextRegion: string = getNextRegion(newRegionList);
 
             setState({
                 ...state,
-                countriesToFind: newCountryList.filter(v => v !== nextCountry),
-                selectedCountry: country,
+                regionsToFind: newRegionList.filter(v => v !== nextRegion),
+                selectedRegion: region,
                 errors: state.errors + 1,
-                countriesFound: state.countryToFind ? [state.countryToFind, ...state.countriesFound] : state.countriesFound,
-                countryToFind: nextCountry,
+                regionsFound: state.regionToFind ? [state.regionToFind, ...state.regionsFound] : state.regionsFound,
+                regionToFind: nextRegion,
                 streak: 0,
                 currentGuessErrors: 0,
             });
         } else {
             setState({
                 ...state,
-                selectedCountry: country,
+                selectedRegion: region,
                 errors: state.errors + 1,
                 streak: 0,
                 currentGuessErrors: state.currentGuessErrors + 1,
@@ -173,16 +172,16 @@ const App: FC = () => {
                         map={state.map}
                         changeDifficulty={changeDifficulty}
                         difficulty={state.difficulty}/>
-            <ScoreBoard countryToFind={state.countryToFind}
+            <ScoreBoard regionToFind={state.regionToFind}
                         score={state.score}
                         errors={state.errors}
                         streak={state.streak}/>
             <Map geoJsonData={state.geoJsonData}
                  mapDetails={MapData[state.map]}
-                 updateSelectedCountry={updateSelectedCountry}
-                 countriesFound={state.countriesFound}
-                 countryToFind={state.countryToFind}
-                 selectedCountry={state.selectedCountry}/>
+                 updateSelectedRegion={updateSelectedRegion}
+                 regionsFound={state.regionsFound}
+                 regionToFind={state.regionToFind}
+                 selectedRegion={state.selectedRegion}/>
             <div className="App"/>
         </>
     );

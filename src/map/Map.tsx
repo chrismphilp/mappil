@@ -8,20 +8,20 @@ const HEIGHT: number = 500;
 type ScoreContainerProps = {
     geoJsonData: any;
     mapDetails: MapDetails;
-    updateSelectedCountry: (country: string) => void;
-    countryToFind: string | undefined;
-    selectedCountry: undefined | string;
-    countriesFound: string[];
+    updateSelectedRegion: (country: string) => void;
+    regionToFind: string | undefined;
+    selectedRegion: undefined | string;
+    regionsFound: string[];
 };
 
 const Map: FC<ScoreContainerProps> = (
     {
         geoJsonData,
         mapDetails,
-        updateSelectedCountry,
-        countryToFind,
-        selectedCountry,
-        countriesFound
+        updateSelectedRegion,
+        regionToFind,
+        selectedRegion,
+        regionsFound
     }) => {
 
     const [isDesktop, setIsDesktop] = useState(false);
@@ -31,17 +31,17 @@ const Map: FC<ScoreContainerProps> = (
     }
 
     const mouseDownHandler = (_: any, {properties: {name_long}}: any) => {
-        updateSelectedCountry(name_long);
+        updateSelectedRegion(name_long);
     };
 
     const mouseOverHandler = (d: any, {properties: {name_long}}: any) => {
-        if (!countriesFound.includes(name_long)) {
+        if (!regionsFound.includes(name_long)) {
             select(d.target).attr("fill", 'orange');
         }
     };
 
     const mouseOutHandler = (d: any, {properties: {name_long}}: any) => {
-        if (!countriesFound.includes(name_long)) {
+        if (!regionsFound.includes(name_long)) {
             select(d.target).attr("fill", 'green');
         }
     };
@@ -97,10 +97,10 @@ const Map: FC<ScoreContainerProps> = (
             .on("mouseover", mouseOverHandler)
             .on("mouseout", mouseOutHandler)
             .attr("fill", "green")
-            .filter(({properties: {name_long}}: any) => countriesFound.includes(name_long))
+            .filter(({properties: {name_long}}: any) => regionsFound.includes(name_long))
             .attr("fill", "orange")
             .attr("stroke", "black");
-    }, [countryToFind, selectedCountry, countriesFound]);
+    }, [regionToFind, selectedRegion, regionsFound]);
 
     return (
         <></>
