@@ -1,4 +1,4 @@
-import {FC, useMemo, useState} from 'react';
+import {FC, useCallback, useState} from 'react';
 import ScoreBoard from "./score/ScoreBoard";
 import Map from "./map/Map";
 import MenuButton from "./modal/MenuButton";
@@ -54,7 +54,7 @@ const App: FC = () => {
         gameOver: false,
     });
 
-    const changeMap = (mapType: MapType) => useMemo(() => {
+    const changeMap = (mapType: MapType) => useCallback(() => {
         const geoData = fetchJsonData(mapType);
         jsonRegions = geoData.features.map((feature: any) => feature.properties.name_long);
         const regionsWithDifficulty = filterRegionOnDifficulty(mapType, state.difficulty, geoData);
@@ -76,7 +76,7 @@ const App: FC = () => {
         });
     }, [mapType]);
 
-    const changeDifficulty = (difficulty: DifficultyEnum) => useMemo(() => {
+    const changeDifficulty = (difficulty: DifficultyEnum) => useCallback(() => {
         const regionsWithDifficulty = filterRegionOnDifficulty(state.map, difficulty, state.geoJsonData);
         setState({
             ...state,
