@@ -18,6 +18,5 @@ html, body, #root {
     font-size: 2px;
     line-height: 28px;
     letter-spacing: 0.133em;
-    /*z-index: 1000;*/
-    /*pointer-events: none;*/
+    pointer-events: none;
 }
