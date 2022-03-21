@@ -1,5 +1,5 @@
 import {FC, useEffect, useState} from "react";
-import {geoMercator, geoPath, select, zoom} from "d3";
+import {geoMercator, geoPath, select, selectAll, zoom} from "d3";
 import {MapDetails} from "./Map.data";
 
 const WIDTH: number = 1200;
@@ -50,13 +50,14 @@ const Map: FC<ScoreContainerProps> = (
         window.addEventListener("resize", handleResize);
     }, []);
 
-    useEffect(() => {
-        const projection = geoMercator()
-            .center(mapDetails.center)
-            .scale(mapDetails.scale)
-            .translate([WIDTH / 2, HEIGHT / 2]);
+    const projection = geoMercator()
+        .center(mapDetails.center)
+        .scale(mapDetails.scale)
+        .translate([WIDTH / 2, HEIGHT / 2]);
 
-        const geoGenerator = geoPath().projection(projection);
+    const geoGenerator = geoPath().projection(projection);
+
+    useEffect(() => {
 
         select("#map").remove();
 
@@ -88,6 +89,8 @@ const Map: FC<ScoreContainerProps> = (
             .on("mousedown", mouseDownHandler)
             .on("mouseover", mouseOverHandler)
             .on("mouseout", mouseOutHandler);
+
+        g.append('g').attr('id', 'text-container');
     }, [geoJsonData]);
 
     useEffect(() => {
@@ -101,6 +104,20 @@ const Map: FC<ScoreContainerProps> = (
             .attr("fill", "orange")
             .attr("stroke", "black");
     }, [regionToFind, selectedRegion, regionsFound]);
+
+    useEffect(() => {
+        selectAll('.place-label').remove();
+
+        select('#text-container')
+            .selectAll('.place-label')
+            .data(geoJsonData.features)
+            .enter()
+            .filter(({properties: {name_long}}: any) => regionsFound.includes(name_long))
+            .append("text")
+            .attr("transform", (d: any) => `translate(${geoGenerator.centroid(d)})`)
+            .attr("class", "place-label")
+            .text(({properties: {name_long}}: any) => name_long);
+    }, [regionsFound]);
 
     return (
         <></>

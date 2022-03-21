@@ -93,7 +93,7 @@ const App: FC = () => {
     };
 
     const resetGame = () => {
-        const regionsWithDifficulty: string[] = filterRegionOnDifficulty(state.map, state.difficulty, geoJsonData);
+        const regionsWithDifficulty: string[] = filterRegionOnDifficulty(state.map, state.difficulty, state.geoJsonData);
         const nextRegion: string = getNextRegion(regionsWithDifficulty);
 
         setState({
@@ -117,7 +117,7 @@ const App: FC = () => {
             const newRegionList: string[] = state.regionsToFind.filter(v => v !== region);
             const nextRegion: string = getNextRegion(newRegionList);
 
-            if (state.regionsToFind.length - 1 === 0) {
+            if (state.regionsToFind.length === 0) {
                 setState({
                     ...state,
                     regionsToFind: newRegionList.filter(v => v !== nextRegion),
