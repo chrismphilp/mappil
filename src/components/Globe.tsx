@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import { geoJsonData } from '../data/maps';
+import { getGeoJsonData } from '../data/maps';
 
 interface GlobeProps {
   regionsFound: string[];
@@ -35,12 +35,20 @@ function featureCentroid(feature: any): { lat: number; lng: number } | null {
   return { lat: latSum / coords.length, lng: lngSum / coords.length };
 }
 
-// Pre-compute a lookup from country name to centroid
-const centroidMap = new Map<string, { lat: number; lng: number }>();
-for (const feature of geoJsonData.features) {
-  const name = (feature as any).properties.name_long;
-  const centroid = featureCentroid(feature);
-  if (name && centroid) centroidMap.set(name, centroid);
+// Lazy-init centroid lookup — computed once on first access
+let centroidMap: Map<string, { lat: number; lng: number }> | null = null;
+function getCentroidMap(): Map<string, { lat: number; lng: number }> {
+  if (centroidMap) return centroidMap;
+  centroidMap = new Map();
+  const data = getGeoJsonData();
+  if (data) {
+    for (const feature of data.features) {
+      const name = (feature as any).properties.name_long;
+      const centroid = featureCentroid(feature);
+      if (name && centroid) centroidMap.set(name, centroid);
+    }
+  }
+  return centroidMap;
 }
 
 const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => {
@@ -50,6 +58,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
     height: window.innerHeight,
   });
 
+  const geoJsonData = getGeoJsonData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
 
   useEffect(() => {
@@ -85,7 +94,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
   // Fly to skipped region on 3rd strike
   useEffect(() => {
     if (flyToRegion && globeRef.current) {
-      const target = centroidMap.get(flyToRegion);
+      const target = getCentroidMap().get(flyToRegion);
       if (target) {
         globeRef.current.pointOfView(
           { lat: target.lat, lng: target.lng, altitude: 1.5 },
@@ -156,7 +165,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
       showAtmosphere={true}
       atmosphereColor="#3b82f6"
       atmosphereAltitude={0.2}
-      polygonsData={geoJsonData.features}
+      polygonsData={geoJsonData?.features}
       polygonCapColor={getCapColor}
       polygonSideColor={getSideColor}
       polygonStrokeColor={getStrokeColor}

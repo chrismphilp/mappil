@@ -1,7 +1,17 @@
-import worldGeoJson from '../geojson/world.geo.json';
 import { Difficulty } from '../types/game.types';
 
-export const geoJsonData = worldGeoJson as any;
+let geoJsonData: any = null;
+
+export async function loadGeoJson(): Promise<any> {
+  if (geoJsonData) return geoJsonData;
+  const response = await fetch(`${process.env.PUBLIC_URL}/data/world.geo.json`);
+  geoJsonData = await response.json();
+  return geoJsonData;
+}
+
+export function getGeoJsonData(): any {
+  return geoJsonData;
+}
 
 const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
   [Difficulty.EASY]: 50_000_000,

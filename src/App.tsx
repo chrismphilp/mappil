@@ -1,20 +1,24 @@
-import { FC, useState } from 'react';
+import { FC, lazy, Suspense, useEffect, useState } from 'react';
+import { loadGeoJson } from './data/maps';
 import { useGameState } from './hooks/useGameState';
-import Globe from './components/Globe';
 import HUD from './components/HUD';
 import FeedbackOverlay from './components/FeedbackOverlay';
 import SettingsButton from './components/SettingsButton';
 import SettingsPanel from './components/SettingsPanel';
 import GameCompleteModal from './components/GameCompleteModal';
 
-const App: FC = () => {
+const Globe = lazy(() => import('./components/Globe'));
+
+const GameContent: FC = () => {
   const { state, selectRegion, changeDifficulty, resetGame, progress, totalRegions } =
     useGameState();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-slate-950 overflow-hidden">
-      <Globe regionsFound={state.regionsFound} flyToRegion={state.skippedRegion} onRegionClick={selectRegion} />
+      <Suspense fallback={null}>
+        <Globe regionsFound={state.regionsFound} flyToRegion={state.skippedRegion} onRegionClick={selectRegion} />
+      </Suspense>
 
       <HUD
         regionToFind={state.regionToFind}
@@ -52,6 +56,24 @@ const App: FC = () => {
       />
     </div>
   );
+};
+
+const App: FC = () => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    loadGeoJson().then(() => setReady(true));
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 flex items-center justify-center">
+        <div className="text-slate-400 text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  return <GameContent />;
 };
 
 export default App;
