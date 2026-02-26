@@ -69,6 +69,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
       controls.enableDamping = true;
       controls.rotateSpeed = 0.5;
       controls.zoomSpeed = 0.6;
+
+      globeRef.current.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
     }
   }, []);
 
@@ -141,9 +143,13 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
     [regionsFoundSet]
   );
 
+  const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
+
   return (
     <GlobeGL
       ref={globeRef}
+      rendererConfig={{ antialias: false, alpha: true }}
+      animateIn={false}
       width={dimensions.width}
       height={dimensions.height}
       backgroundColor="rgba(0,0,0,0)"
@@ -153,12 +159,13 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
       polygonsData={geoJsonData.features}
       polygonCapColor={getCapColor}
       polygonSideColor={getSideColor}
-      polygonStrokeColor={() => 'rgba(148, 163, 184, 0.2)'}
+      polygonStrokeColor={getStrokeColor}
       polygonAltitude={getAltitude}
+      polygonCapCurvatureResolution={3}
       polygonLabel={getLabel}
       onPolygonClick={handleClick}
       onZoom={handleZoom}
-      polygonsTransitionDuration={300}
+      polygonsTransitionDuration={150}
     />
   );
 };
