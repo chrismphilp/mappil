@@ -6,6 +6,7 @@ interface GlobeProps {
   regionsFound: string[];
   flyToRegion: string | null;
   onRegionClick: (region: string) => void;
+  onReady?: () => void;
 }
 
 // Compute centroid lat/lng from a GeoJSON feature
@@ -51,7 +52,7 @@ function getCentroidMap(): Map<string, { lat: number; lng: number }> {
   return centroidMap;
 }
 
-const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => {
+const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
@@ -80,8 +81,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick }) => 
       controls.zoomSpeed = 0.6;
 
       globeRef.current.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      onReady?.();
     }
-  }, []);
+  }, [onReady]);
 
   // Stop auto-rotate when zoomed in
   const AUTO_ROTATE_ALTITUDE = 1.8;
