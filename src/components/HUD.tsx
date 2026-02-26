@@ -13,6 +13,8 @@ interface HUDProps {
   progress: number;
   regionsFound: number;
   totalRegions: number;
+  gameOver: boolean;
+  onSkip: () => void;
 }
 
 const HUD: FC<HUDProps> = ({
@@ -24,6 +26,8 @@ const HUD: FC<HUDProps> = ({
   progress,
   regionsFound,
   totalRegions,
+  gameOver,
+  onSkip,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -96,6 +100,17 @@ const HUD: FC<HUDProps> = ({
                       }`}
                     />
                   ))}
+                </div>
+
+                {/* Skip button */}
+                <div className="flex justify-center mb-3">
+                  <button
+                    onClick={onSkip}
+                    disabled={gameOver}
+                    className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Skip
+                  </button>
                 </div>
 
                 {/* Progress bar */}

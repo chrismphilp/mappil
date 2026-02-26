@@ -5,9 +5,10 @@ import confetti from 'canvas-confetti';
 interface FeedbackOverlayProps {
   lastAnswerCorrect: boolean | null;
   streak: number;
+  skippedRegion: string | null;
 }
 
-const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ lastAnswerCorrect, streak }) => {
+const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ lastAnswerCorrect, streak, skippedRegion }) => {
   useEffect(() => {
     if (lastAnswerCorrect && streak >= 3) {
       const intensity = Math.min(streak * 0.03, 0.4);
@@ -32,13 +33,24 @@ const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ lastAnswerCorrect, streak }
           transition={{ duration: 0.25 }}
           className="fixed top-1/3 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
         >
-          <span
-            className={`text-4xl sm:text-5xl font-black drop-shadow-2xl ${
-              lastAnswerCorrect ? 'text-emerald-400' : 'text-red-400'
-            }`}
-          >
-            {lastAnswerCorrect ? 'Correct!' : 'Wrong!'}
-          </span>
+          {skippedRegion ? (
+            <span className="text-center">
+              <span className="block text-4xl sm:text-5xl font-black drop-shadow-2xl text-amber-400">
+                Skipped
+              </span>
+              <span className="block text-lg sm:text-xl font-semibold text-amber-300/80 mt-1">
+                {skippedRegion}
+              </span>
+            </span>
+          ) : (
+            <span
+              className={`text-4xl sm:text-5xl font-black drop-shadow-2xl ${
+                lastAnswerCorrect ? 'text-emerald-400' : 'text-red-400'
+              }`}
+            >
+              {lastAnswerCorrect ? 'Correct!' : 'Wrong!'}
+            </span>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

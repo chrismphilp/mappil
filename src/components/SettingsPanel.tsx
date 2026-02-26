@@ -1,13 +1,29 @@
 import { FC } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty } from '../types/game.types';
+import { Difficulty, ContinentFilter } from '../types/game.types';
 import OptionSelector from './OptionSelector';
+
+const CONTINENT_OPTIONS: ContinentFilter[] = [
+  'World', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania',
+];
+
+const CONTINENT_LABELS: Record<ContinentFilter, string> = {
+  'World': 'World',
+  'Africa': 'Africa',
+  'Asia': 'Asia',
+  'Europe': 'Europe',
+  'North America': 'N. America',
+  'South America': 'S. America',
+  'Oceania': 'Oceania',
+};
 
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
   difficulty: Difficulty;
+  continent: ContinentFilter;
   onChangeDifficulty: (d: Difficulty) => void;
+  onChangeContinent: (c: ContinentFilter) => void;
   onReset: () => void;
 }
 
@@ -15,7 +31,9 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
   open,
   onClose,
   difficulty,
+  continent,
   onChangeDifficulty,
+  onChangeContinent,
   onReset,
 }) => (
   <AnimatePresence>
@@ -38,6 +56,21 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
           className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-8"
         >
           <h2 className="text-lg font-bold text-white">Settings</h2>
+
+          <div>
+            <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">
+              Region
+            </label>
+            <OptionSelector
+              options={CONTINENT_OPTIONS}
+              selected={continent}
+              getLabel={(c) => CONTINENT_LABELS[c]}
+              onChange={(c) => {
+                onChangeContinent(c);
+                onClose();
+              }}
+            />
+          </div>
 
           <div>
             <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">

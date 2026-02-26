@@ -9,8 +9,16 @@ import GameCompleteModal from './GameCompleteModal';
 const Globe = lazy(() => import('./Globe'));
 
 const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
-  const { state, selectRegion, changeDifficulty, resetGame, progress, totalRegions } =
-    useGameState();
+  const {
+    state,
+    selectRegion,
+    skipRegion,
+    changeDifficulty,
+    changeContinent,
+    resetGame,
+    progress,
+    totalRegions,
+  } = useGameState();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -33,11 +41,14 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         progress={progress}
         regionsFound={state.regionsFound.length}
         totalRegions={totalRegions}
+        gameOver={state.gameOver}
+        onSkip={skipRegion}
       />
 
       <FeedbackOverlay
         lastAnswerCorrect={state.lastAnswerCorrect}
         streak={state.streak}
+        skippedRegion={state.skippedRegion}
       />
 
       <SettingsButton onClick={() => setSettingsOpen(true)} />
@@ -46,7 +57,9 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         difficulty={state.difficulty}
+        continent={state.continent}
         onChangeDifficulty={changeDifficulty}
+        onChangeContinent={changeContinent}
         onReset={resetGame}
       />
 

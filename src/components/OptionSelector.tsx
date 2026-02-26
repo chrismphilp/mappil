@@ -4,15 +4,17 @@ interface OptionSelectorProps<T extends string> {
   options: T[];
   selected: T;
   onChange: (value: T) => void;
+  getLabel?: (value: T) => string;
 }
 
 function OptionSelector<T extends string>({
   options,
   selected,
   onChange,
+  getLabel,
 }: OptionSelectorProps<T>) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {options.map((opt) => (
         <motion.button
           key={opt}
@@ -24,7 +26,7 @@ function OptionSelector<T extends string>({
               : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60'
           }`}
         >
-          {opt}
+          {getLabel ? getLabel(opt) : opt}
         </motion.button>
       ))}
     </div>

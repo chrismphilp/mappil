@@ -1,13 +1,13 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameAction, Difficulty } from '../types/game.types';
+import { GameState, GameAction, Difficulty, ContinentFilter } from '../types/game.types';
 import { getFilteredRegions } from '../data/maps';
 
 function pickRandom(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function buildInitialState(difficulty: Difficulty): GameState {
-  const regions = getFilteredRegions(difficulty);
+function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = 'World'): GameState {
+  const regions = getFilteredRegions(difficulty, continent);
   const first = pickRandom(regions);
   return {
     regionsToFind: regions.filter((r) => r !== first),
@@ -15,6 +15,7 @@ function buildInitialState(difficulty: Difficulty): GameState {
     selectedRegion: undefined,
     regionsFound: [],
     difficulty,
+    continent,
     score: 0,
     errors: 0,
     currentGuessErrors: 0,
@@ -23,6 +24,43 @@ function buildInitialState(difficulty: Difficulty): GameState {
     gameOver: false,
     lastAnswerCorrect: null,
     skippedRegion: null,
+  };
+}
+
+function skipCurrentRegion(state: GameState): GameState {
+  if (state.gameOver || !state.regionToFind) return state;
+
+  const skipped = state.regionToFind;
+  const remaining = state.regionsToFind.filter((r) => r !== skipped);
+
+  if (remaining.length === 0) {
+    return {
+      ...state,
+      regionsToFind: [],
+      selectedRegion: undefined,
+      errors: state.errors + 1,
+      regionsFound: [skipped, ...state.regionsFound],
+      regionToFind: undefined,
+      streak: 0,
+      currentGuessErrors: 0,
+      gameOver: true,
+      lastAnswerCorrect: false,
+      skippedRegion: skipped,
+    };
+  }
+
+  const next = pickRandom(remaining);
+  return {
+    ...state,
+    regionsToFind: remaining.filter((r) => r !== next),
+    selectedRegion: undefined,
+    errors: state.errors + 1,
+    regionsFound: [skipped, ...state.regionsFound],
+    regionToFind: next,
+    streak: 0,
+    currentGuessErrors: 0,
+    lastAnswerCorrect: false,
+    skippedRegion: skipped,
   };
 }
 
@@ -72,40 +110,7 @@ function reducer(state: GameState, action: GameAction): GameState {
 
       // Wrong answer — 3rd strike: skip this region
       if (state.currentGuessErrors >= 2) {
-        const skipped = state.regionToFind;
-        const remaining = state.regionsToFind.filter((r) => r !== skipped);
-        if (remaining.length === 0) {
-          return {
-            ...state,
-            regionsToFind: [],
-            selectedRegion: region,
-            errors: state.errors + 1,
-            regionsFound: skipped
-              ? [skipped, ...state.regionsFound]
-              : state.regionsFound,
-            regionToFind: undefined,
-            streak: 0,
-            currentGuessErrors: 0,
-            gameOver: true,
-            lastAnswerCorrect: false,
-            skippedRegion: skipped ?? null,
-          };
-        }
-        const next = pickRandom(remaining);
-        return {
-          ...state,
-          regionsToFind: remaining.filter((r) => r !== next),
-          selectedRegion: region,
-          errors: state.errors + 1,
-          regionsFound: skipped
-            ? [skipped, ...state.regionsFound]
-            : state.regionsFound,
-          regionToFind: next,
-          streak: 0,
-          currentGuessErrors: 0,
-          lastAnswerCorrect: false,
-          skippedRegion: skipped ?? null,
-        };
+        return skipCurrentRegion(state);
       }
 
       // Wrong answer — still has attempts
@@ -120,11 +125,17 @@ function reducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SKIP_REGION':
+      return skipCurrentRegion(state);
+
     case 'CHANGE_DIFFICULTY':
-      return buildInitialState(action.difficulty);
+      return buildInitialState(action.difficulty, state.continent);
+
+    case 'CHANGE_CONTINENT':
+      return buildInitialState(state.difficulty, action.continent);
 
     case 'RESET_GAME':
-      return buildInitialState(state.difficulty);
+      return buildInitialState(state.difficulty, state.continent);
 
     case 'CLEAR_FEEDBACK':
       return { ...state, lastAnswerCorrect: null, skippedRegion: null };
@@ -142,8 +153,16 @@ export function useGameState() {
     dispatch({ type: 'SELECT_REGION', region });
   }, []);
 
+  const skipRegion = useCallback(() => {
+    dispatch({ type: 'SKIP_REGION' });
+  }, []);
+
   const changeDifficulty = useCallback((difficulty: Difficulty) => {
     dispatch({ type: 'CHANGE_DIFFICULTY', difficulty });
+  }, []);
+
+  const changeContinent = useCallback((continent: ContinentFilter) => {
+    dispatch({ type: 'CHANGE_CONTINENT', continent });
   }, []);
 
   const resetGame = useCallback(() => {
@@ -154,14 +173,15 @@ export function useGameState() {
     dispatch({ type: 'CLEAR_FEEDBACK' });
   }, []);
 
-  // Auto-clear feedback after 800ms
+  // Auto-clear feedback — 2s for skips (fly-to animation), 500ms otherwise
   useEffect(() => {
     if (state.lastAnswerCorrect !== null) {
       clearTimeout(feedbackTimer.current);
-      feedbackTimer.current = setTimeout(clearFeedback, 500);
+      const delay = state.skippedRegion ? 2000 : 500;
+      feedbackTimer.current = setTimeout(clearFeedback, delay);
     }
     return () => clearTimeout(feedbackTimer.current);
-  }, [state.lastAnswerCorrect, state.score, state.errors, clearFeedback]);
+  }, [state.lastAnswerCorrect, state.score, state.errors, state.skippedRegion, clearFeedback]);
 
   const totalRegions =
     state.regionsFound.length + state.regionsToFind.length + (state.regionToFind ? 1 : 0);
@@ -170,7 +190,9 @@ export function useGameState() {
   return {
     state,
     selectRegion,
+    skipRegion,
     changeDifficulty,
+    changeContinent,
     resetGame,
     clearFeedback,
     progress,

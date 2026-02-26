@@ -1,4 +1,4 @@
-import { Difficulty } from '../types/game.types';
+import { Difficulty, ContinentFilter } from '../types/game.types';
 
 let geoJsonData: any = null;
 
@@ -53,9 +53,23 @@ const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
   [Difficulty.HARD]: 10_000,
 };
 
-export function getFilteredRegions(difficulty: Difficulty): string[] {
+export function getFilteredRegions(difficulty: Difficulty, continent?: ContinentFilter): string[] {
   const threshold = POPULATION_THRESHOLDS[difficulty];
-  return geoJsonData.features
+  let features = geoJsonData.features;
+
+  if (continent && continent !== 'World') {
+    features = features.filter((f: any) => f.properties.continent === continent);
+  }
+
+  const filtered = features
     .filter((f: any) => f.properties.pop_est > threshold)
     .map((f: any) => f.properties.name_long);
+
+  // Fallback: if continent filter + difficulty leaves fewer than 2 countries,
+  // return all countries for that continent regardless of population
+  if (filtered.length < 2 && continent && continent !== 'World') {
+    return features.map((f: any) => f.properties.name_long);
+  }
+
+  return filtered;
 }

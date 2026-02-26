@@ -118,10 +118,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getCapColor = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
+      if (flyToRegion && name === flyToRegion) return 'rgba(251, 191, 36, 0.85)';
       if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
       return 'rgba(71, 85, 105, 0.6)';
     },
-    [regionsFoundSet]
+    [regionsFoundSet, flyToRegion]
   );
 
   const getSideColor = useCallback(
