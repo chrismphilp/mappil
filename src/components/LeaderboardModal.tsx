@@ -141,7 +141,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                         {i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white truncate">{entry.username}</div>
+                        <div className="text-sm font-semibold text-white truncate">{entry.username}</div>
                         <div className="text-xs text-slate-500">
                           {formatDuration(entry.duration_secs)}
                         </div>

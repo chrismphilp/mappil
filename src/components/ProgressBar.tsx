@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface ProgressBarProps {
@@ -16,4 +16,4 @@ const ProgressBar: FC<ProgressBarProps> = ({ progress }) => (
   </div>
 );
 
-export default ProgressBar;
+export default memo(ProgressBar);

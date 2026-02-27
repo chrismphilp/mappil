@@ -115,7 +115,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               onReset();
               onClose();
             }}
-            className="px-4 py-3 rounded-xl bg-red-500/20 text-red-400 font-medium hover:bg-red-500/30 transition-colors"
+            className="px-4 py-3 rounded-xl bg-red-500/20 text-red-400 font-semibold hover:bg-red-500/30 transition-colors"
           >
             Reset Game
           </button>

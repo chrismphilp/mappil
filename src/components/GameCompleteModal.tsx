@@ -1,6 +1,5 @@
 import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { submitScore } from '../lib/leaderboard';
 
 interface GameCompleteModalProps {
@@ -38,11 +37,13 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     if (open) {
       setSubmitState('idle');
       setErrorMsg('');
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.5 },
-        colors: ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa'],
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa'],
+        });
       });
     }
   }, [open]);
@@ -93,7 +94,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-sm w-[90vw] text-center shadow-2xl"
           >
-            <h2 className="text-3xl font-black text-white mb-2">Game Complete!</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">Game Complete!</h2>
             <p className="text-slate-400 text-sm mb-6">
               You explored {totalRegions} countries
             </p>
@@ -129,7 +130,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 <button
                   onClick={handleSubmit}
                   disabled={submitState === 'submitting'}
-                  className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 font-medium text-sm hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
+                  className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
                 >
                   {submitState === 'submitting' ? 'Submitting...' : 'Submit Score'}
                 </button>

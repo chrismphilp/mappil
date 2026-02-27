@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, memo } from 'react';
 
 const SPINNER_SIZE = 80;
 const STROKE_WIDTH = 4;
@@ -38,4 +38,4 @@ const LoadingOverlay: FC<{ progress: number }> = ({ progress }) => {
   );
 };
 
-export default LoadingOverlay;
+export default memo(LoadingOverlay);
