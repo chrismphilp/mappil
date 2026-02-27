@@ -1,13 +1,31 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameAction, ActionType, Difficulty, ContinentFilter } from '../types/game.types';
+import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode } from '../types/game.types';
 import { getFilteredRegions } from '../data/maps';
+
+const QUICK_PLAY_COUNT = 10;
 
 function pickRandom(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = ContinentFilter.WORLD): GameState {
-  const regions = getFilteredRegions(difficulty, continent);
+function shuffle(arr: string[]): string[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildInitialState(
+  difficulty: Difficulty,
+  continent: ContinentFilter = ContinentFilter.WORLD,
+  gameMode: GameMode = GameMode.QUICK,
+): GameState {
+  let regions = getFilteredRegions(difficulty, continent);
+  if (gameMode === GameMode.QUICK && regions.length > QUICK_PLAY_COUNT) {
+    regions = shuffle(regions).slice(0, QUICK_PLAY_COUNT);
+  }
   const first = pickRandom(regions);
   return {
     regionsToFind: regions.filter((r) => r !== first),
@@ -16,6 +34,7 @@ function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = 
     regionsFound: [],
     difficulty,
     continent,
+    gameMode,
     score: 0,
     errors: 0,
     currentGuessErrors: 0,
@@ -131,13 +150,16 @@ function reducer(state: GameState, action: GameAction): GameState {
       return skipCurrentRegion(state);
 
     case ActionType.CHANGE_DIFFICULTY:
-      return buildInitialState(action.difficulty, state.continent);
+      return buildInitialState(action.difficulty, state.continent, state.gameMode);
 
     case ActionType.CHANGE_CONTINENT:
-      return buildInitialState(state.difficulty, action.continent);
+      return buildInitialState(state.difficulty, action.continent, state.gameMode);
+
+    case ActionType.CHANGE_GAME_MODE:
+      return buildInitialState(state.difficulty, state.continent, action.gameMode);
 
     case ActionType.RESET_GAME:
-      return buildInitialState(state.difficulty, state.continent);
+      return buildInitialState(state.difficulty, state.continent, state.gameMode);
 
     case ActionType.CLEAR_FEEDBACK:
       return { ...state, lastAnswerCorrect: null, skippedRegion: null };
@@ -165,6 +187,10 @@ export function useGameState() {
 
   const changeContinent = useCallback((continent: ContinentFilter) => {
     dispatch({ type: ActionType.CHANGE_CONTINENT, continent });
+  }, []);
+
+  const changeGameMode = useCallback((gameMode: GameMode) => {
+    dispatch({ type: ActionType.CHANGE_GAME_MODE, gameMode });
   }, []);
 
   const resetGame = useCallback(() => {
@@ -198,6 +224,7 @@ export function useGameState() {
     skipRegion,
     changeDifficulty,
     changeContinent,
+    changeGameMode,
     resetGame,
     clearFeedback,
     progress,

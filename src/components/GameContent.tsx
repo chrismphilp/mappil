@@ -17,6 +17,7 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
     skipRegion,
     changeDifficulty,
     changeContinent,
+    changeGameMode,
     resetGame,
     progress,
     totalRegions,
@@ -65,6 +66,7 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         onClose={() => setLeaderboardOpen(false)}
         difficulty={state.difficulty}
         continent={state.continent}
+        gameMode={state.gameMode}
       />
 
       <SettingsPanel
@@ -72,8 +74,10 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         onClose={() => setSettingsOpen(false)}
         difficulty={state.difficulty}
         continent={state.continent}
+        gameMode={state.gameMode}
         onChangeDifficulty={changeDifficulty}
         onChangeContinent={changeContinent}
+        onChangeGameMode={changeGameMode}
         onReset={resetGame}
       />
 
@@ -85,6 +89,7 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         totalRegions={totalRegions}
         difficulty={state.difficulty}
         continent={state.continent}
+        gameMode={state.gameMode}
         durationSecs={durationSecs}
         onPlayAgain={resetGame}
       />

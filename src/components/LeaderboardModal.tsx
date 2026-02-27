@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty, ContinentFilter } from '../types/game.types';
+import { Difficulty, ContinentFilter, GameMode } from '../types/game.types';
 import { fetchLeaderboard, ScoreEntry } from '../lib/leaderboard';
 
 interface LeaderboardModalProps {
@@ -8,6 +8,7 @@ interface LeaderboardModalProps {
   onClose: () => void;
   difficulty: Difficulty;
   continent: ContinentFilter;
+  gameMode: GameMode;
 }
 
 function formatDuration(secs: number): string {
@@ -21,17 +22,20 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
   onClose,
   difficulty,
   continent,
+  gameMode,
 }) => {
   const [entries, setEntries] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterDifficulty, setFilterDifficulty] = useState<string>(difficulty);
   const [filterContinent, setFilterContinent] = useState<string>(continent);
+  const [filterGameMode, setFilterGameMode] = useState<string>(gameMode);
 
   useEffect(() => {
     if (!open) return;
     setFilterDifficulty(difficulty);
     setFilterContinent(continent);
-  }, [open, difficulty, continent]);
+    setFilterGameMode(gameMode);
+  }, [open, difficulty, continent, gameMode]);
 
   useEffect(() => {
     if (!open) return;
@@ -40,12 +44,13 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
     fetchLeaderboard(
       filterDifficulty || undefined,
       filterContinent === ContinentFilter.WORLD ? undefined : filterContinent || undefined,
+      filterGameMode || undefined,
     )
       .then((data) => { if (!cancelled) setEntries(data); })
       .catch(() => { if (!cancelled) setEntries([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, filterDifficulty, filterContinent]);
+  }, [open, filterDifficulty, filterContinent, filterGameMode]);
 
   return (
     <AnimatePresence>
@@ -77,11 +82,19 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                 </button>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <select
+                  value={filterGameMode}
+                  onChange={(e) => setFilterGameMode(e.target.value)}
+                  className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                >
+                  <option value={GameMode.QUICK}>Quick Play</option>
+                  <option value={GameMode.FULL}>Full Game</option>
+                </select>
                 <select
                   value={filterDifficulty}
                   onChange={(e) => setFilterDifficulty(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                  className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                 >
                   <option value={Difficulty.EASY}>Easy</option>
                   <option value={Difficulty.MEDIUM}>Medium</option>
@@ -90,7 +103,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                 <select
                   value={filterContinent}
                   onChange={(e) => setFilterContinent(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                  className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                 >
                   <option value={ContinentFilter.WORLD}>World</option>
                   <option value={ContinentFilter.AFRICA}>Africa</option>

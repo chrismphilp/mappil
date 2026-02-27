@@ -9,6 +9,7 @@ export interface ScoreEntry {
   total_regions: number;
   difficulty: string;
   continent: string;
+  game_mode: string;
   duration_secs: number;
   created_at: string;
 }
@@ -21,6 +22,7 @@ export interface SubmitScoreParams {
   total_regions: number;
   difficulty: string;
   continent: string;
+  game_mode: string;
   duration_secs: number;
 }
 
@@ -32,6 +34,7 @@ export async function submitScore(params: SubmitScoreParams): Promise<void> {
 export async function fetchLeaderboard(
   difficulty?: string,
   continent?: string,
+  gameMode?: string,
 ): Promise<ScoreEntry[]> {
   let query = supabase
     .from('scores')
@@ -46,6 +49,9 @@ export async function fetchLeaderboard(
   }
   if (continent) {
     query = query.eq('continent', continent);
+  }
+  if (gameMode) {
+    query = query.eq('game_mode', gameMode);
   }
 
   const { data, error } = await query;

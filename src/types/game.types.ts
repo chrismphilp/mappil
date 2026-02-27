@@ -4,6 +4,11 @@ export enum Difficulty {
   HARD = 'Hard',
 }
 
+export enum GameMode {
+  QUICK = 'Quick Play',
+  FULL = 'Full Game',
+}
+
 export enum ContinentFilter {
   WORLD = 'World',
   AFRICA = 'Africa',
@@ -21,6 +26,7 @@ export interface GameState {
   regionsFound: string[];
   difficulty: Difficulty;
   continent: ContinentFilter;
+  gameMode: GameMode;
   score: number;
   errors: number;
   currentGuessErrors: number;
@@ -37,6 +43,7 @@ export enum ActionType {
   SKIP_REGION = 'SKIP_REGION',
   CHANGE_DIFFICULTY = 'CHANGE_DIFFICULTY',
   CHANGE_CONTINENT = 'CHANGE_CONTINENT',
+  CHANGE_GAME_MODE = 'CHANGE_GAME_MODE',
   RESET_GAME = 'RESET_GAME',
   CLEAR_FEEDBACK = 'CLEAR_FEEDBACK',
 }
@@ -46,5 +53,6 @@ export type GameAction =
   | { type: ActionType.SKIP_REGION }
   | { type: ActionType.CHANGE_DIFFICULTY; difficulty: Difficulty }
   | { type: ActionType.CHANGE_CONTINENT; continent: ContinentFilter }
+  | { type: ActionType.CHANGE_GAME_MODE; gameMode: GameMode }
   | { type: ActionType.RESET_GAME }
   | { type: ActionType.CLEAR_FEEDBACK };

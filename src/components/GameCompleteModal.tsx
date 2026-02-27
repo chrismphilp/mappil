@@ -11,6 +11,7 @@ interface GameCompleteModalProps {
   totalRegions: number;
   difficulty: string;
   continent: string;
+  gameMode: string;
   durationSecs: number;
   onPlayAgain: () => void;
 }
@@ -25,6 +26,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   totalRegions,
   difficulty,
   continent,
+  gameMode,
   durationSecs,
   onPlayAgain,
 }) => {
@@ -65,6 +67,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
         total_regions: totalRegions,
         difficulty,
         continent,
+        game_mode: gameMode,
         duration_secs: durationSecs,
       });
       setSubmitState('submitted');
