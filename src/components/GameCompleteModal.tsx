@@ -1,6 +1,7 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { submitScore } from '../lib/leaderboard';
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -8,8 +9,13 @@ interface GameCompleteModalProps {
   errors: number;
   bestStreak: number;
   totalRegions: number;
+  difficulty: string;
+  continent: string;
+  durationSecs: number;
   onPlayAgain: () => void;
 }
+
+const STORAGE_KEY = 'mappil_username';
 
 const GameCompleteModal: FC<GameCompleteModalProps> = ({
   open,
@@ -17,10 +23,19 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   errors,
   bestStreak,
   totalRegions,
+  difficulty,
+  continent,
+  durationSecs,
   onPlayAgain,
 }) => {
+  const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
+  const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
   useEffect(() => {
     if (open) {
+      setSubmitState('idle');
+      setErrorMsg('');
       confetti({
         particleCount: 150,
         spread: 100,
@@ -29,6 +44,35 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       });
     }
   }, [open]);
+
+  const handleSubmit = async () => {
+    const trimmed = username.trim();
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      setErrorMsg('Username must be 3-20 characters');
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, trimmed);
+    setSubmitState('submitting');
+    setErrorMsg('');
+
+    try {
+      await submitScore({
+        username: trimmed,
+        score,
+        errors,
+        best_streak: bestStreak,
+        total_regions: totalRegions,
+        difficulty,
+        continent,
+        duration_secs: durationSecs,
+      });
+      setSubmitState('submitted');
+    } catch (e: any) {
+      setSubmitState('error');
+      setErrorMsg(e.message ?? 'Failed to submit score');
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -51,7 +95,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               You explored {totalRegions} countries
             </p>
 
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-4 mb-6">
               <div>
                 <div className="text-2xl font-bold text-emerald-400">{score}</div>
                 <div className="text-xs text-slate-400 uppercase">Score</div>
@@ -65,6 +109,33 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 <div className="text-xs text-slate-400 uppercase">Best Streak</div>
               </div>
             </div>
+
+            {submitState !== 'submitted' && (
+              <div className="mb-6">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  maxLength={20}
+                  className="w-full px-4 py-2 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 mb-2"
+                />
+                {errorMsg && (
+                  <p className="text-red-400 text-xs mb-2">{errorMsg}</p>
+                )}
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitState === 'submitting'}
+                  className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 font-medium text-sm hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
+                >
+                  {submitState === 'submitting' ? 'Submitting...' : 'Submit Score'}
+                </button>
+              </div>
+            )}
+
+            {submitState === 'submitted' && (
+              <p className="text-emerald-400 text-sm mb-6">Score submitted!</p>
+            )}
 
             <motion.button
               whileHover={{ scale: 1.05 }}

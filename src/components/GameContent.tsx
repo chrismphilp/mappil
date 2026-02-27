@@ -5,6 +5,8 @@ import FeedbackOverlay from './FeedbackOverlay';
 import SettingsButton from './SettingsButton';
 import SettingsPanel from './SettingsPanel';
 import GameCompleteModal from './GameCompleteModal';
+import LeaderboardButton from './LeaderboardButton';
+import LeaderboardModal from './LeaderboardModal';
 
 const Globe = lazy(() => import('./Globe'));
 
@@ -18,8 +20,10 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
     resetGame,
     progress,
     totalRegions,
+    durationSecs,
   } = useGameState();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-slate-950 overflow-hidden">
@@ -53,6 +57,15 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
 
       <SettingsButton onClick={() => setSettingsOpen(true)} />
 
+      <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
+
+      <LeaderboardModal
+        open={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        difficulty={state.difficulty}
+        continent={state.continent}
+      />
+
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -69,6 +82,9 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         errors={state.errors}
         bestStreak={state.bestStreak}
         totalRegions={totalRegions}
+        difficulty={state.difficulty}
+        continent={state.continent}
+        durationSecs={durationSecs}
         onPlayAgain={resetGame}
       />
     </div>

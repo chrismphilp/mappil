@@ -21,6 +21,7 @@ export interface GameState {
   gameOver: boolean;
   lastAnswerCorrect: boolean | null;
   skippedRegion: string | null;
+  startTime: number | null;
 }
 
 export type GameAction =

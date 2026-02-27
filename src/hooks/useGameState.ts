@@ -24,13 +24,14 @@ function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = 
     gameOver: false,
     lastAnswerCorrect: null,
     skippedRegion: null,
+    startTime: null,
   };
 }
 
 function skipCurrentRegion(state: GameState): GameState {
   if (state.gameOver || !state.regionToFind) return state;
-
   const skipped = state.regionToFind;
+  state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
   const remaining = state.regionsToFind.filter((r) => r !== skipped);
 
   if (remaining.length === 0) {
@@ -69,6 +70,7 @@ function reducer(state: GameState, action: GameAction): GameState {
     case 'SELECT_REGION': {
       const { region } = action;
       if (state.gameOver || !state.regionToFind) return state;
+      state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
 
       if (region === state.regionToFind) {
         const remaining = state.regionsToFind.filter((r) => r !== region);
@@ -186,6 +188,9 @@ export function useGameState() {
   const totalRegions =
     state.regionsFound.length + state.regionsToFind.length + (state.regionToFind ? 1 : 0);
   const progress = totalRegions > 0 ? state.regionsFound.length / totalRegions : 0;
+  const durationSecs = state.startTime !== null && state.gameOver
+    ? Math.floor((Date.now() - state.startTime) / 1000)
+    : 0;
 
   return {
     state,
@@ -197,5 +202,6 @@ export function useGameState() {
     clearFeedback,
     progress,
     totalRegions,
+    durationSecs,
   };
 }
