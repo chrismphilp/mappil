@@ -4,17 +4,18 @@ import { Difficulty, ContinentFilter } from '../types/game.types';
 import OptionSelector from './OptionSelector';
 
 const CONTINENT_OPTIONS: ContinentFilter[] = [
-  'World', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania',
+  ContinentFilter.WORLD, ContinentFilter.AFRICA, ContinentFilter.ASIA, ContinentFilter.EUROPE,
+  ContinentFilter.NORTH_AMERICA, ContinentFilter.SOUTH_AMERICA, ContinentFilter.OCEANIA,
 ];
 
 const CONTINENT_LABELS: Record<ContinentFilter, string> = {
-  'World': 'World',
-  'Africa': 'Africa',
-  'Asia': 'Asia',
-  'Europe': 'Europe',
-  'North America': 'N. America',
-  'South America': 'S. America',
-  'Oceania': 'Oceania',
+  [ContinentFilter.WORLD]: 'World',
+  [ContinentFilter.AFRICA]: 'Africa',
+  [ContinentFilter.ASIA]: 'Asia',
+  [ContinentFilter.EUROPE]: 'Europe',
+  [ContinentFilter.NORTH_AMERICA]: 'N. America',
+  [ContinentFilter.SOUTH_AMERICA]: 'S. America',
+  [ContinentFilter.OCEANIA]: 'Oceania',
 };
 
 interface SettingsPanelProps {

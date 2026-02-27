@@ -57,7 +57,7 @@ export function getFilteredRegions(difficulty: Difficulty, continent?: Continent
   const threshold = POPULATION_THRESHOLDS[difficulty];
   let features = geoJsonData.features;
 
-  if (continent && continent !== 'World') {
+  if (continent && continent !== ContinentFilter.WORLD) {
     features = features.filter((f: any) => f.properties.continent === continent);
   }
 
@@ -67,7 +67,7 @@ export function getFilteredRegions(difficulty: Difficulty, continent?: Continent
 
   // Fallback: if continent filter + difficulty leaves fewer than 2 countries,
   // return all countries for that continent regardless of population
-  if (filtered.length < 2 && continent && continent !== 'World') {
+  if (filtered.length < 2 && continent && continent !== ContinentFilter.WORLD) {
     return features.map((f: any) => f.properties.name_long);
   }
 

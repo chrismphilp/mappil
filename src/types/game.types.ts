@@ -4,7 +4,15 @@ export enum Difficulty {
   HARD = 'Hard',
 }
 
-export type ContinentFilter = 'World' | 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
+export enum ContinentFilter {
+  WORLD = 'World',
+  AFRICA = 'Africa',
+  ASIA = 'Asia',
+  EUROPE = 'Europe',
+  NORTH_AMERICA = 'North America',
+  SOUTH_AMERICA = 'South America',
+  OCEANIA = 'Oceania',
+}
 
 export interface GameState {
   regionsToFind: string[];
@@ -24,10 +32,19 @@ export interface GameState {
   startTime: number | null;
 }
 
+export enum ActionType {
+  SELECT_REGION = 'SELECT_REGION',
+  SKIP_REGION = 'SKIP_REGION',
+  CHANGE_DIFFICULTY = 'CHANGE_DIFFICULTY',
+  CHANGE_CONTINENT = 'CHANGE_CONTINENT',
+  RESET_GAME = 'RESET_GAME',
+  CLEAR_FEEDBACK = 'CLEAR_FEEDBACK',
+}
+
 export type GameAction =
-  | { type: 'SELECT_REGION'; region: string }
-  | { type: 'SKIP_REGION' }
-  | { type: 'CHANGE_DIFFICULTY'; difficulty: Difficulty }
-  | { type: 'CHANGE_CONTINENT'; continent: ContinentFilter }
-  | { type: 'RESET_GAME' }
-  | { type: 'CLEAR_FEEDBACK' };
+  | { type: ActionType.SELECT_REGION; region: string }
+  | { type: ActionType.SKIP_REGION }
+  | { type: ActionType.CHANGE_DIFFICULTY; difficulty: Difficulty }
+  | { type: ActionType.CHANGE_CONTINENT; continent: ContinentFilter }
+  | { type: ActionType.RESET_GAME }
+  | { type: ActionType.CLEAR_FEEDBACK };

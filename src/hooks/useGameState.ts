@@ -1,12 +1,12 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameAction, Difficulty, ContinentFilter } from '../types/game.types';
+import { GameState, GameAction, ActionType, Difficulty, ContinentFilter } from '../types/game.types';
 import { getFilteredRegions } from '../data/maps';
 
 function pickRandom(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = 'World'): GameState {
+function buildInitialState(difficulty: Difficulty, continent: ContinentFilter = ContinentFilter.WORLD): GameState {
   const regions = getFilteredRegions(difficulty, continent);
   const first = pickRandom(regions);
   return {
@@ -67,7 +67,7 @@ function skipCurrentRegion(state: GameState): GameState {
 
 function reducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'SELECT_REGION': {
+    case ActionType.SELECT_REGION: {
       const { region } = action;
       if (state.gameOver || !state.regionToFind) return state;
       state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
@@ -127,19 +127,19 @@ function reducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'SKIP_REGION':
+    case ActionType.SKIP_REGION:
       return skipCurrentRegion(state);
 
-    case 'CHANGE_DIFFICULTY':
+    case ActionType.CHANGE_DIFFICULTY:
       return buildInitialState(action.difficulty, state.continent);
 
-    case 'CHANGE_CONTINENT':
+    case ActionType.CHANGE_CONTINENT:
       return buildInitialState(state.difficulty, action.continent);
 
-    case 'RESET_GAME':
+    case ActionType.RESET_GAME:
       return buildInitialState(state.difficulty, state.continent);
 
-    case 'CLEAR_FEEDBACK':
+    case ActionType.CLEAR_FEEDBACK:
       return { ...state, lastAnswerCorrect: null, skippedRegion: null };
 
     default:
@@ -152,27 +152,27 @@ export function useGameState() {
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const selectRegion = useCallback((region: string) => {
-    dispatch({ type: 'SELECT_REGION', region });
+    dispatch({ type: ActionType.SELECT_REGION, region });
   }, []);
 
   const skipRegion = useCallback(() => {
-    dispatch({ type: 'SKIP_REGION' });
+    dispatch({ type: ActionType.SKIP_REGION });
   }, []);
 
   const changeDifficulty = useCallback((difficulty: Difficulty) => {
-    dispatch({ type: 'CHANGE_DIFFICULTY', difficulty });
+    dispatch({ type: ActionType.CHANGE_DIFFICULTY, difficulty });
   }, []);
 
   const changeContinent = useCallback((continent: ContinentFilter) => {
-    dispatch({ type: 'CHANGE_CONTINENT', continent });
+    dispatch({ type: ActionType.CHANGE_CONTINENT, continent });
   }, []);
 
   const resetGame = useCallback(() => {
-    dispatch({ type: 'RESET_GAME' });
+    dispatch({ type: ActionType.RESET_GAME });
   }, []);
 
   const clearFeedback = useCallback(() => {
-    dispatch({ type: 'CLEAR_FEEDBACK' });
+    dispatch({ type: ActionType.CLEAR_FEEDBACK });
   }, []);
 
   // Auto-clear feedback — 2s for skips (fly-to animation), 500ms otherwise

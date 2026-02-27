@@ -39,7 +39,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
     setLoading(true);
     fetchLeaderboard(
       filterDifficulty || undefined,
-      filterContinent === 'World' ? undefined : filterContinent || undefined,
+      filterContinent === ContinentFilter.WORLD ? undefined : filterContinent || undefined,
     )
       .then((data) => { if (!cancelled) setEntries(data); })
       .catch(() => { if (!cancelled) setEntries([]); })
@@ -83,22 +83,22 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                   onChange={(e) => setFilterDifficulty(e.target.value)}
                   className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                 >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                  <option value={Difficulty.EASY}>Easy</option>
+                  <option value={Difficulty.MEDIUM}>Medium</option>
+                  <option value={Difficulty.HARD}>Hard</option>
                 </select>
                 <select
                   value={filterContinent}
                   onChange={(e) => setFilterContinent(e.target.value)}
                   className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                 >
-                  <option value="World">World</option>
-                  <option value="Africa">Africa</option>
-                  <option value="Asia">Asia</option>
-                  <option value="Europe">Europe</option>
-                  <option value="North America">N. America</option>
-                  <option value="South America">S. America</option>
-                  <option value="Oceania">Oceania</option>
+                  <option value={ContinentFilter.WORLD}>World</option>
+                  <option value={ContinentFilter.AFRICA}>Africa</option>
+                  <option value={ContinentFilter.ASIA}>Asia</option>
+                  <option value={ContinentFilter.EUROPE}>Europe</option>
+                  <option value={ContinentFilter.NORTH_AMERICA}>N. America</option>
+                  <option value={ContinentFilter.SOUTH_AMERICA}>S. America</option>
+                  <option value={ContinentFilter.OCEANIA}>Oceania</option>
                 </select>
               </div>
             </div>
