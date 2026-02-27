@@ -11,7 +11,7 @@ const SettingsButton: FC<SettingsButtonProps> = ({ onClick }) => (
     whileTap={{ scale: 0.9 }}
     transition={{ type: 'spring', stiffness: 200, damping: 10 }}
     onClick={onClick}
-    className="fixed bottom-6 left-6 z-30 w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
+    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
     aria-label="Settings"
   >
     <svg

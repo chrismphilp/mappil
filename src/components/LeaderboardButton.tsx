@@ -10,7 +10,7 @@ const LeaderboardButton: FC<LeaderboardButtonProps> = ({ onClick }) => (
     whileHover={{ scale: 1.1 }}
     whileTap={{ scale: 0.9 }}
     onClick={onClick}
-    className="fixed bottom-6 left-20 z-30 w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
+    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
     aria-label="Leaderboard"
   >
     <svg

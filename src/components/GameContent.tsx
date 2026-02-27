@@ -55,9 +55,10 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
         skippedRegion={state.skippedRegion}
       />
 
-      <SettingsButton onClick={() => setSettingsOpen(true)} />
-
-      <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
+      <div className="fixed bottom-6 left-6 z-30 flex gap-3">
+        <SettingsButton onClick={() => setSettingsOpen(true)} />
+        <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
+      </div>
 
       <LeaderboardModal
         open={leaderboardOpen}
