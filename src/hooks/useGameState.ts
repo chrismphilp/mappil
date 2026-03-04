@@ -89,6 +89,8 @@ function reducer(state: GameState, action: GameAction): GameState {
     case ActionType.SELECT_REGION: {
       const { region } = action;
       if (state.gameOver || !state.regionToFind) return state;
+      if (state.regionsFound.includes(region)) return state;
+      
       state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
 
       if (region === state.regionToFind) {

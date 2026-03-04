@@ -118,14 +118,45 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [flyToRegion]);
 
-  const handleClick = useCallback(
-    (polygon: any, _event: MouseEvent) => {
-      if (polygon) {
-        onRegionClick(polygon.properties.name_long);
+  const hoveredPolygonRef = useRef<any>(null);
+  const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
+
+  const handlePolygonHover = useCallback((polygon: any) => {
+    hoveredPolygonRef.current = polygon;
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    // If OrbitControls or something swallowed pointerdown, default to current event
+    const downTime = pointerDownPos.current.time || Date.now();
+    const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
+    const downY = pointerDownPos.current.time ? pointerDownPos.current.y : e.clientY;
+
+    const dx = e.clientX - downX;
+    const dy = e.clientY - downY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const duration = Date.now() - downTime;
+
+    // Reset pointer down state
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+
+    // Relaxed tolerance for jittery touches/clicks (distance < 20px, duration < 600ms)
+    if (distance < 20 && duration < 600) {
+      if (hoveredPolygonRef.current) {
+        onRegionClick(hoveredPolygonRef.current.properties.name_long);
+      } else {
+        // Fallback for fast touch devices where hover state might lag by 1 frame
+        setTimeout(() => {
+          if (hoveredPolygonRef.current) {
+            onRegionClick(hoveredPolygonRef.current.properties.name_long);
+          }
+        }, 50);
       }
-    },
-    [onRegionClick]
-  );
+    }
+  }, [onRegionClick]);
 
   const getCapColor = useCallback(
     (d: any) => {
@@ -170,28 +201,34 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
 
   return (
-    <GlobeGL
-      ref={globeRef}
-      globeImageUrl={blueTexture}
-      rendererConfig={{ antialias: false, alpha: true }}
-      animateIn={false}
-      width={dimensions.width}
-      height={dimensions.height}
-      backgroundColor="rgba(0,0,0,0)"
-      showAtmosphere={true}
-      atmosphereColor="#3b82f6"
-      atmosphereAltitude={0.2}
-      polygonsData={geoJsonData?.features}
-      polygonCapColor={getCapColor}
-      polygonSideColor={getSideColor}
-      polygonStrokeColor={getStrokeColor}
-      polygonAltitude={getAltitude}
-      polygonCapCurvatureResolution={3}
-      polygonLabel={getLabel}
-      onPolygonClick={handleClick}
-      onZoom={handleZoom}
-      polygonsTransitionDuration={150}
-    />
+    <div
+      style={{ width: '100%', height: '100%' }}
+      onPointerDownCapture={handlePointerDown}
+      onPointerUpCapture={handlePointerUp}
+    >
+      <GlobeGL
+        ref={globeRef}
+        globeImageUrl={blueTexture}
+        rendererConfig={{ antialias: false, alpha: true }}
+        animateIn={false}
+        width={dimensions.width}
+        height={dimensions.height}
+        backgroundColor="rgba(0,0,0,0)"
+        showAtmosphere={true}
+        atmosphereColor="#3b82f6"
+        atmosphereAltitude={0.2}
+        polygonsData={geoJsonData?.features}
+        polygonCapColor={getCapColor}
+        polygonSideColor={getSideColor}
+        polygonStrokeColor={getStrokeColor}
+        polygonAltitude={getAltitude}
+        polygonCapCurvatureResolution={3}
+        polygonLabel={getLabel}
+        onPolygonHover={handlePolygonHover}
+        onZoom={handleZoom}
+        polygonsTransitionDuration={150}
+      />
+    </div>
   );
 };
 
