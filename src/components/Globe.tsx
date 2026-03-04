@@ -85,6 +85,18 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [onReady]);
 
+  const blueTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 2;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#0f172a'; // A slightly blue, deep dark color to serve as oceans
+      ctx.fillRect(0, 0, 2, 2);
+    }
+    return canvas.toDataURL('image/png');
+  }, []);
+
   // Stop auto-rotate when zoomed in
   const AUTO_ROTATE_ALTITUDE = 1.8;
   const handleZoom = useCallback((pov: { altitude: number }) => {
@@ -160,6 +172,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   return (
     <GlobeGL
       ref={globeRef}
+      globeImageUrl={blueTexture}
       rendererConfig={{ antialias: false, alpha: true }}
       animateIn={false}
       width={dimensions.width}

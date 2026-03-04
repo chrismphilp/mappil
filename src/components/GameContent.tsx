@@ -27,7 +27,7 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   return (
-    <div className="fixed inset-0 bg-slate-950 overflow-hidden">
+    <div className="fixed inset-0 bg-transparent overflow-hidden">
       <Suspense fallback={null}>
         <Globe
           regionsFound={state.regionsFound}

@@ -32,19 +32,35 @@ const HUD: FC<HUDProps> = ({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="fixed top-4 right-4 z-20 w-72 sm:w-80 pointer-events-none">
-      <div className="bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
-        {/* Header — always visible, acts as collapse toggle on mobile */}
+    <div className="fixed top-0 inset-x-0 sm:top-4 sm:right-4 sm:left-auto sm:w-80 z-20 pointer-events-none">
+      <div className="bg-slate-900/70 backdrop-blur-xl border-b border-white/10 sm:border sm:rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
+        {/* Header — country name + collapse toggle */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="w-full px-4 py-3 flex items-center justify-between cursor-pointer"
+          className="w-full px-4 py-2 sm:py-3 flex items-center gap-3 cursor-pointer"
         >
-          <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest">
-            Find this country
-          </span>
-          {/* Chevron — only visible on mobile */}
+          <div className="flex-1 min-w-0 flex items-baseline gap-2">
+            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest shrink-0">
+              Find
+            </span>
+            {/* Country name inline on mobile, block on sm+ */}
+            <span className="sm:hidden">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={regionToFind ?? 'done'}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-base font-bold text-white truncate block"
+                >
+                  {regionToFind ?? 'All done!'}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+          </div>
           <svg
-            className={`w-4 h-4 text-slate-500 transition-transform ${
+            className={`w-4 h-4 text-slate-500 transition-transform shrink-0 ${
               collapsed ? '' : 'rotate-180'
             }`}
             fill="none"
@@ -56,8 +72,8 @@ const HUD: FC<HUDProps> = ({
           </svg>
         </button>
 
-        {/* Country name — always visible */}
-        <div className="px-4 pb-2">
+        {/* Country name — large, only visible on sm+ */}
+        <div className="hidden sm:block px-4 pb-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={regionToFind ?? 'done'}
@@ -65,7 +81,7 @@ const HUD: FC<HUDProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="text-lg sm:text-xl font-bold text-white truncate"
+              className="text-xl font-bold text-white truncate"
             >
               {regionToFind ?? 'All done!'}
             </motion.div>
