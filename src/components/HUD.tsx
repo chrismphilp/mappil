@@ -52,7 +52,7 @@ const HUD: FC<HUDProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
-                  className="text-base font-bold text-white truncate block"
+                  className="text-base font-bold text-white block"
                 >
                   {regionToFind ?? 'All done!'}
                 </motion.span>
@@ -81,7 +81,7 @@ const HUD: FC<HUDProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="text-xl font-bold text-white truncate"
+              className="text-xl font-bold text-white break-words"
             >
               {regionToFind ?? 'All done!'}
             </motion.div>
