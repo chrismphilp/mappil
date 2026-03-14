@@ -3,14 +3,30 @@ import GlobeGL from 'react-globe.gl';
 import { getGeoJsonData } from '../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
+  'Brazil',
   'Canada',
+  'Kazakhstan',
+  'Mongolia',
+  'Djibouti',
+  'Eritrea',
   'Norway',
+  'Oman',
+  'Paraguay',
   'Russian Federation',
+  'Saudi Arabia',
   'United States',
+  'Uruguay',
+  'Yemen',
 ]);
 const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
+  'Argentina',
   'Antarctica',
+  'Australia',
+  'Bolivia',
+  'Chile',
+  'China',
   'Greenland',
+  'Somalia',
 ]);
 
 interface GlobeProps {
@@ -85,6 +101,23 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const geoJsonData = getGeoJsonData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
+  const updateCameraClipping = useCallback(() => {
+    const globe = globeRef.current;
+    const camera = globe?.camera?.();
+    if (!camera) return;
+
+    const globeRadius = globe?.getGlobeRadius?.() ?? 100;
+    const visibleRadius = globeRadius * 1.35;
+    const distance = camera.position.length();
+    const nextNear = Math.max(0.05, distance - visibleRadius);
+    const nextFar = distance + visibleRadius;
+
+    if (Math.abs(camera.near - nextNear) > 0.01 || Math.abs(camera.far - nextFar) > 0.1) {
+      camera.near = nextNear;
+      camera.far = nextFar;
+      camera.updateProjectionMatrix();
+    }
+  }, []);
 
   useEffect(() => {
     let frameId = 0;
@@ -116,8 +149,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       controls.zoomSpeed = 0.6;
 
       globeRef.current.renderer().setPixelRatio(getTargetPixelRatio());
+      updateCameraClipping();
     }
-  }, []);
+  }, [updateCameraClipping]);
 
   const blueTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -137,7 +171,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     if (globeRef.current) {
       globeRef.current.controls().autoRotate = pov.altitude >= AUTO_ROTATE_ALTITUDE;
     }
-  }, []);
+    updateCameraClipping();
+  }, [updateCameraClipping]);
 
   // Fly to skipped region on 3rd strike
   useEffect(() => {
@@ -210,6 +245,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
       if (capMaterial) {
         capMaterial.depthWrite = false;
+        capMaterial.side = 2;
         capMaterial.polygonOffset = true;
         capMaterial.polygonOffsetFactor = -1;
         capMaterial.polygonOffsetUnits = -1;
@@ -256,6 +292,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     (d: any) => {
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 0.02;
+      if (ULTRA_PRECISION_CAP_COUNTRIES.has(name) || HIGH_PRECISION_CAP_COUNTRIES.has(name)) {
+        return 0.0025;
+      }
       return 0.0015;
     },
     [regionsFoundSet]
@@ -282,11 +321,12 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   }, []);
   const handleGlobeReady = useCallback(() => {
     globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
+    updateCameraClipping();
     requestAnimationFrame(() => {
       patchPolygonMaterials();
     });
     onReady?.();
-  }, [onReady, patchPolygonMaterials]);
+  }, [onReady, patchPolygonMaterials, updateCameraClipping]);
 
   return (
     <div
@@ -302,7 +342,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={6}
+        globeCurvatureResolution={4}
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
