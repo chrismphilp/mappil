@@ -3,17 +3,22 @@ import GlobeGL from 'react-globe.gl';
 import { getGeoJsonData } from '../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
+  'Algeria',
   'Brazil',
   'Canada',
+  'Chad',
   'Kazakhstan',
   'Mongolia',
   'Djibouti',
+  'Egypt',
   'Eritrea',
+  'Niger',
   'Norway',
   'Oman',
   'Paraguay',
   'Russian Federation',
   'Saudi Arabia',
+  'Sudan',
   'United States',
   'Uruguay',
   'Yemen',
@@ -26,6 +31,7 @@ const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
   'Chile',
   'China',
   'Greenland',
+  'Libya',
   'Somalia',
 ]);
 
