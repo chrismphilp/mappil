@@ -1,17 +1,14 @@
 import { supabase } from './supabase';
 
+export const LEADERBOARD_LIMIT = 20;
+
 export interface ScoreEntry {
   id: string;
   username: string;
   score: number;
   errors: number;
-  best_streak: number;
   total_regions: number;
-  difficulty: string;
-  continent: string;
-  game_mode: string;
   duration_secs: number;
-  created_at: string;
 }
 
 export interface SubmitScoreParams {
@@ -36,13 +33,14 @@ export async function fetchLeaderboard(
   continent?: string,
   gameMode?: string,
 ): Promise<ScoreEntry[]> {
-  let query = supabase
-    .from('scores')
-    .select('*')
-    .order('score', { ascending: false })
-    .order('errors', { ascending: true })
-    .order('duration_secs', { ascending: true })
-    .limit(20);
+  let query = supabase.from('scores').select(`
+      id,
+      username,
+      score,
+      errors,
+      total_regions,
+      duration_secs
+    `);
 
   if (difficulty) {
     query = query.eq('difficulty', difficulty);
@@ -53,6 +51,12 @@ export async function fetchLeaderboard(
   if (gameMode) {
     query = query.eq('game_mode', gameMode);
   }
+
+  query = query
+    .order('score', { ascending: false })
+    .order('errors', { ascending: true })
+    .order('duration_secs', { ascending: true })
+    .limit(LEADERBOARD_LIMIT);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
