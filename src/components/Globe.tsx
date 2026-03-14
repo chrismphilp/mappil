@@ -1,6 +1,17 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
 import { getGeoJsonData } from '../data/maps';
+
+const HIGH_PRECISION_CAP_COUNTRIES = new Set([
+  'Canada',
+  'Norway',
+  'Russian Federation',
+  'United States',
+]);
+const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
+  'Antarctica',
+  'Greenland',
+]);
 
 interface GlobeProps {
   regionsFound: string[];
@@ -52,21 +63,45 @@ function getCentroidMap(): Map<string, { lat: number; lng: number }> {
   return centroidMap;
 }
 
-const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
-  const globeRef = useRef<any>(null);
-  const [dimensions, setDimensions] = useState({
+function getViewportDimensions() {
+  return {
     width: window.innerWidth,
     height: window.innerHeight,
-  });
+  };
+}
+
+function getTargetPixelRatio() {
+  const hasCoarsePointer =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches;
+  const maxPixelRatio = window.innerWidth < 768 || hasCoarsePointer ? 1 : 1.5;
+
+  return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+}
+
+const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
+  const globeRef = useRef<any>(null);
+  const [dimensions, setDimensions] = useState(getViewportDimensions);
 
   const geoJsonData = getGeoJsonData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
 
   useEffect(() => {
-    const onResize = () =>
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+    let frameId = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        setDimensions(getViewportDimensions());
+        globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
+      });
+    };
+
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', onResize);
+    };
   }, []);
 
   // Configure controls — reduce sensitivity so small movements
@@ -80,10 +115,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       controls.rotateSpeed = 0.5;
       controls.zoomSpeed = 0.6;
 
-      globeRef.current.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      onReady?.();
+      globeRef.current.renderer().setPixelRatio(getTargetPixelRatio());
     }
-  }, [onReady]);
+  }, []);
 
   const blueTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -158,6 +192,47 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [onRegionClick]);
 
+  const patchPolygonMaterials = useCallback(() => {
+    const scene = globeRef.current?.scene?.();
+    if (!scene) return;
+
+    scene.traverse((obj: any) => {
+      if (obj?.__globeObjType !== 'polygon') return;
+
+      const conicObj = obj.children?.[0];
+      const strokeObj = obj.children?.[1];
+      const conicMaterials = Array.isArray(conicObj?.material)
+        ? conicObj.material
+        : conicObj?.material
+          ? [conicObj.material]
+          : [];
+      const capMaterial = conicMaterials[conicMaterials.length - 1];
+
+      if (capMaterial) {
+        capMaterial.depthWrite = false;
+        capMaterial.polygonOffset = true;
+        capMaterial.polygonOffsetFactor = -1;
+        capMaterial.polygonOffsetUnits = -1;
+        capMaterial.needsUpdate = true;
+      }
+
+      if (strokeObj?.material) {
+        strokeObj.material.depthWrite = false;
+        strokeObj.material.needsUpdate = true;
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    let frameId = requestAnimationFrame(() => {
+      patchPolygonMaterials();
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
+
   const getCapColor = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
@@ -172,7 +247,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     (d: any) => {
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 'rgba(16, 185, 129, 0.6)';
-      return 'rgba(51, 65, 85, 0.3)';
+      return '';
     },
     [regionsFoundSet]
   );
@@ -180,8 +255,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getAltitude = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
-      if (regionsFoundSet.has(name)) return 0.03;
-      return 0.01;
+      if (regionsFoundSet.has(name)) return 0.02;
+      return 0.0015;
     },
     [regionsFoundSet]
   );
@@ -199,6 +274,19 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   );
 
   const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
+  const getCapCurvatureResolution = useCallback((d: any) => {
+    const name = d.properties.name_long;
+    if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 1;
+    if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 2;
+    return 5;
+  }, []);
+  const handleGlobeReady = useCallback(() => {
+    globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
+    requestAnimationFrame(() => {
+      patchPolygonMaterials();
+    });
+    onReady?.();
+  }, [onReady, patchPolygonMaterials]);
 
   return (
     <div
@@ -209,27 +297,29 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       <GlobeGL
         ref={globeRef}
         globeImageUrl={blueTexture}
-        rendererConfig={{ antialias: false, alpha: true }}
+        rendererConfig={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
         animateIn={false}
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
+        globeCurvatureResolution={6}
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
+        onGlobeReady={handleGlobeReady}
         polygonsData={geoJsonData?.features}
         polygonCapColor={getCapColor}
         polygonSideColor={getSideColor}
         polygonStrokeColor={getStrokeColor}
         polygonAltitude={getAltitude}
-        polygonCapCurvatureResolution={3}
+        polygonCapCurvatureResolution={getCapCurvatureResolution}
         polygonLabel={getLabel}
         onPolygonHover={handlePolygonHover}
         onZoom={handleZoom}
-        polygonsTransitionDuration={150}
+        polygonsTransitionDuration={0}
       />
     </div>
   );
 };
 
-export default Globe;
+export default memo(Globe);

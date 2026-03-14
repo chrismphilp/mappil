@@ -8,7 +8,9 @@ import GameCompleteModal from './GameCompleteModal';
 import LeaderboardButton from './LeaderboardButton';
 import LeaderboardModal from './LeaderboardModal';
 
-const Globe = lazy(() => import('./Globe'));
+const loadGlobe = () => import('./Globe');
+export const preloadGlobe = () => loadGlobe();
+const Globe = lazy(loadGlobe);
 
 const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
   const {
