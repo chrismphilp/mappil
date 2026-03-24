@@ -88,6 +88,13 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               )}
             </div>
 
+            <a 
+              href="/play?daily=true"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
+            >
+              Play Daily Challenge
+            </a>
+
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">
                 Region

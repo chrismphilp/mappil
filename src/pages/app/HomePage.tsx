@@ -36,7 +36,7 @@ const HomePage: FC = () => {
         <div className="fixed bottom-6 right-6 z-[100]">
           <button 
             onClick={() => setShowSEO(true)}
-            className="w-14 h-14 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+            className="w-12 h-12 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
             aria-label="About Mappil"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -54,7 +54,7 @@ const HomePage: FC = () => {
             <div className="fixed top-6 right-6 z-[100]">
               <button 
                 onClick={() => setShowSEO(false)}
-                className="w-14 h-14 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+                className="w-12 h-12 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
                 aria-label="Close Info"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
