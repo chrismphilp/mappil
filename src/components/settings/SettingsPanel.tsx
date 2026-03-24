@@ -73,15 +73,17 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
       const text = `I challenge you to a Mappil match (${continent} - ${difficulty}). Can you beat my time?`;
 
       const success = await shareChallengeLink(title, text, url);
-      setShareState(success ? ShareState.SHARED : ShareState.ERROR);
-      if (!success) {
-        alert('Failed to copy to clipboard.');
+      if (success) {
+        setShareState(ShareState.SHARED);
+        setTimeout(() => setShareState(ShareState.IDLE), 3000);
+      } else {
+        setShareState(ShareState.IDLE);
       }
-      setTimeout(() => setShareState(ShareState.IDLE), 3000);
     } catch (e) {
       console.error(e);
       setShareState(ShareState.ERROR);
       alert('Failed to create challenge link.');
+      setTimeout(() => setShareState(ShareState.IDLE), 3000);
     }
   };
 

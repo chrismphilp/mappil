@@ -121,9 +121,10 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       const text = `I scored ${score}/${totalRegions} in Mappil (${continent} - ${difficulty}). Can you beat me?`;
 
       const success = await shareChallengeLink(title, text, url);
-      setShareState(success ? ShareState.SHARED : ShareState.ERROR);
-      if (!success) {
-        setErrorMsg('Failed to copy to clipboard.');
+      if (success) {
+        setShareState(ShareState.SHARED);
+      } else {
+        setShareState(ShareState.IDLE);
       }
     } catch (e: any) {
       setShareState(ShareState.ERROR);
