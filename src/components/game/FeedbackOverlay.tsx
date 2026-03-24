@@ -6,6 +6,7 @@ import { getStreakState } from '../../lib/scoring';
 
 interface FeedbackOverlayProps {
   feedback: FeedbackState | null;
+  currentGuessErrors: number;
 }
 
 const POSITIVE_COPY = {
@@ -16,7 +17,7 @@ const POSITIVE_COPY = {
   legendary: ['Legendary', 'Map machine', 'Untouchable'],
 };
 
-const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback }) => {
+const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback, currentGuessErrors }) => {
   const revisionRef = useRef(0);
   const { isCoarsePointer } = useIsMobileViewport();
 
@@ -52,9 +53,11 @@ const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback }) => {
 
   const streakState = getStreakState(feedback.streak);
   const positiveIndex = revisionRef.current % POSITIVE_COPY[streakState.key].length;
+  const remainingTries = Math.max(0, 3 - currentGuessErrors);
 
   let title = 'Miss';
-  let subtitle = 'Two more tries on this one';
+  let subtitle =
+    remainingTries === 1 ? 'One more try on this one' : `${remainingTries} more tries on this one`;
   let titleClassName = 'text-red-400';
 
   if (feedback.outcome === 'correct') {

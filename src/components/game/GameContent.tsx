@@ -86,7 +86,10 @@ const GameContent: FC<GameContentProps> = ({
         challengeType={state.challengeType}
       />
 
-      <FeedbackOverlay feedback={state.feedback} />
+      <FeedbackOverlay
+        feedback={state.feedback}
+        currentGuessErrors={state.currentGuessErrors}
+      />
 
       <div
         className="fixed z-30 flex gap-3"
