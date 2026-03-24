@@ -16,6 +16,7 @@ interface HUDProps {
   totalRegions: number;
   gameOver: boolean;
   onSkip: () => void;
+  isDailyChallenge?: boolean;
 }
 
 const HUD: FC<HUDProps> = ({
@@ -29,6 +30,7 @@ const HUD: FC<HUDProps> = ({
   totalRegions,
   gameOver,
   onSkip,
+  isDailyChallenge,
 }) => {
   const { isMobile } = useIsMobileViewport();
   const [collapsed, setCollapsed] = useState(isMobile);
@@ -51,6 +53,11 @@ const HUD: FC<HUDProps> = ({
       style={{ top: 'max(var(--sat), 1rem)' }}
     >
       <div className="bg-slate-900/70 backdrop-blur-xl border-b border-white/10 sm:border sm:rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
+        {isDailyChallenge && (
+          <div className="w-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest py-1 text-center border-b border-white/5">
+            Daily Challenge
+          </div>
+        )}
         {/* Header — country name + collapse toggle */}
         <button
           onClick={toggleCollapsed}

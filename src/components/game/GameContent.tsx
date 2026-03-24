@@ -20,6 +20,9 @@ interface GameContentProps {
   initialContinent?: ContinentFilter;
   initialDifficulty?: Difficulty;
   initialGameMode?: GameMode;
+  challengeId?: string;
+  seed?: string;
+  isDailyChallenge?: boolean;
 }
 
 const GameContent: FC<GameContentProps> = ({
@@ -27,6 +30,9 @@ const GameContent: FC<GameContentProps> = ({
   initialContinent = ContinentFilter.WORLD,
   initialDifficulty = Difficulty.MEDIUM,
   initialGameMode = GameMode.QUICK,
+  challengeId,
+  seed,
+  isDailyChallenge,
 }) => {
   const {
     state,
@@ -39,7 +45,7 @@ const GameContent: FC<GameContentProps> = ({
     progress,
     totalRegions,
     durationSecs,
-  } = useGameState(initialContinent, initialDifficulty, initialGameMode);
+  } = useGameState(initialContinent, initialDifficulty, initialGameMode, challengeId, seed, isDailyChallenge);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
@@ -66,6 +72,7 @@ const GameContent: FC<GameContentProps> = ({
         totalRegions={totalRegions}
         gameOver={state.gameOver}
         onSkip={skipRegion}
+        isDailyChallenge={state.isDailyChallenge}
       />
 
       <FeedbackOverlay
@@ -81,7 +88,9 @@ const GameContent: FC<GameContentProps> = ({
           left: 'max(var(--sal), 1.5rem)'
         }}
       >
-        <SettingsButton onClick={() => setSettingsOpen(true)} />
+        {!state.isDailyChallenge && (
+          <SettingsButton onClick={() => setSettingsOpen(true)} />
+        )}
         <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
       </div>
 
@@ -91,6 +100,8 @@ const GameContent: FC<GameContentProps> = ({
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
+        challengeId={state.challengeId}
+        isDailyChallenge={state.isDailyChallenge}
       />
 
       <SettingsPanel
@@ -115,6 +126,9 @@ const GameContent: FC<GameContentProps> = ({
         continent={state.continent}
         gameMode={state.gameMode}
         durationSecs={durationSecs}
+        challengeId={state.challengeId}
+        seed={state.seed}
+        isDailyChallenge={state.isDailyChallenge}
         onPlayAgain={resetGame}
       />
     </div>

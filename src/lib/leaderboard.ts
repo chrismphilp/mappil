@@ -9,6 +9,8 @@ export interface ScoreEntry {
   errors: number;
   total_regions: number;
   duration_secs: number;
+  challenge_id?: string;
+  is_daily_challenge?: boolean;
 }
 
 export interface SubmitScoreParams {
@@ -21,6 +23,9 @@ export interface SubmitScoreParams {
   continent: string;
   game_mode: string;
   duration_secs: number;
+  challenge_id?: string;
+  seed?: string;
+  is_daily_challenge?: boolean;
 }
 
 export async function submitScore(params: SubmitScoreParams): Promise<void> {
@@ -32,6 +37,7 @@ export async function fetchLeaderboard(
   difficulty?: string,
   continent?: string,
   gameMode?: string,
+  challengeId?: string,
 ): Promise<ScoreEntry[]> {
   let query = supabase.from('scores').select(`
       id,
@@ -39,17 +45,24 @@ export async function fetchLeaderboard(
       score,
       errors,
       total_regions,
-      duration_secs
+      duration_secs,
+      challenge_id,
+      is_daily_challenge
     `);
 
-  if (difficulty) {
-    query = query.eq('difficulty', difficulty);
-  }
-  if (continent) {
-    query = query.eq('continent', continent);
-  }
-  if (gameMode) {
-    query = query.eq('game_mode', gameMode);
+  if (challengeId) {
+    query = query.eq('challenge_id', challengeId);
+  } else {
+    query = query.or('is_daily_challenge.eq.false,is_daily_challenge.is.null');
+    if (difficulty) {
+      query = query.eq('difficulty', difficulty);
+    }
+    if (continent) {
+      query = query.eq('continent', continent);
+    }
+    if (gameMode) {
+      query = query.eq('game_mode', gameMode);
+    }
   }
 
   query = query

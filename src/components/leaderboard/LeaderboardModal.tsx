@@ -9,6 +9,8 @@ interface LeaderboardModalProps {
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
+  challengeId?: string;
+  isDailyChallenge?: boolean;
 }
 
 function formatDuration(secs: number): string {
@@ -23,6 +25,8 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
   difficulty,
   continent,
   gameMode,
+  challengeId,
+  isDailyChallenge,
 }) => {
   const [entries, setEntries] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,12 +49,13 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
       filterDifficulty || undefined,
       filterContinent === ContinentFilter.WORLD ? undefined : filterContinent || undefined,
       filterGameMode || undefined,
+      challengeId,
     )
       .then((data) => { if (!cancelled) setEntries(data); })
       .catch(() => { if (!cancelled) setEntries([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, filterDifficulty, filterContinent, filterGameMode]);
+  }, [open, filterDifficulty, filterContinent, filterGameMode, challengeId]);
 
   return (
     <AnimatePresence>
@@ -72,7 +77,9 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
           >
             <div className="p-4 sm:p-6 pb-4 shrink-0 border-b border-white/5 sm:border-0 z-10 bg-slate-900/50 sm:bg-transparent">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Leaderboard</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {isDailyChallenge ? 'Daily Leaderboard' : 'Leaderboard'}
+                </h2>
                 <button
                   onClick={onClose}
                   className="text-slate-400 hover:text-white transition-colors"
@@ -83,7 +90,8 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                 </button>
               </div>
 
-              <div className="flex gap-2 flex-wrap">
+              {!isDailyChallenge && (
+                <div className="flex gap-2 flex-wrap">
                 <select
                   value={filterGameMode}
                   onChange={(e) => setFilterGameMode(e.target.value)}
@@ -115,6 +123,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                   <option value={ContinentFilter.OCEANIA}>Oceania</option>
                 </select>
               </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 pb-6">

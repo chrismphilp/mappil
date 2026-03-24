@@ -13,6 +13,9 @@ interface GameCompleteModalProps {
   continent: string;
   gameMode: string;
   durationSecs: number;
+  challengeId?: string;
+  seed?: string;
+  isDailyChallenge?: boolean;
   onPlayAgain: () => void;
 }
 
@@ -28,6 +31,9 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   continent,
   gameMode,
   durationSecs,
+  challengeId,
+  seed,
+  isDailyChallenge,
   onPlayAgain,
 }) => {
   const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
@@ -72,6 +78,9 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
         continent,
         game_mode: gameMode,
         duration_secs: durationSecs,
+        challenge_id: challengeId,
+        seed,
+        is_daily_challenge: isDailyChallenge,
       });
       setSubmitState('submitted');
     } catch (e: any) {
@@ -96,6 +105,11 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 max-w-sm w-[90vw] max-h-[90dvh] overflow-y-auto text-center shadow-2xl"
           >
+            {isDailyChallenge && (
+              <div className="mb-4 inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                Daily Challenge Complete
+              </div>
+            )}
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Game Complete!</h2>
             <p className="text-slate-400 text-sm mb-5 sm:mb-6">
               You explored {totalRegions} countries

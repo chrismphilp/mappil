@@ -5,6 +5,7 @@ import { ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 import LoadingOverlay from '../../components/app/LoadingOverlay';
 import GameContent, { preloadGlobe } from '../../components/game/GameContent';
 import { SEO } from '../../components/app/SEO';
+import { getDailyChallengeConfig } from '../../lib/dailyChallenge';
 
 interface PlayPageProps {
   continent?: ContinentFilter;
@@ -14,33 +15,39 @@ interface PlayPageProps {
 
 const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode }) => {
   const [searchParams] = useSearchParams();
-  
+  const isDaily = searchParams.get('daily') === 'true';
+
+  const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
+
   const initialContinent = useMemo(() => {
+    if (dailyConfig) return dailyConfig.continent;
     if (continent) return continent;
     const p = searchParams.get('continent');
     if (p && Object.values(ContinentFilter).includes(p as ContinentFilter)) {
       return p as ContinentFilter;
     }
     return ContinentFilter.WORLD;
-  }, [searchParams, continent]);
+  }, [searchParams, continent, dailyConfig]);
 
   const initialDifficulty = useMemo(() => {
+    if (dailyConfig) return dailyConfig.difficulty;
     if (difficulty) return difficulty;
     const p = searchParams.get('difficulty');
     if (p && Object.values(Difficulty).includes(p as Difficulty)) {
       return p as Difficulty;
     }
     return Difficulty.MEDIUM;
-  }, [searchParams, difficulty]);
+  }, [searchParams, difficulty, dailyConfig]);
 
   const initialGameMode = useMemo(() => {
+    if (dailyConfig) return dailyConfig.gameMode;
     if (gameMode) return gameMode;
     const p = searchParams.get('mode');
     if (p && Object.values(GameMode).includes(p as GameMode)) {
       return p as GameMode;
     }
     return GameMode.QUICK;
-  }, [searchParams, gameMode]);
+  }, [searchParams, gameMode, dailyConfig]);
 
   const [dataProgress, setDataProgress] = useState(0);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -86,7 +93,7 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode }) => {
   return (
     <>
       <SEO 
-        title={`Play Mappil - ${initialContinent} Map Quiz`} 
+        title={isDaily ? 'Daily Challenge - Mappil' : `Play Mappil - ${initialContinent} Map Quiz`} 
         description="Test your geography knowledge with Mappil. Identify countries and regions on an interactive 3D globe." 
         canonicalUrl="https://mappil.com/play"
       />
@@ -96,6 +103,9 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode }) => {
           initialContinent={initialContinent}
           initialDifficulty={initialDifficulty}
           initialGameMode={initialGameMode}
+          challengeId={dailyConfig?.challengeId}
+          seed={dailyConfig?.seed}
+          isDailyChallenge={dailyConfig?.isDailyChallenge}
         />
       )}
       {!globeReady && <LoadingOverlay progress={totalProgress} />}

@@ -1,14 +1,12 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
 import { getFilteredRegions } from '../../data/maps';
+import { SeededRandom } from '../../lib/seededRandom';
 
 const QUICK_PLAY_COUNT = 10;
 
-function pickRandom(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function shuffle(arr: string[]): string[] {
+function shuffleArray(arr: string[], rng?: SeededRandom): string[] {
+  if (rng) return rng.shuffle(arr);
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -17,24 +15,39 @@ function shuffle(arr: string[]): string[] {
   return a;
 }
 
-function buildInitialState(
-  difficulty: Difficulty,
-  continent: ContinentFilter = ContinentFilter.WORLD,
-  gameMode: GameMode = GameMode.QUICK,
-): GameState {
-  let regions = getFilteredRegions(difficulty, continent);
-  if (gameMode === GameMode.QUICK && regions.length > QUICK_PLAY_COUNT) {
-    regions = shuffle(regions).slice(0, QUICK_PLAY_COUNT);
+interface RunConfig {
+  difficulty: Difficulty;
+  continent: ContinentFilter;
+  gameMode: GameMode;
+  challengeId?: string;
+  seed?: string;
+  isDailyChallenge?: boolean;
+}
+
+function buildInitialState(config: RunConfig): GameState {
+  let regions = getFilteredRegions(config.difficulty, config.continent);
+  const rng = config.seed ? new SeededRandom(config.seed) : undefined;
+  
+  regions = shuffleArray(regions, rng);
+
+  if (config.gameMode === GameMode.QUICK && regions.length > QUICK_PLAY_COUNT) {
+    regions = regions.slice(0, QUICK_PLAY_COUNT);
   }
-  const first = pickRandom(regions);
+
+  const first = regions.length > 0 ? regions[0] : undefined;
+  const remaining = regions.length > 1 ? regions.slice(1) : [];
+
   return {
-    regionsToFind: regions.filter((r) => r !== first),
+    regionsToFind: remaining,
     regionToFind: first,
     selectedRegion: undefined,
     regionsFound: [],
-    difficulty,
-    continent,
-    gameMode,
+    difficulty: config.difficulty,
+    continent: config.continent,
+    gameMode: config.gameMode,
+    challengeId: config.challengeId,
+    seed: config.seed,
+    isDailyChallenge: config.isDailyChallenge,
     score: 0,
     errors: 0,
     currentGuessErrors: 0,
@@ -51,7 +64,7 @@ function skipCurrentRegion(state: GameState): GameState {
   if (state.gameOver || !state.regionToFind) return state;
   const skipped = state.regionToFind;
   state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
-  const remaining = state.regionsToFind.filter((r) => r !== skipped);
+  const remaining = state.regionsToFind;
 
   if (remaining.length === 0) {
     return {
@@ -69,10 +82,10 @@ function skipCurrentRegion(state: GameState): GameState {
     };
   }
 
-  const next = pickRandom(remaining);
+  const next = remaining[0];
   return {
     ...state,
-    regionsToFind: remaining.filter((r) => r !== next),
+    regionsToFind: remaining.slice(1),
     selectedRegion: undefined,
     errors: state.errors + 1,
     regionsFound: [skipped, ...state.regionsFound],
@@ -94,7 +107,7 @@ function reducer(state: GameState, action: GameAction): GameState {
       state = state.startTime === null ? { ...state, startTime: Date.now() } : state;
 
       if (region === state.regionToFind) {
-        const remaining = state.regionsToFind.filter((r) => r !== region);
+        const remaining = state.regionsToFind;
         const newStreak = state.currentGuessErrors > 0 ? 1 : state.streak + 1;
         const newBestStreak = Math.max(state.bestStreak, newStreak);
 
@@ -115,10 +128,10 @@ function reducer(state: GameState, action: GameAction): GameState {
           };
         }
 
-        const next = pickRandom(remaining);
+        const next = remaining[0];
         return {
           ...state,
-          regionsToFind: remaining.filter((r) => r !== next),
+          regionsToFind: remaining.slice(1),
           selectedRegion: region,
           regionsFound: [state.regionToFind, ...state.regionsFound],
           regionToFind: next,
@@ -152,16 +165,23 @@ function reducer(state: GameState, action: GameAction): GameState {
       return skipCurrentRegion(state);
 
     case ActionType.CHANGE_DIFFICULTY:
-      return buildInitialState(action.difficulty, state.continent, state.gameMode);
+      return buildInitialState({ difficulty: action.difficulty, continent: state.continent, gameMode: state.gameMode });
 
     case ActionType.CHANGE_CONTINENT:
-      return buildInitialState(state.difficulty, action.continent, state.gameMode);
+      return buildInitialState({ difficulty: state.difficulty, continent: action.continent, gameMode: state.gameMode });
 
     case ActionType.CHANGE_GAME_MODE:
-      return buildInitialState(state.difficulty, state.continent, action.gameMode);
+      return buildInitialState({ difficulty: state.difficulty, continent: state.continent, gameMode: action.gameMode });
 
     case ActionType.RESET_GAME:
-      return buildInitialState(state.difficulty, state.continent, state.gameMode);
+      return buildInitialState({ 
+        difficulty: state.difficulty, 
+        continent: state.continent, 
+        gameMode: state.gameMode,
+        challengeId: state.challengeId,
+        seed: state.seed,
+        isDailyChallenge: state.isDailyChallenge
+      });
 
     case ActionType.CLEAR_FEEDBACK:
       return { ...state, lastAnswerCorrect: null, skippedRegion: null };
@@ -174,10 +194,20 @@ function reducer(state: GameState, action: GameAction): GameState {
 export function useGameState(
   initialContinent: ContinentFilter = ContinentFilter.WORLD,
   initialDifficulty: Difficulty = Difficulty.MEDIUM,
-  initialGameMode: GameMode = GameMode.QUICK
+  initialGameMode: GameMode = GameMode.QUICK,
+  challengeId?: string,
+  seed?: string,
+  isDailyChallenge?: boolean,
 ) {
   const [state, dispatch] = useReducer(reducer, null, () =>
-    buildInitialState(initialDifficulty, initialContinent, initialGameMode)
+    buildInitialState({ 
+      difficulty: initialDifficulty, 
+      continent: initialContinent, 
+      gameMode: initialGameMode,
+      challengeId,
+      seed,
+      isDailyChallenge
+    })
   );
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
 

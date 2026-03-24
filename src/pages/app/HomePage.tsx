@@ -51,7 +51,7 @@ const HomePage: FC = () => {
       {(showSEO || isSnap) && (
         <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
           {!isSnap && (
-            <div className="fixed bottom-6 right-6 z-[100]">
+            <div className="fixed top-6 right-6 z-[100]">
               <button 
                 onClick={() => setShowSEO(false)}
                 className="w-14 h-14 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
@@ -65,12 +65,20 @@ const HomePage: FC = () => {
           )}
           <main className="max-w-4xl w-full flex flex-col gap-12 mt-4 pb-20 text-slate-100">
             <header className="text-center space-y-6">
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400">
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400 pb-2">
                 Mappil Geography Quiz
               </h1>
               <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto">
                 Test your knowledge of the world with our interactive 3D globe. Find countries, build streaks, and learn geography intuitively.
               </p>
+              <div className="flex justify-center pt-4">
+                <Link 
+                  to="/play?daily=true"
+                  className="inline-block px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-500/25 transition-transform hover:scale-105 active:scale-95"
+                >
+                  Play Daily Challenge
+                </Link>
+              </div>
             </header>
 
             <section className="bg-slate-800/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50">

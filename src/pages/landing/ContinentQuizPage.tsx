@@ -115,7 +115,7 @@ const ContinentQuizPage: FC = () => {
       {(showSEO || isSnap) && (
         <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
           {!isSnap && (
-            <div className="fixed bottom-6 right-6 z-[100]">
+            <div className="fixed top-6 right-6 z-[100]">
               <button 
                 onClick={() => setShowSEO(false)}
                 className="w-14 h-14 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
@@ -132,7 +132,7 @@ const ContinentQuizPage: FC = () => {
               <Link to="/" className="text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm">
                 ← Back to Home
               </Link>
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400 pb-2">
                 {title} Map Quiz
               </h1>
               <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
