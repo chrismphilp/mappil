@@ -1,8 +1,9 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ScoreCounter from './ScoreCounter';
 import StreakIndicator from './StreakIndicator';
 import ProgressBar from './ProgressBar';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 
 interface HUDProps {
   regionToFind: string | undefined;
@@ -29,14 +30,30 @@ const HUD: FC<HUDProps> = ({
   gameOver,
   onSkip,
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const { isMobile } = useIsMobileViewport();
+  const [collapsed, setCollapsed] = useState(isMobile);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  useEffect(() => {
+    if (!hasInteracted) {
+      setCollapsed(isMobile);
+    }
+  }, [isMobile, hasInteracted]);
+
+  const toggleCollapsed = () => {
+    setHasInteracted(true);
+    setCollapsed((c) => !c);
+  };
 
   return (
-    <div className="fixed top-0 inset-x-0 sm:top-4 sm:right-4 sm:left-auto sm:w-80 z-20 pointer-events-none">
+    <div 
+      className="fixed inset-x-0 sm:right-4 sm:left-auto sm:w-80 z-20 pointer-events-none transition-all duration-300"
+      style={{ top: 'max(var(--sat), 1rem)' }}
+    >
       <div className="bg-slate-900/70 backdrop-blur-xl border-b border-white/10 sm:border sm:rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
         {/* Header — country name + collapse toggle */}
         <button
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={toggleCollapsed}
           className="w-full px-4 py-2 sm:py-3 flex items-center gap-3 cursor-pointer"
         >
           <div className="flex-1 min-w-0 flex items-baseline gap-2">

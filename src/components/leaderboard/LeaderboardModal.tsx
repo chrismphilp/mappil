@@ -63,13 +63,14 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
         >
           <div className="absolute inset-0 bg-black/60" onClick={onClose} />
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="relative w-[90vw] max-w-[480px] max-h-[80vh] bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            className="relative w-full sm:w-[90vw] h-[90dvh] sm:h-auto sm:max-w-[480px] sm:max-h-[80vh] bg-slate-900/95 backdrop-blur-2xl sm:border border-white/10 sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden mt-auto sm:mt-0"
+            style={{ paddingBottom: 'max(0px, var(--sab))' }}
           >
-            <div className="p-6 pb-4">
+            <div className="p-4 sm:p-6 pb-4 shrink-0 border-b border-white/5 sm:border-0 z-10 bg-slate-900/50 sm:bg-transparent">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">Leaderboard</h2>
                 <button

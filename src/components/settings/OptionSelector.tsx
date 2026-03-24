@@ -20,7 +20,7 @@ function OptionSelector<T extends string>({
           key={opt}
           whileTap={{ scale: 0.95 }}
           onClick={() => onChange(opt)}
-          className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+          className={`px-4 py-2.5 min-h-[44px] rounded-full text-sm font-semibold transition-colors flex items-center justify-center ${
             selected === opt
               ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
               : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60'

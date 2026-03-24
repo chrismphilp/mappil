@@ -33,18 +33,18 @@ const HomePage: FC = () => {
 
       {/* For real users, provide a button to scroll/show the SEO content overlay. For crawlers, show immediately. */}
       {showGame && (
-        <div className="fixed bottom-6 right-6 z-30">
+        <div className="fixed bottom-6 right-6 z-50">
           <button 
             onClick={() => setShowSEO(!showSEO)}
-            className="px-6 py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+            className="px-6 py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
           >
-            {showSEO ? 'Close Info' : 'About Mappil'}
+            {showSEO ? 'Close' : 'About'}
           </button>
         </div>
       )}
 
       {(showSEO || isSnap) && (
-        <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-x-0 bottom-0 top-20 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] border-t border-slate-700/50 flex flex-col items-center py-12 px-4 overflow-y-auto"}>
+        <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
           <main className="max-w-4xl w-full flex flex-col gap-12 mt-4 pb-20 text-slate-100">
             <header className="text-center space-y-6">
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400">

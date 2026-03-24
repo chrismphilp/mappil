@@ -74,7 +74,13 @@ const GameContent: FC<GameContentProps> = ({
         skippedRegion={state.skippedRegion}
       />
 
-      <div className="fixed bottom-6 left-6 z-30 flex gap-3">
+      <div 
+        className="fixed z-30 flex gap-3"
+        style={{ 
+          bottom: 'max(var(--sab), 1.5rem)',
+          left: 'max(var(--sal), 1.5rem)'
+        }}
+      >
         <SettingsButton onClick={() => setSettingsOpen(true)} />
         <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
       </div>

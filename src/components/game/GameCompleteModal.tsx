@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { submitScore } from '../../lib/leaderboard';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const { isCoarsePointer } = useIsMobileViewport();
 
   useEffect(() => {
     if (open) {
@@ -39,14 +41,14 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       setErrorMsg('');
       import('canvas-confetti').then(({ default: confetti }) => {
         confetti({
-          particleCount: 150,
-          spread: 100,
+          particleCount: isCoarsePointer ? 75 : 150,
+          spread: isCoarsePointer ? 70 : 100,
           origin: { y: 0.5 },
           colors: ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa'],
         });
       });
     }
-  }, [open]);
+  }, [open, isCoarsePointer]);
 
   const handleSubmit = async () => {
     const trimmed = username.trim();
@@ -92,25 +94,25 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.7, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-sm w-[90vw] text-center shadow-2xl"
+            className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 max-w-sm w-[90vw] max-h-[90dvh] overflow-y-auto text-center shadow-2xl"
           >
-            <h2 className="text-3xl font-bold text-white mb-2">Game Complete!</h2>
-            <p className="text-slate-400 text-sm mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Game Complete!</h2>
+            <p className="text-slate-400 text-sm mb-5 sm:mb-6">
               You explored {totalRegions} countries
             </p>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
               <div>
-                <div className="text-2xl font-bold text-emerald-400">{score}</div>
-                <div className="text-xs text-slate-400 uppercase">Score</div>
+                <div className="text-xl sm:text-2xl font-bold text-emerald-400">{score}</div>
+                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Score</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-red-400">{errors}</div>
-                <div className="text-xs text-slate-400 uppercase">Errors</div>
+                <div className="text-xl sm:text-2xl font-bold text-red-400">{errors}</div>
+                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Errors</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-amber-400">{bestStreak}</div>
-                <div className="text-xs text-slate-400 uppercase">Best Streak</div>
+                <div className="text-xl sm:text-2xl font-bold text-amber-400">{bestStreak}</div>
+                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Best Streak</div>
               </div>
             </div>
 
