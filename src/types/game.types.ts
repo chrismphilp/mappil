@@ -31,6 +31,13 @@ export enum ShareState {
   ERROR = 'error',
 }
 
+export enum SubmitState {
+  IDLE = 'idle',
+  SUBMITTING = 'submitting',
+  SUBMITTED = 'submitted',
+  ERROR = 'error',
+}
+
 export interface GameState {
   regionsToFind: string[];
   regionToFind: string | undefined;

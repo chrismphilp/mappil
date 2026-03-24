@@ -4,7 +4,7 @@ import { submitScore } from '../../lib/leaderboard';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { createFriendChallenge } from '../../lib/friendChallenge';
 import { shareChallengeLink } from '../../lib/share';
-import { ContinentFilter, Difficulty, GameMode, ChallengeType, ShareState } from '../../types/game.types';
+import { ContinentFilter, Difficulty, GameMode, ChallengeType, ShareState, SubmitState } from '../../types/game.types';
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -42,14 +42,14 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   onPlayAgain,
 }) => {
   const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
-  const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const [submitState, setSubmitState] = useState<SubmitState>(SubmitState.IDLE);
   const [errorMsg, setErrorMsg] = useState('');
   const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
   const { isCoarsePointer } = useIsMobileViewport();
 
   useEffect(() => {
     if (open) {
-      setSubmitState('idle');
+      setSubmitState(SubmitState.IDLE);
       setShareState(ShareState.IDLE);
       setErrorMsg('');
       import('canvas-confetti').then(({ default: confetti }) => {
@@ -71,7 +71,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     }
 
     localStorage.setItem(STORAGE_KEY, trimmed);
-    setSubmitState('submitting');
+    setSubmitState(SubmitState.SUBMITTING);
     setErrorMsg('');
 
     try {
@@ -89,9 +89,9 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
         seed,
         is_daily_challenge: isDailyChallenge,
       });
-      setSubmitState('submitted');
+      setSubmitState(SubmitState.SUBMITTED);
     } catch (e: any) {
-      setSubmitState('error');
+      setSubmitState(SubmitState.ERROR);
       setErrorMsg(e.message ?? 'Failed to submit score');
     }
   };
@@ -177,7 +177,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               </div>
             </div>
 
-            {submitState !== 'submitted' && (
+            {submitState !== SubmitState.SUBMITTED && (
               <div className="mb-6">
                 <input
                   type="text"
@@ -192,15 +192,15 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 )}
                 <button
                   onClick={handleSubmit}
-                  disabled={submitState === 'submitting'}
+                  disabled={submitState === SubmitState.SUBMITTING}
                   className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
                 >
-                  {submitState === 'submitting' ? 'Submitting...' : 'Submit Score'}
+                  {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit Score'}
                 </button>
               </div>
             )}
 
-            {submitState === 'submitted' && (
+            {submitState === SubmitState.SUBMITTED && (
               <p className="text-emerald-400 text-sm mb-6">Score submitted!</p>
             )}
 
