@@ -161,10 +161,19 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onPlayAgain}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow mb-3"
             >
               Play Again
             </motion.button>
+
+            {isDailyChallenge && (
+              <a 
+                href="/"
+                className="block w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors"
+              >
+                Back to Free Play
+              </a>
+            )}
           </motion.div>
         </motion.div>
       )}
