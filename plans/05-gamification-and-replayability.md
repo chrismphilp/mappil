@@ -1,18 +1,18 @@
 # Gamification And Replayability Plan
 
-**Recommendation:** Build Mappil’s game feel around three layered loops: a juicier moment-to-moment run, stronger post-run replay hooks, and lightweight long-term progression that rewards mastery without turning the product into a grind.
+**Recommendation:** Build Mappil's replayability around improving the loops that already exist: make each run feel more expressive, make the end-of-run flow smarter, and add local-first progress systems that reward mastery without turning the game into a grind.
 
-**Why this approach:** The current experience already has a solid base in `src/hooks/useGameState.ts`: score, errors, streaks, quick/full modes, continent filters, feedback overlays, confetti, and leaderboard submission. What it lacks is a deeper reason to immediately start another run, experiment with different rule sets, or keep returning over days and weeks.
+**Why this approach:** The current product is no longer starting from zero. It already has core run stats, quick/full modes, continent filters, seeded runs, a daily challenge flow, friend challenges, feedback overlays, challenge sharing, and leaderboard submission. What it still lacks is a stronger reason to immediately run again, clearer proof of personal improvement, and a few foundational data models that make future challenge modes and progression systems coherent.
 
-**Primary goal:** Make each run feel more exciting while giving players clear reasons to replay right away and come back later.
+**Primary goal:** Increase repeat runs per session and repeat visits over time by improving the quality of existing loops before adding more systems.
 
-**Scope rule for v1:** Prioritize replay loops, variety, and positive progression. Avoid manipulative retention mechanics, hard monetization hooks, or complex currencies.
+**Scope rule for v1:** Build on the shipped daily/friend challenge infrastructure. Do not add heavy live-ops tooling, multiple new modifiers at once, or progression systems that require account auth.
 
 ---
 
-## 1. Current Baseline
+## 1. Current Product Baseline
 
-### What Mappil already has
+### What already exists
 - point scoring for correct answers
 - error tracking
 - current streak and best streak
@@ -20,444 +20,444 @@
 - continent filters
 - visual feedback for correct, wrong, and skipped answers
 - end-of-run summary and leaderboard submission
+- deterministic seeded runs for challenge flows
+- a shared daily challenge entry point and daily leaderboard mode
+- friend challenge creation, challenge links, and rematch-style sharing
 
-### What feels thin today
-- score is mostly linear, so great play does not feel much different from merely correct play
-- a run ends without a strong “one more game” prompt beyond `Play Again`
-- the leaderboard is useful but narrow; it does not create daily reasons to return
-- there is no persistent player progression besides remembered username
-- there are no achievements, quests, unlocks, personal best surfaces, or rotating challenges
-- there is limited mode variety beyond quick vs full and difficulty/continent selection
+### What still feels thin
+- score is still mostly linear, so strong play does not feel sufficiently different from merely finishing
+- the completion modal is still mostly a score-submission form with one generic replay action
+- there is no stable local player identity or local-first personal best layer
+- leaderboard behavior is attempt-based, not best-attempt-per-player
+- challenge variety is still limited; daily and friend challenge are wrappers around the same underlying free-play rules
+- there is no analytics sink defined for measuring whether replay loops actually improve retention
 
 ### Likely consequence
-The game can be satisfying once, but replayability depends too heavily on intrinsic geography interest rather than product-driven reward loops.
+Mappil already supports challenge entry points, but the reward loop around them is still shallow. Players can try a daily or friend run, yet the product does not do enough to turn one completed run into a second run or a longer-term habit.
 
 ---
 
-## 2. Product Direction
+## 2. Role Of This Plan
+
+This document is an umbrella strategy and sequencing plan, not a replacement for the more focused implementation plans that already exist.
+
+Related plans:
+- [Daily Challenge And Seeded Runs](./completed/07-daily-challenge-and-seeded-runs.md)
+- [Personal Bests And Player Profile](./08-personal-bests-and-player-profile.md)
+- [Additional Map Modes And Content Expansion](./09-additional-map-modes-and-content-expansion.md)
+
+This plan should coordinate:
+- what to improve first
+- which prerequisites unlock later systems
+- which already-shipped features should be improved instead of rebuilt
+
+---
+
+## 3. Product Direction
 
 ### Chosen design direction
 Make Mappil feel like:
 - a fast skill game
-- a mastery tracker
-- a daily challenge habit
-
-The experience should reward improvement and curiosity, not repetition for repetition’s sake.
+- a personal mastery tracker
+- a lightweight shared challenge habit
 
 ### Core principle
 Replayability should come from:
 - chasing better execution
-- trying different constraints
-- building visible mastery over time
+- seeing personal improvement clearly
+- trying a small number of meaningful constraints
 
-Not from artificial timers, intrusive notifications, or pay-to-progress systems.
+Not from:
+- manipulative streak penalties
+- intrusive notifications
+- currencies, loot systems, or monetization hooks
 
 ---
 
-## 3. Layer 1: Make Each Run More Fun
+## 4. Phase 0: Cross-Cutting Prerequisites
+
+These are the foundations that should move ahead of most new gamification features.
+
+### A. Canonical ruleset identity
+
+#### [NEW] ruleset identity helper
+
+Create one normalized ruleset identifier used everywhere the product needs to compare runs fairly.
+
+Recommended fields:
+- difficulty
+- continent
+- game mode
+- challenge source such as free play, daily, or friend
+- gameplay modifier if present
+- challenge id when applicable
+
+This identifier should back:
+- personal best storage
+- leaderboard partitioning
+- achievement conditions
+- replay CTA generation
+- analytics
+
+### B. Stable local player identity
+
+#### [NEW] local player id
+
+Persist a stable local `playerId` separate from the display username.
+
+Use it to support:
+- local profile history
+- best-attempt comparisons
+- future nearby-player or cloud-sync features
+
+Do not rely on username alone for identity-sensitive features.
+
+### C. Canonical score model and breakdown
+
+#### [MODIFY] `src/hooks/game/useGameState.ts`
+#### [MODIFY] `src/types/game.types.ts`
+
+Before adding more bonuses or modifiers, define a structured score model.
+
+Recommended direction:
+- track base score separately from bonus score
+- track why points were earned
+- store enough breakdown data to explain the final score in the completion modal
+
+Guardrails:
+- prefer additive bonuses over opaque multiplicative stacks
+- cap streak-related bonuses
+- ensure players can understand why two runs ranked differently
+
+### D. Best-attempt policy
+
+#### [MODIFY] leaderboard and profile surfaces
+
+Decide explicitly how Mappil treats repeated attempts.
+
+Recommended v1 rule:
+- store all attempts if useful
+- display only the best visible attempt per `playerId` per ruleset or challenge in competitive surfaces
+
+This matters for:
+- daily challenge fairness
+- future personal-nearby boards
+- friend challenge comparisons
+
+### E. Analytics sink decision
+
+#### [DECIDE] analytics destination before instrumentation
+
+Do not add event calls until there is a defined place for them to go.
+
+Choose one of:
+- a lightweight analytics provider
+- a custom event endpoint
+- an explicit defer decision for analytics work
+
+Without this decision, instrumentation tasks create noise without learning value.
+
+---
+
+## 5. Layer 1: Make Each Run Feel Better
 
 ### A. Richer scoring
 
-#### [MODIFY] `src/hooks/useGameState.ts`
+#### [MODIFY] `src/hooks/game/useGameState.ts`
 
-Expand scoring beyond flat correctness.
+Expand scoring beyond flat correctness, but keep it legible.
 
 Recommended additions:
-- streak bonus
-- speed bonus
-- no-skip bonus
-- perfect-region bonus for getting a region without errors
-- flawless-run bonus at game end
+- first-try bonus
+- capped streak bonus
+- reduced reward after one or more misses on the same target
+- no-skip end bonus
+- flawless-run end bonus
 
-Example scoring direction:
-- base points for a correct answer
-- multiplicative or additive bonus for consecutive perfect answers
-- reduced reward when a correct answer follows one or more misses on the same target
-
-This makes strong play feel meaningfully different from barely passing.
+Avoid:
+- large hidden multipliers
+- time bonuses that are not surfaced clearly
+- bonus rules that make the leaderboard feel arbitrary
 
 ### B. Bigger streak states
 
-#### [MODIFY] `src/components/HUD.tsx`
-#### [MODIFY] `src/components/FeedbackOverlay.tsx`
+#### [MODIFY] `src/components/game/HUD.tsx`
+#### [MODIFY] `src/components/game/FeedbackOverlay.tsx`
 
-Turn streaks into more visible game states, not just a number.
+Turn streaks into visible game states rather than just one stat.
 
 Recommended thresholds:
-- warm streak
-- hot streak
+- warm
+- hot
 - on fire
 - legendary
 
-Each threshold can introduce:
+Each threshold can add:
 - stronger HUD treatment
-- slightly richer feedback copy
-- more celebratory particles or motion
+- richer overlay copy
+- more pronounced particles or motion
 
 ### C. Better answer feedback
 
-#### [MODIFY] `src/components/FeedbackOverlay.tsx`
+#### [MODIFY] `src/components/game/FeedbackOverlay.tsx`
 
-Add more playful, varied micro-feedback:
-- rotating positive copy for streak moments
-- stronger “clutch” feedback for last-attempt saves
-- gentler but clearer failure feedback on skips
+Add more expressive but still fast feedback:
+- rotating positive copy during streak states
+- special feedback for first-try answers
+- special feedback for third-attempt saves
+- clearer and less harsh skip messaging
 
-Keep it fast. The game should stay snappy.
+Keep the game snappy. Feedback should support pace, not interrupt it.
 
 ### D. Stronger completion ceremony
 
-#### [MODIFY] `src/components/GameCompleteModal.tsx`
+#### [MODIFY] `src/components/game/GameCompleteModal.tsx`
 
-The end-of-run screen should feel like a reward moment, not just a score form.
+The end-of-run flow should celebrate the run first and ask for submission second.
 
 Add:
 - run grade or rank
-- breakdown of earned bonuses
-- highlight callout such as `New Best Streak`
-- clear rematch CTA
-- clear “try a harder/faster variant” CTA
+- score breakdown
+- highlight callouts such as `New Best Score` or `Best Streak Tied`
+- replay CTA based on what the player should do next
+- challenge-aware CTAs for daily and friend runs
 
 ---
 
-## 4. Layer 2: Immediate Replay Hooks
+## 6. Layer 2: Immediate Replay Hooks
 
-### A. Personal best chasing
+### A. Local-first personal best chasing
 
-#### [NEW] local run-history storage
+#### [FOLLOW] [Personal Bests And Player Profile](./08-personal-bests-and-player-profile.md)
 
-Persist personal records locally first:
-- highest score by ruleset
-- lowest errors by ruleset
-- fastest perfect run by ruleset
-- best streak by ruleset
+Persist personal records by normalized ruleset:
+- highest score
+- fewest errors
+- fastest clean clear
+- best streak
 
-Recommended ruleset key:
-- continent
-- difficulty
-- game mode
-- challenge mode if added later
-
-Expose this in:
+Expose them in:
 - `GameCompleteModal`
-- leaderboard entry surfaces
-- settings panel or a small profile panel
+- leaderboard context hints
+- a lightweight profile or settings surface
 
-### B. “One more run” prompts
+### B. Smart replay CTAs
 
-#### [MODIFY] `src/components/GameCompleteModal.tsx`
+#### [MODIFY] `src/components/game/GameCompleteModal.tsx`
 
-Replace the single generic replay button with high-context replay actions such as:
+Replace the single generic replay button with contextual actions such as:
 - `Beat your best`
 - `Run it back`
 - `Try Hard Mode`
-- `Play Europe Quick`
+- `Play today's challenge`
+- `Rematch this friend challenge`
 
-These should be generated from the player’s last performance and nearby difficulty or mode options.
+These should be generated from:
+- the player's last result
+- their local best for the ruleset
+- nearby ruleset variants
+- whether the run was free play, daily, or friend challenge
 
-### C. Near-term challenge cards
+### C. One immediate next challenge suggestion
 
-#### [NEW] `src/components/NextChallengeCard.tsx`
+#### [NEW] inline next-challenge suggestion
 
-At the end of a run, propose one immediate next challenge:
-- same ruleset, fewer errors
-- harder difficulty
-- full game instead of quick play
-- a different continent
-- no-skip challenge
+At the end of a run, propose one next step:
+- same ruleset with fewer errors
+- a harder difficulty
+- a full game instead of quick play
+- the daily challenge if they just played free play
 
-This should be one tap into the next run, not a separate menu hunt.
+Keep this as a lightweight inline surface inside the completion flow. Do not make players navigate a second menu.
 
-### D. Run variety
+### D. Only one new modifier in the first pass
 
-#### [MODIFY] `src/types/game.types.ts`
-#### [MODIFY] `src/hooks/useGameState.ts`
+#### [FOLLOW] [Additional Map Modes And Content Expansion](./09-additional-map-modes-and-content-expansion.md)
 
-Add a few high-signal challenge variants rather than many weak ones.
+Do not ship several new gameplay variants at once.
 
-Recommended first set:
-- `No Skip`
+Recommended first modifier:
+- `Streak Rush`
+
+Why this first:
+- it builds on the scoring model rather than requiring heavy new game-over logic
+- it creates replay variety without rewriting skip, lives, or timer systems
+
+Defer until later:
 - `Time Attack`
-- `Survival` or limited-lives mode
-- `Streak Rush` where combo play matters more
-
-Do not ship too many variants at once. Three or four good ones are enough for v1.
+- `Survival`
+- `No Skip` if it requires breaking the current third-strike skip flow
 
 ---
 
-## 5. Layer 3: Long-Term Progression
+## 7. Improve Existing Daily And Social Loops
+
+### A. Daily challenge improvements
+
+#### [FOLLOW] [Daily Challenge And Seeded Runs](./completed/07-daily-challenge-and-seeded-runs.md)
+
+The daily challenge already exists. Improve it instead of rebuilding it.
+
+Recommended improvements:
+- surface the player's best daily result
+- show a clearer daily completion callout in the end screen
+- add a direct CTA to view the daily leaderboard after submission
+- consider rotating rules over time instead of keeping the same fixed daily rules forever
+
+### B. Friend challenge improvements
+
+#### [MODIFY] friend challenge completion and share flow
+
+Improve the current friend loop with:
+- clearer rematch language
+- result sharing that emphasizes score, streak, and ruleset
+- best-attempt comparison between the sharer and recipient once player identity exists
+
+### C. Better leaderboard structure
+
+#### [MODIFY] `src/lib/leaderboard.ts`
+#### [MODIFY] `src/components/leaderboard/LeaderboardModal.tsx`
+
+Improve the leaderboard around existing contexts:
+- free play
+- daily challenge
+- friend challenge
+- modifier-specific boards later
+
+Also add:
+- the player's own visible position even if outside the top list
+- `your best` or `your rank` context once local player identity exists
+
+---
+
+## 8. Long-Term Progression
+
+These systems should come after personal bests and score explainability are working well.
 
 ### A. Achievement system
 
 #### [NEW] achievements model
 
-Introduce achievements that reward different kinds of play:
+Introduce achievements that reward quality and variety:
 - first full clear
 - perfect quick play
-- continent mastery
+- continent mastery milestones
 - long streak milestones
-- no-skip wins
-- high-speed clears
+- modifier-specific wins later
 
-Keep achievements concrete and readable. Avoid hidden grind goals in the first pass.
+Keep the list small and readable in the first version.
 
 ### B. Mastery collection
 
-#### [NEW] player mastery tracking
+#### [NEW] mastery tracking
 
-Track learning and mastery over time, not just raw scores.
-
-Recommended concepts:
-- regions answered correctly on first try
+Track learning-oriented progress over time:
+- first-try accuracy by region
 - regions frequently missed
-- continent completion percentages
-- mastery tiers such as bronze, silver, gold
+- continent completion comfort
+- mastery tiers
 
-This fits Mappil’s educational value while giving return visits a purpose.
+This is one of the strongest fits with Mappil's educational angle.
 
-### C. Player level or title
+### C. Player level or title is optional, not foundational
 
-#### [NEW] lightweight progression profile
+#### [OPTIONAL] lightweight progression profile
 
-Add a simple profile progression layer based on earned XP or completed achievements.
+Only add a level or title system if:
+- achievements are landing well
+- profile progress already feels meaningful
 
-Keep it lightweight:
-- level number
-- title
-- optional badge or accent unlock
+Do not force an XP system into v1 just because it is common in games.
 
-Avoid complex currencies, shops, or multi-resource systems.
+### D. Soft return cadence
 
-### D. Streak cadence outside a single run
+#### [LATER] return-play system
 
-#### [NEW] return-play system
-
-Add a soft return loop:
+After daily challenge and profile basics are solid, consider:
 - daily challenge streak
-- “played today” streak
-- weekly target such as completing three different continent runs
+- played-this-week goals
+- complete-three-continents style weekly goals
 
-This should reward consistency without punishing missed days too harshly.
-
----
-
-## 6. Daily And Rotating Content
-
-### A. Daily challenge
-
-#### [NEW] seeded daily challenge system
-
-Create one shared daily run with fixed rules for everyone on a given date.
-
-Recommended properties:
-- deterministic seed
-- one continent or world ruleset
-- fixed difficulty and mode
-- dedicated daily leaderboard
-
-This creates a reason to return that is social and comparable.
-
-### B. Weekly spotlight
-
-Add a simple weekly featured challenge such as:
-- `Africa Accuracy Week`
-- `Hard Mode Sprint`
-- `No Skip World Quick`
-
-This can initially be a configured ruleset, not a heavy live-ops system.
-
-### C. Rotating modifiers
-
-Use occasional modifiers to keep familiar content fresh:
-- shorter timer windows
-- streak-heavy scoring
-- sudden-death mistakes
-- reverse order or themed region sets if supported later
-
-Do not let modifiers overwhelm the core learning loop.
+Reward consistency without harsh resets or guilt mechanics.
 
 ---
 
-## 7. Social And Competitive Loops
+## 9. Revised Release Order
 
-### A. Better leaderboard structure
-
-#### [MODIFY] `src/lib/leaderboard.ts`
-#### [MODIFY] `src/components/LeaderboardModal.tsx`
-
-Split leaderboards by meaningful contexts:
-- all-time
-- daily
-- friends or personal-nearby if added later
-- challenge-mode specific boards
-
-Also surface the player’s position even if they are outside the visible top list.
-
-### B. Shareable results
-
-#### [NEW] result share surface
-
-Add a share action from the completion screen with a compact summary:
-- score
-- difficulty
-- continent
-- streak or perfect status
-- daily challenge result if relevant
-
-This supports discoverability and replay without requiring a full social graph.
-
-### C. Friendly rivalry
-
-Longer term, consider lightweight friend comparisons:
-- “beat your best friend’s Europe run”
-- “you moved up 4 places today”
-
-Do not block the first gamification release on account systems for this.
-
----
-
-## 8. Technical Design
-
-### A. Data model additions
-
-Recommended new storage concepts:
-- `run_history`
-- `player_profiles`
-- `player_achievements`
-- `daily_challenges`
-- `daily_challenge_attempts`
-
-Use local storage for the first personal-best layer if you want fast iteration, then move selected data to Supabase when cross-device persistence matters.
-
-### B. Ruleset identity
-
-Create a normalized ruleset identifier that includes:
-- difficulty
-- continent
-- game mode
-- challenge modifier
-- daily challenge id when applicable
-
-This is important for:
-- fair leaderboards
-- personal bests
-- achievements
-- analytics
-
-### C. Event instrumentation
-
-Add analytics events for:
-- run started
-- run completed
-- run abandoned
-- challenge accepted
-- achievement earned
-- replay CTA clicked
-
-Without this, it will be hard to tell which loops actually improve replayability.
-
----
-
-## 9. UX Guardrails
-
-### Keep the loop short
-The best replay lever is low friction.
-
-Hard rule:
-- a player should be able to finish a run and start the next one in one or two taps
-
-### Do not bury the game under systems
-Achievements and progression should support the core quiz, not distract from it.
-
-Avoid:
-- popups after every action
-- too many currencies
-- mandatory tutorials for simple systems
-- dark-pattern retention mechanics
-
-### Respect the educational angle
-Gamification should reinforce geography learning.
-
-Good examples:
-- mastery progress
-- challenge variety
-- continent milestones
-
-Weaker examples:
-- arbitrary loot systems with no relation to play quality
-
----
-
-## 10. Suggested Release Order
+### Phase 0: Foundations
+- canonical ruleset identity
+- local player id
+- score breakdown model
+- best-attempt policy
+- analytics sink decision
 
 ### Phase 1: Stronger run juice
 - richer scoring
 - streak states
+- better feedback
 - improved completion ceremony
 - personal best tracking
 
-### Phase 2: Replay and variety
-- next challenge CTA
-- challenge variants
-- daily challenge
-- daily leaderboard
+### Phase 2: Replay and challenge quality
+- smart replay CTA
+- one next-challenge suggestion
+- one new modifier built on the score model
+- daily and friend challenge improvements
+- leaderboard best-attempt behavior
 
 ### Phase 3: Long-term progression
 - achievements
 - mastery tracking
-- profile level or title
-- weekly cadence systems
+- optional profile title or level
+- soft cadence systems
 
-This keeps the first release focused on fun and immediate replay before building larger persistence systems.
+This keeps the first release focused on the parts most likely to increase replays quickly while avoiding duplicated work on systems that are already present.
 
 ---
 
-## 11. Verification
+## 10. Verification
 
 ### Product checks
-- players can clearly understand why a run score is high or low
-- a great run feels materially more exciting than an average run
-- the completion screen gives a strong reason to replay
-- players can see personal improvement over time
-- there is at least one compelling reason to return tomorrow
+- players can explain why a run scored highly
+- the completion screen gives at least one compelling next action
+- local personal improvement is visible after the first few sessions
+- daily and friend challenge flows feel more rewarding without becoming noisy
 
-### Analytics success signals
-Track:
+### Success signals
 - runs per session
-- replay-button click rate
-- percentage of users starting a second run
-- daily challenge participation
-- returning players over 7 and 30 days
-- achievement earn rate
+- replay CTA click-through rate
+- percentage of players who start a second run
+- daily challenge participation and repeat participation
+- personal-best earn rate
 
 ### UX checks
-- new systems remain understandable on first use
-- the game stays fast
-- extra feedback does not become noisy or slow
+- new feedback remains fast
+- the game still feels readable on first use
+- added progression surfaces do not bury the core quiz
 
 ---
 
-## 12. Risks And Mitigations
+## 11. Risks And Mitigations
 
 ### Risk: too many systems dilute the core quiz
-Mitigation: ship in phases and keep the first release focused on scoring, replay prompts, and one or two new challenge loops.
+Mitigation: keep v1 focused on scoring clarity, replay prompts, and personal bests before broader progression layers.
 
-### Risk: progression feels grindy rather than fun
-Mitigation: reward quality, mastery, and variety of play more than raw volume.
+### Risk: challenge variants sprawl before the rules are modeled well
+Mitigation: ship one modifier only after the ruleset and scoring foundations exist.
 
 ### Risk: social comparison discourages weaker players
-Mitigation: emphasize personal bests and achievements alongside leaderboards.
+Mitigation: emphasize personal bests and mastery progress alongside public boards.
 
-### Risk: feature scope expands too quickly
-Mitigation: keep v1 local-first where possible, especially for personal bests and achievement surfaces.
+### Risk: instrumentation is started without a measurement plan
+Mitigation: choose an analytics sink first or defer analytics work explicitly.
 
 ---
 
-## 13. Exit Criteria
+## 12. Exit Criteria
 
 This plan is complete when:
-- each run has more expressive scoring and feedback
-- the end-of-run flow gives a clear replay reason
-- Mappil supports at least one strong recurring reason to return, such as a daily challenge
-- players can track personal improvement across sessions
-- the game feels more joyful and replayable without becoming cluttered or manipulative
+- each run has clearer and more expressive scoring
+- the end-of-run flow gives a context-aware reason to replay
+- Mappil shows personal improvement across sessions
+- existing daily and friend challenge loops feel stronger than they do today
+- the game feels more replayable without becoming cluttered or grindy
