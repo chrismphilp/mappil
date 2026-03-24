@@ -1,5 +1,8 @@
 export async function shareChallengeLink(title: string, text: string, url: string): Promise<boolean> {
-  if (navigator.share) {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // On mobile, use native share sheet if available
+  if (isMobile && navigator.share) {
     try {
       await navigator.share({
         title,
@@ -11,12 +14,11 @@ export async function shareChallengeLink(title: string, text: string, url: strin
       if ((err as Error).name === 'AbortError') {
         return false;
       }
-      console.error('Error sharing:', err);
-      // Fallback to clipboard if share failed for other reasons
+      // Fallback to clipboard on error
     }
   }
 
-  // Fallback to clipboard
+  // On desktop or if share fails/is missing, copy directly to clipboard
   try {
     await navigator.clipboard.writeText(`${text} ${url}`);
     return true;
