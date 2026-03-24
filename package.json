@@ -2,6 +2,9 @@
   "name": "mappil",
   "version": "0.3.0",
   "private": true,
+  "engines": {
+    "node": ">=20.10.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
