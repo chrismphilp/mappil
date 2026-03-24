@@ -12,9 +12,10 @@ interface PlayPageProps {
   continent?: ContinentFilter;
   difficulty?: Difficulty;
   gameMode?: GameMode;
+  suppressSEO?: boolean;
 }
 
-const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode }) => {
+const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppressSEO = false }) => {
   const [searchParams] = useSearchParams();
   const isDaily = searchParams.get('daily') === 'true';
   const challengeParam = searchParams.get('challenge');
@@ -127,11 +128,13 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode }) => {
 
   return (
     <>
-      <SEO 
-        title={isDaily ? 'Daily Challenge - Mappil' : friendConfig ? `Challenge from ${friendConfig.created_by_username} - Mappil` : `Play Mappil - ${initialContinent} Map Quiz`} 
-        description="Test your geography knowledge with Mappil. Identify countries and regions on an interactive 3D globe." 
-        canonicalUrl="https://mappil.com/play"
-      />
+      {!suppressSEO && (
+        <SEO
+          title={isDaily ? 'Daily Challenge - Mappil' : friendConfig ? `Challenge from ${friendConfig.created_by_username} - Mappil` : `Play Mappil - ${initialContinent} Map Quiz`}
+          description="Test your geography knowledge with Mappil. Identify countries and regions on an interactive 3D globe."
+          canonicalUrl="https://mappil.com/play"
+        />
+      )}
       {dataLoaded && !friendConfigLoading && (
         <GameContent 
           onGlobeReady={handleGlobeReady} 

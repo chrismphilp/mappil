@@ -93,7 +93,7 @@ const ContinentQuizPage: FC = () => {
       />
 
       {/* Real users see the game immediately; react-snap skips it to prevent WebGL timeouts */}
-      {showGame && <PlayPage continent={continent} />}
+      {showGame && <PlayPage continent={continent} suppressSEO />}
 
       {/* About Section Button */}
       {showGame && !showSEO && (

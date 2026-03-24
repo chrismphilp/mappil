@@ -1,86 +1,100 @@
 import React, { FC, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { SEO } from '../../components/app/SEO';
-import PlayPage from './PlayPage';
+import PlayPage from '../app/PlayPage';
 
-const QA = [
+const PLAY_STYLES = [
   {
-    q: 'What is Mappil?',
-    a: 'Mappil is a free 3D world map game and geography quiz. You learn by spinning the globe, finding countries, and replaying runs across different regions and difficulty settings.',
+    title: 'World Quick Play',
+    description: 'Jump into a shorter run to learn the map faster and keep retrying without waiting for the globe to reload.',
   },
   {
-    q: 'Is it free?',
-    a: 'Yes. The core world map game, continent practice modes, daily challenge, and friend challenges are all free to play.',
+    title: 'Full Game',
+    description: 'Play a longer world map game when you want broader country coverage and bigger score swings.',
   },
   {
-    q: 'Can I choose which continent to learn?',
-    a: 'Yes. You can play the full world map or focus on regions like Africa, Asia, Europe, North America, South America, or Oceania.',
-  },
-];
-
-const HIGHLIGHTS = [
-  {
-    title: 'Live 3D Globe',
-    description: 'The game stays playable on the landing page, so you can start learning countries immediately instead of clicking through to a separate app shell.',
-  },
-  {
-    title: 'Flexible Practice',
-    description: 'Switch between world and continent runs, change difficulty on the fly, and choose between quick sessions or longer games.',
-  },
-  {
-    title: 'Replayable Goals',
-    description: 'Daily challenges, streak tracking, and cleaner-run targets give players a concrete reason to replay and improve.',
+    title: 'Daily And Friend Challenges',
+    description: 'Use shared seeds, streaks, and leaderboard runs to turn geography practice into repeatable competition.',
   },
 ];
 
 const CONTINENT_LINKS = [
-  { href: '/africa-map-quiz', title: 'Africa Map Game', description: 'Practice identifying African countries.' },
-  { href: '/asia-map-quiz', title: 'Asia Map Game', description: 'Test your knowledge of Asia.' },
-  { href: '/europe-map-quiz', title: 'Europe Map Game', description: 'Find European countries on the globe.' },
-  { href: '/north-america-map-quiz', title: 'North America Map Game', description: 'Learn North America, Central America, and the Caribbean.' },
-  { href: '/south-america-map-quiz', title: 'South America Map Game', description: 'Identify South American countries.' },
-  { href: '/oceania-map-quiz', title: 'Oceania Map Game', description: 'Master Oceania and the Pacific nations.' },
+  {
+    href: '/world-map-quiz',
+    title: 'World Map Quiz',
+    description: 'Play the full world map and learn countries from every continent.',
+  },
+  {
+    href: '/africa-map-quiz',
+    title: 'Africa Map Game',
+    description: 'Focus on African countries and build recognition faster.',
+  },
+  {
+    href: '/asia-map-quiz',
+    title: 'Asia Map Game',
+    description: 'Practice Asia with the same 3D globe and difficulty controls.',
+  },
+  {
+    href: '/europe-map-quiz',
+    title: 'Europe Map Game',
+    description: 'Use Europe runs for dense-country practice and faster repetitions.',
+  },
+  {
+    href: '/north-america-map-quiz',
+    title: 'North America Map Game',
+    description: 'Cover North America, Central America, and the Caribbean.',
+  },
+  {
+    href: '/south-america-map-quiz',
+    title: 'South America Map Game',
+    description: 'Rehearse South American countries on the rotating globe.',
+  },
+  {
+    href: '/oceania-map-quiz',
+    title: 'Oceania Map Game',
+    description: 'Learn Australia, New Zealand, and Pacific island nations.',
+  },
 ];
 
-const HomePage: FC = () => {
-  const [searchParams] = useSearchParams();
+const QA = [
+  {
+    q: 'What kind of map game is Mappil?',
+    a: 'Mappil is a free 3D world map game that also works as a geography quiz. You spin the globe, select countries, and replay runs with different regions, difficulties, and challenge modes.',
+  },
+  {
+    q: 'Can I practice one region instead of the whole world?',
+    a: 'Yes. You can filter to Africa, Asia, Europe, North America, South America, or Oceania and keep the same controls and scoring system.',
+  },
+  {
+    q: 'Is this map game good for repeat practice?',
+    a: 'Yes. Quick Play, Full Game, daily challenges, friend challenges, streaks, and score breakdowns all make it easier to replay with a clear improvement target.',
+  },
+];
+
+const MapGamePage: FC = () => {
   const isSnap = typeof window !== 'undefined' && window.navigator.userAgent.includes('ReactSnap');
   const [showSEO, setShowSEO] = useState(isSnap);
   const [mounted, setMounted] = useState(false);
-  const isDaily = searchParams.get('daily') === 'true';
-  const isFriendChallenge = Boolean(searchParams.get('challenge'));
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const showGame = mounted && !isSnap;
-  const seoTitle = isDaily
-    ? 'Daily World Map Game Challenge | Mappil'
-    : isFriendChallenge
-      ? 'Challenge A Friend In Mappil | 3D Map Game'
-      : 'Mappil: Free 3D World Map Game & Geography Quiz';
-  const seoDescription = isDaily
-    ? 'Play today’s Mappil daily challenge on a 3D world map and compare your geography score with other runs.'
-    : isFriendChallenge
-      ? 'Open a shared Mappil challenge and play the same world map game seed against a friend.'
-      : 'Play a free 3D world map game that helps you learn countries by continent, difficulty, and daily challenge mode.';
 
   return (
     <div className={`relative w-full overflow-x-hidden selection:bg-blue-500/30 ${isSnap ? 'bg-slate-900 min-h-screen text-slate-100' : ''}`}>
       <SEO
-        title={seoTitle}
-        description={seoDescription}
-        canonicalUrl="https://mappil.com/"
+        title="Free 3D World Map Game | Play Mappil Online"
+        description="Play a free 3D world map game with continent filters, difficulty levels, daily challenges, and replayable geography practice."
+        canonicalUrl="https://mappil.com/map-game"
       />
-      
-      {/* Real users see the game immediately; react-snap skips it to prevent WebGL timeouts */}
+
       {showGame && <PlayPage suppressSEO />}
 
-      {/* About Section Button */}
       {showGame && !showSEO && (
         <div className="fixed bottom-6 right-6 z-[100]">
-          <button 
+          <button
             onClick={() => setShowSEO(true)}
             className="w-12 h-12 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
             aria-label="About Mappil"
@@ -95,10 +109,10 @@ const HomePage: FC = () => {
       )}
 
       {(showSEO || isSnap) && (
-        <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
+        <div className={isSnap ? 'py-12 px-4 flex flex-col items-center' : 'fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto'}>
           {!isSnap && (
             <div className="fixed top-6 right-6 z-[100]">
-              <button 
+              <button
                 onClick={() => setShowSEO(false)}
                 className="w-12 h-12 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
                 aria-label="Close Info"
@@ -109,13 +123,16 @@ const HomePage: FC = () => {
               </button>
             </div>
           )}
-          <main className="max-w-4xl w-full flex flex-col gap-12 mt-4 pb-20 text-slate-100">
+          <main className="max-w-5xl w-full flex flex-col gap-12 mt-4 pb-20 text-slate-100">
             <header className="text-center space-y-6">
+              <Link to="/" className="text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm">
+                ← Back to Home
+              </Link>
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-blue-400 to-emerald-400 pb-2">
                 Free 3D World Map Game
               </h1>
               <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                Mappil keeps the game live on the landing page while still explaining what makes it useful: you can learn countries on a spinning globe, narrow the map by continent, and replay runs with score and streak goals.
+                Mappil is a map game for learning countries through repeat play, not a static worksheet. Spin the globe, switch regions and difficulty in real time, and replay runs with clear score targets.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                 <Link
@@ -125,27 +142,27 @@ const HomePage: FC = () => {
                   Play Daily Challenge
                 </Link>
                 <Link
-                  to="/map-game"
+                  to="/world-map-quiz"
                   className="inline-block px-8 py-4 bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-slate-100 rounded-full font-bold text-lg shadow-lg shadow-slate-950/30 transition-transform hover:scale-105 active:scale-95"
                 >
-                  Explore The Map Game
+                  Start World Practice
                 </Link>
               </div>
             </header>
 
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {HIGHLIGHTS.map((item) => (
-                <div key={item.title} className="rounded-3xl border border-slate-700/60 bg-slate-800/55 p-6 shadow-2xl shadow-slate-950/20">
-                  <h2 className="text-xl font-semibold text-slate-100">{item.title}</h2>
-                  <p className="mt-3 text-slate-300 leading-relaxed">{item.description}</p>
+              {PLAY_STYLES.map((style) => (
+                <div key={style.title} className="rounded-3xl border border-slate-700/60 bg-slate-800/55 p-6 shadow-2xl shadow-slate-950/20">
+                  <h2 className="text-xl font-semibold text-slate-100">{style.title}</h2>
+                  <p className="mt-3 text-slate-300 leading-relaxed">{style.description}</p>
                 </div>
               ))}
             </section>
 
             <section className="bg-slate-800/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50">
-              <h2 className="text-2xl font-semibold mb-3 text-slate-200">Practice By Continent</h2>
+              <h2 className="text-2xl font-semibold mb-3 text-slate-200">Choose The Region You Want To Learn</h2>
               <p className="text-slate-300 max-w-3xl leading-relaxed mb-6">
-                Broad search terms like <span className="font-semibold text-slate-100">map game</span> hide very different intents. Mappil covers both world-map practice and focused regional learning, so players can move from a full globe session into narrower continent drills without leaving the game.
+                The same interactive game can be narrowed to a single continent when you want faster repetition. That makes Mappil useful both as a broad world map game and as focused geography practice for one region at a time.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {CONTINENT_LINKS.map((link) => (
@@ -157,11 +174,11 @@ const HomePage: FC = () => {
               </div>
             </section>
 
-            <section className="mb-12">
+            <section>
               <h2 className="text-2xl font-semibold mb-6 text-slate-200 text-center">Frequently Asked Questions</h2>
               <div className="space-y-4 max-w-3xl mx-auto">
-                {QA.map((item, idx) => (
-                  <div key={idx} className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/30">
+                {QA.map((item) => (
+                  <div key={item.q} className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/30">
                     <h3 className="font-semibold text-lg text-slate-300">{item.q}</h3>
                     <p className="text-slate-400 mt-2 leading-relaxed">{item.a}</p>
                   </div>
@@ -175,4 +192,4 @@ const HomePage: FC = () => {
   );
 };
 
-export default HomePage;
+export default MapGamePage;
