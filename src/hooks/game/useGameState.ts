@@ -1,6 +1,6 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode } from '../types/game.types';
-import { getFilteredRegions } from '../data/maps';
+import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
+import { getFilteredRegions } from '../../data/maps';
 
 const QUICK_PLAY_COUNT = 10;
 
@@ -171,8 +171,14 @@ function reducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-export function useGameState() {
-  const [state, dispatch] = useReducer(reducer, Difficulty.MEDIUM, buildInitialState);
+export function useGameState(
+  initialContinent: ContinentFilter = ContinentFilter.WORLD,
+  initialDifficulty: Difficulty = Difficulty.MEDIUM,
+  initialGameMode: GameMode = GameMode.QUICK
+) {
+  const [state, dispatch] = useReducer(reducer, null, () =>
+    buildInitialState(initialDifficulty, initialContinent, initialGameMode)
+  );
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const selectRegion = useCallback((region: string) => {

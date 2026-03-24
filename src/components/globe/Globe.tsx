@@ -1,6 +1,6 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import { getGeoJsonData } from '../data/maps';
+import { getGeoJsonData } from '../../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',

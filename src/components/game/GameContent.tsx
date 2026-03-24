@@ -1,18 +1,33 @@
 import { FC, lazy, Suspense, useState } from 'react';
-import { useGameState } from '../hooks/useGameState';
+import { useGameState } from '../../hooks/game/useGameState';
+import { ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 import HUD from './HUD';
 import FeedbackOverlay from './FeedbackOverlay';
-import SettingsButton from './SettingsButton';
-import SettingsPanel from './SettingsPanel';
+import SettingsButton from '../settings/SettingsButton';
+import SettingsPanel from '../settings/SettingsPanel';
 import GameCompleteModal from './GameCompleteModal';
-import LeaderboardButton from './LeaderboardButton';
-import LeaderboardModal from './LeaderboardModal';
+import LeaderboardButton from '../leaderboard/LeaderboardButton';
+import LeaderboardModal from '../leaderboard/LeaderboardModal';
 
-const loadGlobe = () => import('./Globe');
+import ShootingStarsBackground from '../ShootingStarsBackground';
+
+const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
 const Globe = lazy(loadGlobe);
 
-const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
+interface GameContentProps {
+  onGlobeReady: () => void;
+  initialContinent?: ContinentFilter;
+  initialDifficulty?: Difficulty;
+  initialGameMode?: GameMode;
+}
+
+const GameContent: FC<GameContentProps> = ({
+  onGlobeReady,
+  initialContinent = ContinentFilter.WORLD,
+  initialDifficulty = Difficulty.MEDIUM,
+  initialGameMode = GameMode.QUICK,
+}) => {
   const {
     state,
     selectRegion,
@@ -24,12 +39,13 @@ const GameContent: FC<{ onGlobeReady: () => void }> = ({ onGlobeReady }) => {
     progress,
     totalRegions,
     durationSecs,
-  } = useGameState();
+  } = useGameState(initialContinent, initialDifficulty, initialGameMode);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
+      <ShootingStarsBackground />
       <Suspense fallback={null}>
         <Globe
           regionsFound={state.regionsFound}

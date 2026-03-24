@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty, ContinentFilter, GameMode } from '../types/game.types';
+import { Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
 import OptionSelector from './OptionSelector';
 
 const CONTINENT_OPTIONS: ContinentFilter[] = [

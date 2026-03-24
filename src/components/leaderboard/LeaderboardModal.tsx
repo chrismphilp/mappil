@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty, ContinentFilter, GameMode } from '../types/game.types';
-import { fetchLeaderboard, ScoreEntry } from '../lib/leaderboard';
+import { Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
+import { fetchLeaderboard, ScoreEntry } from '../../lib/leaderboard';
 
 interface LeaderboardModalProps {
   open: boolean;

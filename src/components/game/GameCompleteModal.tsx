@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { submitScore } from '../lib/leaderboard';
+import { submitScore } from '../../lib/leaderboard';
 
 interface GameCompleteModalProps {
   open: boolean;
