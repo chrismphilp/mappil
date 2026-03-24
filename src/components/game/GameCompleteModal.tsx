@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { createFriendChallenge } from '../../lib/friendChallenge';
 import { submitScore } from '../../lib/leaderboard';
 import {
-  buildFreePlayHref,
   buildRulesetIdentity,
   buildRulesetKey,
   describeRuleset,
@@ -49,6 +48,7 @@ interface GameCompleteModalProps {
   isDailyChallenge?: boolean;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
+  onStartFreePlay: (difficulty: Difficulty, continent: ContinentFilter, gameMode: GameMode) => void;
 }
 
 interface ActionConfig {
@@ -122,6 +122,7 @@ function buildPrimaryAction(args: {
   continent: ContinentFilter;
   gameMode: GameMode;
   onPlayAgain: () => void;
+  onStartFreePlay: (difficulty: Difficulty, continent: ContinentFilter, gameMode: GameMode) => void;
 }): ActionConfig {
   if (args.challengeType === ChallengeType.FRIEND) {
     return {
@@ -153,7 +154,7 @@ function buildPrimaryAction(args: {
       return {
         label: `Try ${harder}`,
         helper: 'You cleared this cleanly. Push the map density up one notch.',
-        href: buildFreePlayHref(harder, args.continent, args.gameMode),
+        onClick: () => args.onStartFreePlay(harder, args.continent, args.gameMode),
       };
     }
   }
@@ -162,7 +163,7 @@ function buildPrimaryAction(args: {
     return {
       label: 'Go Full Game',
       helper: 'Stretch this run across the full country set.',
-      href: buildFreePlayHref(args.difficulty, args.continent, GameMode.FULL),
+      onClick: () => args.onStartFreePlay(args.difficulty, args.continent, GameMode.FULL),
     };
   }
 
@@ -182,6 +183,7 @@ function buildNextSuggestion(args: {
   continent: ContinentFilter;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
+  onStartFreePlay: (difficulty: Difficulty, continent: ContinentFilter, gameMode: GameMode) => void;
 }): ActionConfig | null {
   if (args.isDailyChallenge) {
     return {
@@ -220,7 +222,7 @@ function buildNextSuggestion(args: {
     return {
       label: `Push To ${harder}`,
       helper: 'You have enough control here to make the map denser.',
-      href: buildFreePlayHref(harder, args.continent, args.gameMode),
+      onClick: () => args.onStartFreePlay(harder, args.continent, args.gameMode),
     };
   }
 
@@ -253,6 +255,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   isDailyChallenge,
   onPlayAgain,
   onViewLeaderboard,
+  onStartFreePlay,
 }) => {
   const { profile, recordRun, updateUsername } = usePlayerProfile();
   const [username, setUsername] = useState(profile.username);
@@ -371,8 +374,20 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
         continent,
         gameMode,
         onPlayAgain,
+        onStartFreePlay,
       }),
-    [challengeType, isDailyChallenge, score, runResult, errors, difficulty, continent, gameMode, onPlayAgain],
+    [
+      challengeType,
+      isDailyChallenge,
+      score,
+      runResult,
+      errors,
+      difficulty,
+      continent,
+      gameMode,
+      onPlayAgain,
+      onStartFreePlay,
+    ],
   );
 
   const nextSuggestion = useMemo(() => {
@@ -385,6 +400,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       continent,
       onPlayAgain,
       onViewLeaderboard,
+      onStartFreePlay,
     });
 
     if (suggestion && suggestion.label === primaryAction.label) {
@@ -401,6 +417,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     continent,
     onPlayAgain,
     onViewLeaderboard,
+    onStartFreePlay,
     primaryAction.label,
   ]);
 

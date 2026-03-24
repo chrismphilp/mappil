@@ -1,4 +1,5 @@
-import { FC, lazy, Suspense, useState } from 'react';
+import { FC, lazy, Suspense, useCallback, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGameState } from '../../hooks/game/useGameState';
 import { ChallengeType, ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 import HUD from './HUD';
@@ -36,13 +37,13 @@ const GameContent: FC<GameContentProps> = ({
   seed,
   isDailyChallenge,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     state,
     selectRegion,
     skipRegion,
-    changeDifficulty,
-    changeContinent,
-    changeGameMode,
+    changeRuleset,
     resetGame,
     progress,
     totalRegions,
@@ -58,6 +59,56 @@ const GameContent: FC<GameContentProps> = ({
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const startFreePlay = useCallback(
+    (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
+      if (
+        nextContinent !== state.continent ||
+        nextDifficulty !== state.difficulty ||
+        nextGameMode !== state.gameMode
+      ) {
+        changeRuleset(nextDifficulty, nextContinent, nextGameMode);
+      }
+
+      const search = new URLSearchParams(location.search);
+      search.delete('daily');
+      search.delete('challenge');
+
+      if (nextContinent === ContinentFilter.WORLD) {
+        search.delete('continent');
+      } else {
+        search.set('continent', nextContinent);
+      }
+
+      if (nextDifficulty === Difficulty.MEDIUM) {
+        search.delete('difficulty');
+      } else {
+        search.set('difficulty', nextDifficulty);
+      }
+
+      if (nextGameMode === GameMode.QUICK) {
+        search.delete('mode');
+      } else {
+        search.set('mode', nextGameMode);
+      }
+
+      navigate(
+        {
+          pathname: location.pathname,
+          search: search.toString() ? `?${search.toString()}` : '',
+        },
+        { replace: true },
+      );
+    },
+    [
+      state.continent,
+      state.difficulty,
+      state.gameMode,
+      changeRuleset,
+      location.pathname,
+      location.search,
+      navigate,
+    ],
+  );
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
@@ -123,9 +174,15 @@ const GameContent: FC<GameContentProps> = ({
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
-        onChangeDifficulty={changeDifficulty}
-        onChangeContinent={changeContinent}
-        onChangeGameMode={changeGameMode}
+        onChangeDifficulty={(nextDifficulty) =>
+          startFreePlay(nextDifficulty, state.continent, state.gameMode)
+        }
+        onChangeContinent={(nextContinent) =>
+          startFreePlay(state.difficulty, nextContinent, state.gameMode)
+        }
+        onChangeGameMode={(nextGameMode) =>
+          startFreePlay(state.difficulty, state.continent, nextGameMode)
+        }
         onReset={resetGame}
       />
 
@@ -155,6 +212,7 @@ const GameContent: FC<GameContentProps> = ({
         isDailyChallenge={state.isDailyChallenge}
         onPlayAgain={resetGame}
         onViewLeaderboard={() => setLeaderboardOpen(true)}
+        onStartFreePlay={startFreePlay}
       />
     </div>
   );

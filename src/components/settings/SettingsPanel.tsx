@@ -131,7 +131,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             className={
               isMobile
                 ? 'fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-2xl border-t border-white/10 p-6 rounded-t-3xl flex flex-col gap-6 max-h-[85dvh] overflow-y-auto'
-                : 'fixed left-0 top-0 bottom-0 z-50 w-80 bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-6 overflow-y-auto'
+                : 'fixed left-0 top-0 bottom-0 z-50 w-[22rem] bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-6 overflow-y-auto'
             }
             style={isMobile ? { paddingBottom: 'max(1.5rem, var(--sab))' } : undefined}
           >
@@ -289,7 +289,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 onReset();
                 onClose();
               }}
-              className="px-4 py-3 rounded-xl bg-red-500/20 text-red-400 font-semibold hover:bg-red-500/30 transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-rose-500/20 to-red-500/20 hover:from-rose-500/30 hover:to-red-500/30 border border-rose-500/25 text-rose-300 font-bold text-center transition-colors shadow-lg shadow-rose-500/10"
             >
               Reset Current Game
             </button>
@@ -303,7 +303,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 clearProfile();
                 setUsernameInput('');
               }}
-              className="px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-slate-700/70 to-slate-800/90 hover:from-slate-600/80 hover:to-slate-700/95 border border-white/10 text-slate-100 font-bold text-center transition-colors shadow-lg shadow-slate-950/35"
             >
               Clear Local Progress
             </button>

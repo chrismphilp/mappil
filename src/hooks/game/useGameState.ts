@@ -350,6 +350,13 @@ function reducer(state: GameState, action: GameAction): GameState {
         gameMode: action.gameMode,
       });
 
+    case ActionType.CHANGE_RULESET:
+      return buildInitialState({
+        difficulty: action.difficulty,
+        continent: action.continent,
+        gameMode: action.gameMode,
+      });
+
     case ActionType.RESET_GAME:
       return buildInitialState({
         difficulty: state.difficulty,
@@ -411,6 +418,18 @@ export function useGameState(
     dispatch({ type: ActionType.CHANGE_GAME_MODE, gameMode });
   }, []);
 
+  const changeRuleset = useCallback(
+    (difficulty: Difficulty, continent: ContinentFilter, gameMode: GameMode) => {
+      dispatch({
+        type: ActionType.CHANGE_RULESET,
+        difficulty,
+        continent,
+        gameMode,
+      });
+    },
+    [],
+  );
+
   const resetGame = useCallback(() => {
     dispatch({ type: ActionType.RESET_GAME });
   }, []);
@@ -444,6 +463,7 @@ export function useGameState(
     changeDifficulty,
     changeContinent,
     changeGameMode,
+    changeRuleset,
     resetGame,
     clearFeedback,
     progress,

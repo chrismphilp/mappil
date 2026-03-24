@@ -110,6 +110,7 @@ export enum ActionType {
   CHANGE_DIFFICULTY = 'CHANGE_DIFFICULTY',
   CHANGE_CONTINENT = 'CHANGE_CONTINENT',
   CHANGE_GAME_MODE = 'CHANGE_GAME_MODE',
+  CHANGE_RULESET = 'CHANGE_RULESET',
   RESET_GAME = 'RESET_GAME',
   CLEAR_FEEDBACK = 'CLEAR_FEEDBACK',
 }
@@ -120,5 +121,11 @@ export type GameAction =
   | { type: ActionType.CHANGE_DIFFICULTY; difficulty: Difficulty }
   | { type: ActionType.CHANGE_CONTINENT; continent: ContinentFilter }
   | { type: ActionType.CHANGE_GAME_MODE; gameMode: GameMode }
+  | {
+      type: ActionType.CHANGE_RULESET;
+      difficulty: Difficulty;
+      continent: ContinentFilter;
+      gameMode: GameMode;
+    }
   | { type: ActionType.RESET_GAME }
   | { type: ActionType.CLEAR_FEEDBACK };
