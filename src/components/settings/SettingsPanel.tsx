@@ -1,10 +1,12 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty, ContinentFilter, GameMode, ShareState } from '../../types/game.types';
-import OptionSelector from './OptionSelector';
-import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { createFriendChallenge } from '../../lib/friendChallenge';
+import { describeRuleset } from '../../lib/ruleset';
 import { shareChallengeLink } from '../../lib/share';
+import { usePlayerProfile } from '../../hooks/usePlayerProfile';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import { ContinentFilter, Difficulty, GameMode, ShareState } from '../../types/game.types';
+import OptionSelector from './OptionSelector';
 
 const CONTINENT_OPTIONS: ContinentFilter[] = [
   ContinentFilter.WORLD,
@@ -26,17 +28,15 @@ const CONTINENT_LABELS: Record<ContinentFilter, string> = {
   [ContinentFilter.OCEANIA]: 'Oceania',
 };
 
-const STORAGE_KEY = 'mappil_username';
-
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
-  onChangeDifficulty: (d: Difficulty) => void;
-  onChangeContinent: (c: ContinentFilter) => void;
-  onChangeGameMode: (m: GameMode) => void;
+  onChangeDifficulty: (difficulty: Difficulty) => void;
+  onChangeContinent: (continent: ContinentFilter) => void;
+  onChangeGameMode: (gameMode: GameMode) => void;
   onReset: () => void;
 }
 
@@ -52,25 +52,40 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
   onReset,
 }) => {
   const { isMobile } = useIsMobileViewport();
+  const { profile, updateUsername, clearProfile } = usePlayerProfile();
   const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
+  const [usernameInput, setUsernameInput] = useState(profile.username);
 
-  const handleCreateChallenge = async () => {
-    let username = localStorage.getItem(STORAGE_KEY);
-    if (!username) {
-      username = prompt('Enter a username to create a challenge:', '');
-      if (!username || username.trim().length < 3) {
-        alert('A valid username is required to challenge a friend.');
-        return;
-      }
-      localStorage.setItem(STORAGE_KEY, username.trim());
+  useEffect(() => {
+    if (open) {
+      setUsernameInput(profile.username);
+    }
+  }, [open, profile.username]);
+
+  const favoriteRuleset = useMemo(() => {
+    if (!profile.summary.favoriteRulesetKey) {
+      return null;
     }
 
+    return profile.personalBests[profile.summary.favoriteRulesetKey] ?? null;
+  }, [profile.personalBests, profile.summary.favoriteRulesetKey]);
+
+  const handleCreateChallenge = async () => {
+    const trimmed = usernameInput.trim();
+
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      alert('Set a username between 3 and 20 characters before creating a challenge.');
+      return;
+    }
+
+    updateUsername(trimmed);
     setShareState(ShareState.SHARING);
+
     try {
-      const shareId = await createFriendChallenge(username.trim(), difficulty, continent, gameMode);
+      const shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
       const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
       const title = 'Mappil Friend Challenge';
-      const text = `I challenge you to a Mappil match (${continent} - ${difficulty}). Can you beat my time?`;
+      const text = `I set up a ${continent} ${gameMode} ${difficulty} challenge on Mappil. Can you beat my run?`;
 
       const success = await shareChallengeLink(title, text, url);
       if (success) {
@@ -79,19 +94,28 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
       } else {
         setShareState(ShareState.IDLE);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       setShareState(ShareState.ERROR);
       alert('Failed to create challenge link.');
       setTimeout(() => setShareState(ShareState.IDLE), 3000);
     }
   };
 
+  const handleSaveUsername = () => {
+    const trimmed = usernameInput.trim();
+    if (trimmed.length > 0 && (trimmed.length < 3 || trimmed.length > 20)) {
+      alert('Username must be 3-20 characters.');
+      return;
+    }
+
+    updateUsername(trimmed);
+  };
+
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -99,7 +123,6 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             onClick={onClose}
             className="fixed inset-0 z-40 bg-black/40"
           />
-          {/* Panel */}
           <motion.div
             initial={isMobile ? { y: '100%', opacity: 0 } : { x: -320, opacity: 0 }}
             animate={isMobile ? { y: 0, opacity: 1 } : { x: 0, opacity: 1 }}
@@ -108,7 +131,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             className={
               isMobile
                 ? 'fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-2xl border-t border-white/10 p-6 rounded-t-3xl flex flex-col gap-6 max-h-[85dvh] overflow-y-auto'
-                : 'fixed left-0 top-0 bottom-0 z-50 w-72 bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-8'
+                : 'fixed left-0 top-0 bottom-0 z-50 w-80 bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-6 overflow-y-auto'
             }
             style={isMobile ? { paddingBottom: 'max(1.5rem, var(--sab))' } : undefined}
           >
@@ -126,8 +149,32 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               )}
             </div>
 
+            <div className="rounded-2xl bg-slate-800/55 border border-white/5 p-4">
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">
+                Username
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={usernameInput}
+                  onChange={(event) => setUsernameInput(event.target.value)}
+                  placeholder="Set username"
+                  maxLength={20}
+                  className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                />
+                <button
+                  onClick={handleSaveUsername}
+                  className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Saved locally for leaderboards, daily runs, and friend challenges.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-2">
-              <a 
+              <a
                 href="/play?daily=true"
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
               >
@@ -138,13 +185,60 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 onClick={handleCreateChallenge}
                 disabled={shareState === ShareState.SHARING}
                 className={`w-full py-3 rounded-xl border font-bold text-center transition-colors shadow-lg ${
-                  shareState === ShareState.SHARED 
+                  shareState === ShareState.SHARED
                     ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                     : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-400'
                 }`}
               >
-                {shareState === ShareState.SHARING ? 'Generating...' : shareState === ShareState.SHARED ? 'Link Copied!' : 'Challenge a Friend'}
+                {shareState === ShareState.SHARING
+                  ? 'Generating...'
+                  : shareState === ShareState.SHARED
+                    ? 'Link Copied!'
+                    : 'Challenge A Friend'}
               </button>
+            </div>
+
+            <div className="rounded-2xl bg-slate-800/55 border border-white/5 p-4 space-y-3">
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">Progress Snapshot</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-900/60 border border-white/5 p-3">
+                    <div className="text-lg font-bold text-white">{profile.summary.totalRuns}</div>
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Runs</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-900/60 border border-white/5 p-3">
+                    <div className="text-lg font-bold text-amber-300">{profile.summary.bestOverallStreak}</div>
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Best Streak</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-900/60 border border-white/5 p-3">
+                    <div className="text-lg font-bold text-cyan-300">{profile.summary.totalPerfectRuns}</div>
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Perfect Runs</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-900/60 border border-white/5 p-3">
+                    <div className="text-lg font-bold text-emerald-300">{profile.summary.totalRegionsFound}</div>
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Regions Found</div>
+                  </div>
+                </div>
+              </div>
+
+              {favoriteRuleset && (
+                <div className="rounded-xl bg-slate-900/60 border border-white/5 p-3">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500 mb-1">Favorite Ruleset</div>
+                  <div className="text-sm font-semibold text-white">
+                    {describeRuleset({
+                      difficulty: favoriteRuleset.ruleset.difficulty,
+                      continent: favoriteRuleset.ruleset.continent,
+                      gameMode: favoriteRuleset.ruleset.gameMode,
+                      challengeSource: favoriteRuleset.ruleset.challengeSource,
+                      challengeId: favoriteRuleset.ruleset.challengeId,
+                      modifier: favoriteRuleset.ruleset.modifier,
+                    })}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    {favoriteRuleset.totalRuns} runs • best {favoriteRuleset.highestScore} pts
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -154,9 +248,9 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               <OptionSelector
                 options={CONTINENT_OPTIONS}
                 selected={continent}
-                getLabel={(c) => CONTINENT_LABELS[c]}
-                onChange={(c) => {
-                  onChangeContinent(c);
+                getLabel={(value) => CONTINENT_LABELS[value]}
+                onChange={(value) => {
+                  onChangeContinent(value);
                   if (!isMobile) onClose();
                 }}
               />
@@ -169,8 +263,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               <OptionSelector
                 options={[GameMode.QUICK, GameMode.FULL]}
                 selected={gameMode}
-                onChange={(m) => {
-                  onChangeGameMode(m);
+                onChange={(value) => {
+                  onChangeGameMode(value);
                   if (!isMobile) onClose();
                 }}
               />
@@ -183,8 +277,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               <OptionSelector
                 options={[Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]}
                 selected={difficulty}
-                onChange={(d) => {
-                  onChangeDifficulty(d);
+                onChange={(value) => {
+                  onChangeDifficulty(value);
                   if (!isMobile) onClose();
                 }}
               />
@@ -195,9 +289,23 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 onReset();
                 onClose();
               }}
-              className="px-4 py-3 rounded-xl bg-red-500/20 text-red-400 font-semibold hover:bg-red-500/30 transition-colors mt-auto"
+              className="px-4 py-3 rounded-xl bg-red-500/20 text-red-400 font-semibold hover:bg-red-500/30 transition-colors"
             >
-              Reset Game
+              Reset Current Game
+            </button>
+
+            <button
+              onClick={() => {
+                if (!window.confirm('Clear your local progress and personal bests on this device?')) {
+                  return;
+                }
+
+                clearProfile();
+                setUsernameInput('');
+              }}
+              className="px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
+            >
+              Clear Local Progress
             </button>
           </motion.div>
         </>

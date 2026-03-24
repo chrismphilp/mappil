@@ -1,17 +1,44 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { submitScore } from '../../lib/leaderboard';
-import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { createFriendChallenge } from '../../lib/friendChallenge';
+import { submitScore } from '../../lib/leaderboard';
+import {
+  buildFreePlayHref,
+  buildRulesetIdentity,
+  buildRulesetKey,
+  describeRuleset,
+} from '../../lib/ruleset';
+import { getRunGrade, getScoreBreakdownLines } from '../../lib/scoring';
 import { shareChallengeLink } from '../../lib/share';
-import { ContinentFilter, Difficulty, GameMode, ChallengeType, ShareState, SubmitState } from '../../types/game.types';
+import { usePlayerProfile } from '../../hooks/usePlayerProfile';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import {
+  ChallengeType,
+  ContinentFilter,
+  Difficulty,
+  GameMode,
+  ScoreBreakdown,
+  ShareState,
+  SubmitState,
+} from '../../types/game.types';
+import type { PersonalBestFlag, RecordRunResult } from '../../types/profile.types';
 
 interface GameCompleteModalProps {
   open: boolean;
+  runId: string;
   score: number;
+  baseScore: number;
+  bonusScore: number;
+  maxPossibleScore: number;
+  scoreBreakdown: ScoreBreakdown;
   errors: number;
   bestStreak: number;
   totalRegions: number;
+  correctAnswers: number;
+  skippedCount: number;
+  firstTryCount: number;
+  secondTryCount: number;
+  thirdTrySaveCount: number;
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
@@ -21,16 +48,201 @@ interface GameCompleteModalProps {
   seed?: string;
   isDailyChallenge?: boolean;
   onPlayAgain: () => void;
+  onViewLeaderboard: () => void;
 }
 
-const STORAGE_KEY = 'mappil_username';
+interface ActionConfig {
+  label: string;
+  helper: string;
+  href?: string;
+  onClick?: () => void;
+}
+
+const PERSONAL_BEST_LABELS: Record<
+  PersonalBestFlag,
+  { fresh: string; tied: string }
+> = {
+  highest_score: {
+    fresh: 'New Best Score',
+    tied: 'Best Score Tied',
+  },
+  fewest_errors: {
+    fresh: 'Fewest Errors',
+    tied: 'Fewest Errors Tied',
+  },
+  best_streak: {
+    fresh: 'New Best Streak',
+    tied: 'Best Streak Tied',
+  },
+  fastest_clean_clear: {
+    fresh: 'Fastest Clean Clear',
+    tied: 'Fastest Clean Clear Tied',
+  },
+  highest_bonus_score: {
+    fresh: 'Biggest Bonus Haul',
+    tied: 'Bonus Haul Tied',
+  },
+};
+
+function formatDuration(secs: number): string {
+  const minutes = Math.floor(secs / 60);
+  const seconds = secs % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function getNextDifficulty(current: Difficulty): Difficulty | null {
+  if (current === Difficulty.EASY) return Difficulty.MEDIUM;
+  if (current === Difficulty.MEDIUM) return Difficulty.HARD;
+  return null;
+}
+
+function renderActionButton(action: ActionConfig, className: string) {
+  if (action.href) {
+    return (
+      <a href={action.href} className={`${className} block`}>
+        {action.label}
+      </a>
+    );
+  }
+
+  return (
+    <button onClick={action.onClick} className={className}>
+      {action.label}
+    </button>
+  );
+}
+
+function buildPrimaryAction(args: {
+  challengeType?: ChallengeType;
+  isDailyChallenge?: boolean;
+  score: number;
+  previousBestScore?: number;
+  errors: number;
+  difficulty: Difficulty;
+  continent: ContinentFilter;
+  gameMode: GameMode;
+  onPlayAgain: () => void;
+}): ActionConfig {
+  if (args.challengeType === ChallengeType.FRIEND) {
+    return {
+      label: 'Rematch This Challenge',
+      helper: 'Same seed, same rules, one cleaner run.',
+      onClick: args.onPlayAgain,
+    };
+  }
+
+  if (args.isDailyChallenge) {
+    return {
+      label: 'Run Today Again',
+      helper: 'Every retry is still measured against the same daily seed.',
+      onClick: args.onPlayAgain,
+    };
+  }
+
+  if (typeof args.previousBestScore === 'number' && args.score < args.previousBestScore) {
+    return {
+      label: 'Beat Your Best',
+      helper: `Your local best is ${args.previousBestScore} points on this ruleset.`,
+      onClick: args.onPlayAgain,
+    };
+  }
+
+  if (args.errors === 0 && args.difficulty !== Difficulty.HARD) {
+    const harder = getNextDifficulty(args.difficulty);
+    if (harder) {
+      return {
+        label: `Try ${harder}`,
+        helper: 'You cleared this cleanly. Push the map density up one notch.',
+        href: buildFreePlayHref(harder, args.continent, args.gameMode),
+      };
+    }
+  }
+
+  if (args.errors <= 1 && args.gameMode === GameMode.QUICK) {
+    return {
+      label: 'Go Full Game',
+      helper: 'Stretch this run across the full country set.',
+      href: buildFreePlayHref(args.difficulty, args.continent, GameMode.FULL),
+    };
+  }
+
+  return {
+    label: 'Run It Back',
+    helper: 'Same ruleset, faster hands.',
+    onClick: args.onPlayAgain,
+  };
+}
+
+function buildNextSuggestion(args: {
+  challengeType?: ChallengeType;
+  isDailyChallenge?: boolean;
+  errors: number;
+  gameMode: GameMode;
+  difficulty: Difficulty;
+  continent: ContinentFilter;
+  onPlayAgain: () => void;
+  onViewLeaderboard: () => void;
+}): ActionConfig | null {
+  if (args.isDailyChallenge) {
+    return {
+      label: 'View Daily Leaderboard',
+      helper: 'Check where your best daily run currently lands.',
+      onClick: args.onViewLeaderboard,
+    };
+  }
+
+  if (args.challengeType === ChallengeType.FRIEND) {
+    return {
+      label: 'View Challenge Board',
+      helper: 'Compare best attempts for everyone who has played this seed.',
+      onClick: args.onViewLeaderboard,
+    };
+  }
+
+  if (args.errors > 0) {
+    return {
+      label: 'Aim For Fewer Errors',
+      helper: 'This exact ruleset still has easy points left in the misses.',
+      onClick: args.onPlayAgain,
+    };
+  }
+
+  if (args.gameMode === GameMode.QUICK) {
+    return {
+      label: 'Play Today’s Challenge',
+      helper: 'Take the same sharp form into the seeded daily board.',
+      href: '/play?daily=true',
+    };
+  }
+
+  const harder = getNextDifficulty(args.difficulty);
+  if (harder) {
+    return {
+      label: `Push To ${harder}`,
+      helper: 'You have enough control here to make the map denser.',
+      href: buildFreePlayHref(harder, args.continent, args.gameMode),
+    };
+  }
+
+  return null;
+}
 
 const GameCompleteModal: FC<GameCompleteModalProps> = ({
   open,
+  runId,
   score,
+  baseScore,
+  bonusScore,
+  maxPossibleScore,
+  scoreBreakdown,
   errors,
   bestStreak,
   totalRegions,
+  correctAnswers,
+  skippedCount,
+  firstTryCount,
+  secondTryCount,
+  thirdTrySaveCount,
   difficulty,
   continent,
   gameMode,
@@ -40,42 +252,192 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   seed,
   isDailyChallenge,
   onPlayAgain,
+  onViewLeaderboard,
 }) => {
-  const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
+  const { profile, recordRun, updateUsername } = usePlayerProfile();
+  const [username, setUsername] = useState(profile.username);
   const [submitState, setSubmitState] = useState<SubmitState>(SubmitState.IDLE);
-  const [errorMsg, setErrorMsg] = useState('');
   const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [runResult, setRunResult] = useState<RecordRunResult | null>(null);
+  const recordedRunIdRef = useRef<string | null>(null);
   const { isCoarsePointer } = useIsMobileViewport();
 
+  const ruleset = useMemo(
+    () =>
+      buildRulesetIdentity({
+        difficulty,
+        continent,
+        gameMode,
+        challengeId,
+        challengeType,
+        isDailyChallenge,
+      }),
+    [difficulty, continent, gameMode, challengeId, challengeType, isDailyChallenge],
+  );
+  const rulesetLabel = useMemo(() => describeRuleset(ruleset), [ruleset]);
+  const grade = useMemo(
+    () =>
+      getRunGrade({
+        score,
+        maxPossibleScore,
+        errors,
+        skippedCount,
+      }),
+    [score, maxPossibleScore, errors, skippedCount],
+  );
+  const scoreLines = useMemo(() => getScoreBreakdownLines(scoreBreakdown), [scoreBreakdown]);
+
   useEffect(() => {
-    if (open) {
-      setSubmitState(SubmitState.IDLE);
-      setShareState(ShareState.IDLE);
-      setErrorMsg('');
-      import('canvas-confetti').then(({ default: confetti }) => {
-        confetti({
-          particleCount: isCoarsePointer ? 75 : 150,
-          spread: isCoarsePointer ? 70 : 100,
-          origin: { y: 0.5 },
-          colors: ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa'],
-        });
+    if (!open) return;
+
+    setSubmitState(SubmitState.IDLE);
+    setShareState(ShareState.IDLE);
+    setErrorMsg('');
+    setUsername(profile.username);
+
+    import('canvas-confetti').then(({ default: confetti }) => {
+      confetti({
+        particleCount: isCoarsePointer ? 70 : 145,
+        spread: grade.letter === 'S' ? 115 : 90,
+        origin: { y: 0.48 },
+        colors: ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa'],
       });
+    });
+  }, [open, profile.username, isCoarsePointer, grade.letter]);
+
+  useEffect(() => {
+    if (!open || recordedRunIdRef.current === runId) return;
+
+    recordedRunIdRef.current = runId;
+    const result = recordRun({
+      runId,
+      difficulty,
+      continent,
+      gameMode,
+      challengeId,
+      challengeType,
+      isDailyChallenge,
+      score,
+      baseScore,
+      bonusScore,
+      maxPossibleScore,
+      errors,
+      bestStreak,
+      durationSecs,
+      totalRegions,
+      correctAnswers,
+      skippedCount,
+      firstTryCount,
+      secondTryCount,
+      thirdTrySaveCount,
+    });
+
+    setRunResult(result);
+  }, [
+    open,
+    runId,
+    recordRun,
+    difficulty,
+    continent,
+    gameMode,
+    challengeId,
+    challengeType,
+    isDailyChallenge,
+    score,
+    baseScore,
+    bonusScore,
+    maxPossibleScore,
+    errors,
+    bestStreak,
+    durationSecs,
+    totalRegions,
+    correctAnswers,
+    skippedCount,
+    firstTryCount,
+    secondTryCount,
+    thirdTrySaveCount,
+  ]);
+
+  const primaryAction = useMemo(
+    () =>
+      buildPrimaryAction({
+        challengeType,
+        isDailyChallenge,
+        score,
+        previousBestScore: runResult?.previousBest?.highestScore,
+        errors,
+        difficulty,
+        continent,
+        gameMode,
+        onPlayAgain,
+      }),
+    [challengeType, isDailyChallenge, score, runResult, errors, difficulty, continent, gameMode, onPlayAgain],
+  );
+
+  const nextSuggestion = useMemo(() => {
+    const suggestion = buildNextSuggestion({
+      challengeType,
+      isDailyChallenge,
+      errors,
+      gameMode,
+      difficulty,
+      continent,
+      onPlayAgain,
+      onViewLeaderboard,
+    });
+
+    if (suggestion && suggestion.label === primaryAction.label) {
+      return null;
     }
-  }, [open, isCoarsePointer]);
+
+    return suggestion;
+  }, [
+    challengeType,
+    isDailyChallenge,
+    errors,
+    gameMode,
+    difficulty,
+    continent,
+    onPlayAgain,
+    onViewLeaderboard,
+    primaryAction.label,
+  ]);
+
+  const personalBestBadges = useMemo(() => {
+    if (!runResult) return [];
+
+    const fresh = runResult.newBests.map((flag) => ({
+      key: `new-${flag}`,
+      text: PERSONAL_BEST_LABELS[flag].fresh,
+      tone: 'emerald',
+    }));
+    const tied = runResult.tiedBests
+      .filter((flag) => !runResult.newBests.includes(flag))
+      .map((flag) => ({
+        key: `tied-${flag}`,
+        text: PERSONAL_BEST_LABELS[flag].tied,
+        tone: 'amber',
+      }));
+
+    return [...fresh, ...tied];
+  }, [runResult]);
 
   const handleSubmit = async () => {
     const trimmed = username.trim();
+
     if (trimmed.length < 3 || trimmed.length > 20) {
-      setErrorMsg('Username must be 3-20 characters');
+      setErrorMsg('Username must be 3-20 characters.');
       return;
     }
 
-    localStorage.setItem(STORAGE_KEY, trimmed);
+    updateUsername(trimmed);
     setSubmitState(SubmitState.SUBMITTING);
     setErrorMsg('');
 
     try {
       await submitScore({
+        player_id: profile.playerId,
         username: trimmed,
         score,
         errors,
@@ -86,49 +448,48 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
         game_mode: gameMode,
         duration_secs: durationSecs,
         challenge_id: challengeId,
+        challenge_source: ruleset.challengeSource,
+        ruleset_key: runResult?.run.ruleset.key ?? buildRulesetKey(ruleset),
         seed,
         is_daily_challenge: isDailyChallenge,
       });
       setSubmitState(SubmitState.SUBMITTED);
-    } catch (e: any) {
+    } catch (error: any) {
       setSubmitState(SubmitState.ERROR);
-      setErrorMsg(e.message ?? 'Failed to submit score');
+      setErrorMsg(error.message ?? 'Failed to submit score.');
     }
   };
 
   const handleShareChallenge = async () => {
     const trimmed = username.trim();
+
     if (trimmed.length < 3 || trimmed.length > 20) {
-      setErrorMsg('Please set a username (3-20 chars) to challenge a friend.');
+      setErrorMsg('Please set a username (3-20 chars) before sharing a challenge.');
       return;
     }
 
-    localStorage.setItem(STORAGE_KEY, trimmed);
+    updateUsername(trimmed);
     setShareState(ShareState.SHARING);
     setErrorMsg('');
 
     try {
-      // If we are already in a friend challenge, share the same ID. Otherwise create one.
       let shareId = challengeId;
+
       if (challengeType !== ChallengeType.FRIEND) {
         shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
       }
 
-      if (!shareId) throw new Error('Failed to resolve challenge ID');
+      if (!shareId) throw new Error('Failed to create a challenge link.');
 
       const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
-      const title = 'Mappil Friend Challenge';
-      const text = `I scored ${score}/${totalRegions} in Mappil (${continent} - ${difficulty}). Can you beat me?`;
+      const title = challengeType === ChallengeType.FRIEND ? 'Mappil Rematch Challenge' : 'Mappil Friend Challenge';
+      const text = `I just scored ${score} points on ${rulesetLabel} in Mappil with a ${bestStreak} streak. Can you beat it?`;
 
       const success = await shareChallengeLink(title, text, url);
-      if (success) {
-        setShareState(ShareState.SHARED);
-      } else {
-        setShareState(ShareState.IDLE);
-      }
-    } catch (e: any) {
+      setShareState(success ? ShareState.SHARED : ShareState.IDLE);
+    } catch (error: any) {
       setShareState(ShareState.ERROR);
-      setErrorMsg(e.message ?? 'Failed to create challenge link.');
+      setErrorMsg(error.message ?? 'Failed to create challenge link.');
     }
   };
 
@@ -142,99 +503,218 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
         >
           <motion.div
-            initial={{ scale: 0.7, opacity: 0 }}
+            initial={{ scale: 0.75, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.7, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 max-w-sm w-[90vw] max-h-[90dvh] overflow-y-auto text-center shadow-2xl"
+            exit={{ scale: 0.75, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 210, damping: 22 }}
+            className="bg-slate-900/92 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 max-w-lg w-[92vw] max-h-[92dvh] overflow-y-auto text-left shadow-2xl"
           >
-            {isDailyChallenge && (
-              <div className="mb-4 inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                Daily Challenge Complete
-              </div>
-            )}
-            {challengeType === ChallengeType.FRIEND && (
-              <div className="mb-4 inline-block px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                Friend Challenge Complete
-              </div>
-            )}
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Game Complete!</h2>
-            <p className="text-slate-400 text-sm mb-5 sm:mb-6">
-              You explored {totalRegions} countries
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {isDailyChallenge && (
+                <div className="inline-flex px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                  Daily Challenge Complete
+                </div>
+              )}
+              {challengeType === ChallengeType.FRIEND && (
+                <div className="inline-flex px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                  Friend Challenge Complete
+                </div>
+              )}
+              {!isDailyChallenge && challengeType !== ChallengeType.FRIEND && (
+                <div className="inline-flex px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                  Free Play Complete
+                </div>
+              )}
+            </div>
 
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+            <div className="flex items-start justify-between gap-4 mb-5">
               <div>
+                <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-[0.24em] mb-2">
+                  {rulesetLabel}
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Run Complete</h2>
+                <p className="text-slate-400 text-sm mt-2">
+                  {correctAnswers} correct, {skippedCount} skipped, {formatDuration(durationSecs)} on the clock.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-3xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-center min-w-[5.5rem]">
+                <div className="text-3xl font-black text-cyan-300 leading-none">{grade.letter}</div>
+                <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/80 mt-1">{grade.label}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 mb-5">
+              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
                 <div className="text-xl sm:text-2xl font-bold text-emerald-400">{score}</div>
                 <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Score</div>
               </div>
-              <div>
+              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-cyan-300">{bonusScore}</div>
+                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Bonus</div>
+              </div>
+              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
                 <div className="text-xl sm:text-2xl font-bold text-red-400">{errors}</div>
                 <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Errors</div>
               </div>
-              <div>
+              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
                 <div className="text-xl sm:text-2xl font-bold text-amber-400">{bestStreak}</div>
                 <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Best Streak</div>
               </div>
             </div>
 
-            {submitState !== SubmitState.SUBMITTED && (
-              <div className="mb-6">
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  maxLength={20}
-                  className="w-full px-4 py-2 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 mb-2"
-                />
-                {errorMsg && (
-                  <p className="text-red-400 text-xs mb-2">{errorMsg}</p>
-                )}
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitState === SubmitState.SUBMITTING}
-                  className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
-                >
-                  {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit Score'}
-                </button>
+            {personalBestBadges.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                {personalBestBadges.map((badge) => (
+                  <span
+                    key={badge.key}
+                    className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest border ${
+                      badge.tone === 'emerald'
+                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                        : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                    }`}
+                  >
+                    {badge.text}
+                  </span>
+                ))}
               </div>
             )}
 
+            {runResult?.previousBest && (
+              <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-slate-400">Previous local best</span>
+                  <span className="text-white font-semibold">{runResult.previousBest.highestScore} pts</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm mt-2">
+                  <span className="text-slate-400">This run</span>
+                  <span className="text-cyan-300 font-semibold">{score} pts</span>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
+                  Score Breakdown
+                </h3>
+                <span className="text-xs text-slate-500">{baseScore} base + {bonusScore} bonus</span>
+              </div>
+              <div className="space-y-2">
+                {scoreLines.map((line) => (
+                  <div key={line.id} className="flex items-center justify-between text-sm">
+                    <div className="min-w-0">
+                      <span className="text-slate-200">{line.label}</span>
+                      {line.count > 0 && line.id !== 'noSkipFinish' && line.id !== 'flawlessFinish' && (
+                        <span className="text-slate-500 text-xs ml-2">x{line.count}</span>
+                      )}
+                    </div>
+                    <span className="font-semibold text-cyan-300">+{line.points}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 text-sm">
+                <span className="text-slate-400">Max possible on this ruleset</span>
+                <span className="text-white font-semibold">{maxPossibleScore}</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4 mb-4">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-300 font-semibold mb-2">
+                Primary Replay
+              </div>
+              <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
+              <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
+            </div>
+
+            {nextSuggestion && (
+              <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+                <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-semibold mb-2">
+                  Next Suggestion
+                </div>
+                <div className="text-white font-semibold">{nextSuggestion.label}</div>
+                <div className="text-sm text-slate-300 mt-1">{nextSuggestion.helper}</div>
+              </div>
+            )}
+
+            {submitState !== SubmitState.SUBMITTED && (
+              <div className="mb-5">
+                <label className="text-xs text-slate-400 uppercase tracking-[0.24em] block mb-2">
+                  Leaderboard Username
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Enter username"
+                  maxLength={20}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+            )}
+
+            {errorMsg && (
+              <p className="text-red-400 text-sm mb-4">{errorMsg}</p>
+            )}
+
             {submitState === SubmitState.SUBMITTED && (
-              <p className="text-emerald-400 text-sm mb-6">Score submitted!</p>
+              <p className="text-emerald-400 text-sm mb-4">Best attempt submitted to the leaderboard.</p>
             )}
 
             <div className="flex flex-col gap-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onPlayAgain}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
-              >
-                {challengeType === ChallengeType.FRIEND ? 'Rematch Challenge' : 'Play Again'}
-              </motion.button>
+              {renderActionButton(
+                primaryAction,
+                'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-center',
+              )}
+
+              {nextSuggestion &&
+                renderActionButton(
+                  nextSuggestion,
+                  'w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition-colors text-center',
+                )}
+
+              {submitState !== SubmitState.SUBMITTED ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitState === SubmitState.SUBMITTING}
+                  className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
+                >
+                  {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit To Leaderboard'}
+                </button>
+              ) : (
+                <button
+                  onClick={onViewLeaderboard}
+                  className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-colors"
+                >
+                  View Leaderboard
+                </button>
+              )}
 
               {!isDailyChallenge && (
                 <button
                   onClick={handleShareChallenge}
                   disabled={shareState === ShareState.SHARING}
-                  className={`w-full py-3 rounded-xl border font-semibold transition-colors flex items-center justify-center gap-2 ${
-                    shareState === ShareState.SHARED 
-                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                      : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-400'
+                  className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
+                    shareState === ShareState.SHARED
+                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                      : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-300'
                   }`}
                 >
-                  {shareState === ShareState.SHARING ? 'Generating...' : shareState === ShareState.SHARED ? 'Link Copied!' : 'Challenge a Friend'}
+                  {shareState === ShareState.SHARING
+                    ? 'Generating...'
+                    : shareState === ShareState.SHARED
+                      ? 'Link Copied!'
+                      : challengeType === ChallengeType.FRIEND
+                        ? 'Share Rematch Link'
+                        : 'Challenge A Friend'}
                 </button>
               )}
 
               {(isDailyChallenge || challengeType === ChallengeType.FRIEND) && (
-                <a 
+                <a
                   href="/"
-                  className="block w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors mt-1"
+                  className="block w-full py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-semibold transition-colors text-center"
                 >
-                  Back to Free Play
+                  Back To Free Play
                 </a>
               )}
             </div>

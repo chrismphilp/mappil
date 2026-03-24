@@ -38,7 +38,42 @@ export enum SubmitState {
   ERROR = 'error',
 }
 
+export interface ScoreMetric {
+  points: number;
+  count: number;
+}
+
+export interface ScoreBreakdown {
+  correctAnswers: ScoreMetric;
+  firstTryBonus: ScoreMetric;
+  recoveryBonus: ScoreMetric;
+  clutchSaveBonus: ScoreMetric;
+  streakBonus: ScoreMetric;
+  noSkipFinish: ScoreMetric;
+  flawlessFinish: ScoreMetric;
+}
+
+export interface ScoreBreakdownLine {
+  id: keyof ScoreBreakdown;
+  label: string;
+  points: number;
+  count: number;
+}
+
+export type FeedbackOutcome = 'correct' | 'wrong' | 'skip';
+
+export interface FeedbackState {
+  outcome: FeedbackOutcome;
+  streak: number;
+  scoreDelta: number;
+  skippedRegion: string | null;
+  wasFirstTry: boolean;
+  wasThirdTrySave: boolean;
+  streakMilestone: boolean;
+}
+
 export interface GameState {
+  runId: string;
   regionsToFind: string[];
   regionToFind: string | undefined;
   selectedRegion: string | undefined;
@@ -51,13 +86,21 @@ export interface GameState {
   seed?: string;
   isDailyChallenge?: boolean;
   score: number;
+  baseScore: number;
+  bonusScore: number;
+  maxPossibleScore: number;
+  scoreBreakdown: ScoreBreakdown;
+  correctAnswers: number;
+  firstTryCount: number;
+  secondTryCount: number;
+  thirdTrySaveCount: number;
   errors: number;
   currentGuessErrors: number;
+  skippedCount: number;
   streak: number;
   bestStreak: number;
   gameOver: boolean;
-  lastAnswerCorrect: boolean | null;
-  skippedRegion: string | null;
+  feedback: FeedbackState | null;
   startTime: number | null;
 }
 

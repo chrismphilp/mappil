@@ -1,10 +1,11 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ScoreCounter from './ScoreCounter';
 import StreakIndicator from './StreakIndicator';
 import ProgressBar from './ProgressBar';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { ChallengeType } from '../../types/game.types';
+import { getStreakState } from '../../lib/scoring';
 
 interface HUDProps {
   regionToFind: string | undefined;
@@ -20,6 +21,22 @@ interface HUDProps {
   isDailyChallenge?: boolean;
   challengeType?: ChallengeType;
 }
+
+const STREAK_SHELL: Record<ReturnType<typeof getStreakState>['key'], string> = {
+  cold: 'border-white/10',
+  warm: 'border-amber-400/20 shadow-lg shadow-amber-500/10',
+  hot: 'border-orange-400/25 shadow-lg shadow-orange-500/15',
+  on_fire: 'border-rose-400/25 shadow-xl shadow-rose-500/20',
+  legendary: 'border-cyan-400/30 shadow-xl shadow-cyan-500/20',
+};
+
+const STREAK_BANNER: Record<ReturnType<typeof getStreakState>['key'], string> = {
+  cold: 'bg-slate-800/50 text-slate-400',
+  warm: 'bg-amber-500/15 text-amber-300',
+  hot: 'bg-orange-500/15 text-orange-300',
+  on_fire: 'bg-rose-500/15 text-rose-300',
+  legendary: 'bg-cyan-500/15 text-cyan-300',
+};
 
 const HUD: FC<HUDProps> = ({
   regionToFind,
@@ -38,6 +55,7 @@ const HUD: FC<HUDProps> = ({
   const { isMobile } = useIsMobileViewport();
   const [collapsed, setCollapsed] = useState(isMobile);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const streakState = getStreakState(streak);
 
   useEffect(() => {
     if (!hasInteracted) {
@@ -45,17 +63,14 @@ const HUD: FC<HUDProps> = ({
     }
   }, [isMobile, hasInteracted]);
 
-  const toggleCollapsed = () => {
-    setHasInteracted(true);
-    setCollapsed((c) => !c);
-  };
-
   return (
-    <div 
+    <div
       className="fixed inset-x-0 sm:right-4 sm:left-auto sm:w-80 z-20 pointer-events-none transition-all duration-300"
       style={{ top: 'max(var(--sat), 1rem)' }}
     >
-      <div className="bg-slate-900/70 backdrop-blur-xl border-b border-white/10 sm:border sm:rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
+      <div
+        className={`bg-slate-900/75 backdrop-blur-xl border-b sm:border sm:rounded-2xl pointer-events-auto overflow-hidden ${STREAK_SHELL[streakState.key]}`}
+      >
         {(isDailyChallenge || challengeType === ChallengeType.DAILY) && (
           <div className="w-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest py-1 text-center border-b border-white/5">
             Daily Challenge
@@ -66,17 +81,27 @@ const HUD: FC<HUDProps> = ({
             Friend Challenge
           </div>
         )}
-        {/* Header — country name + collapse toggle */}
+
+        {streakState.key !== 'cold' && (
+          <div
+            className={`px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-center border-b border-white/5 ${STREAK_BANNER[streakState.key]}`}
+          >
+            {streakState.label} Streak
+          </div>
+        )}
+
         <button
-          onClick={toggleCollapsed}
+          onClick={() => {
+            setHasInteracted(true);
+            setCollapsed((value) => !value);
+          }}
           className="w-full px-4 py-2 sm:py-3 flex items-center gap-3 cursor-pointer"
         >
           <div className="flex-1 min-w-0 flex items-baseline gap-2">
             <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest shrink-0">
               Find
             </span>
-            {/* Country name inline on mobile, block on sm+ */}
-            <span className="sm:hidden">
+            <span className="sm:hidden min-w-0">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={regionToFind ?? 'done'}
@@ -84,7 +109,7 @@ const HUD: FC<HUDProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
-                  className="text-base font-bold text-white block"
+                  className="text-base font-bold text-white block truncate"
                 >
                   {regionToFind ?? 'All done!'}
                 </motion.span>
@@ -92,9 +117,7 @@ const HUD: FC<HUDProps> = ({
             </span>
           </div>
           <svg
-            className={`w-4 h-4 text-slate-500 transition-transform shrink-0 ${
-              collapsed ? '' : 'rotate-180'
-            }`}
+            className={`w-4 h-4 text-slate-500 transition-transform shrink-0 ${collapsed ? '' : 'rotate-180'}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -104,7 +127,6 @@ const HUD: FC<HUDProps> = ({
           </svg>
         </button>
 
-        {/* Country name — large, only visible on sm+ */}
         <div className="hidden sm:block px-4 pb-2">
           <AnimatePresence mode="wait">
             <motion.div
@@ -120,7 +142,6 @@ const HUD: FC<HUDProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Collapsible details */}
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div
@@ -131,26 +152,23 @@ const HUD: FC<HUDProps> = ({
               className="overflow-hidden"
             >
               <div className="px-4 pb-4">
-                {/* Stats row */}
                 <div className="flex justify-around mb-3">
                   <ScoreCounter value={score} label="Score" color="text-emerald-400" />
                   <ScoreCounter value={errors} label="Errors" color="text-red-400" />
                   <StreakIndicator streak={streak} />
                 </div>
 
-                {/* Strike dots */}
                 <div className="flex justify-center gap-1.5 mb-2">
-                  {[0, 1, 2].map((i) => (
+                  {[0, 1, 2].map((index) => (
                     <div
-                      key={i}
+                      key={index}
                       className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                        i < currentGuessErrors ? 'bg-red-400' : 'bg-slate-600'
+                        index < currentGuessErrors ? 'bg-red-400' : 'bg-slate-600'
                       }`}
                     />
                   ))}
                 </div>
 
-                {/* Skip button */}
                 <div className="flex justify-center mb-3">
                   <button
                     onClick={onSkip}
@@ -161,12 +179,10 @@ const HUD: FC<HUDProps> = ({
                   </button>
                 </div>
 
-                {/* Progress bar */}
                 <ProgressBar progress={progress} />
-                <div className="text-center mt-1.5">
-                  <span className="text-[10px] sm:text-xs text-slate-500">
-                    {regionsFound} / {totalRegions}
-                  </span>
+                <div className="flex items-center justify-between mt-1.5 text-[10px] sm:text-xs text-slate-500">
+                  <span>{regionsFound} / {totalRegions}</span>
+                  <span>{Math.round(progress * 100)}% cleared</span>
                 </div>
               </div>
             </motion.div>

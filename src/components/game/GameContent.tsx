@@ -1,6 +1,6 @@
 import { FC, lazy, Suspense, useState } from 'react';
 import { useGameState } from '../../hooks/game/useGameState';
-import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
+import { ChallengeType, ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 import HUD from './HUD';
 import FeedbackOverlay from './FeedbackOverlay';
 import SettingsButton from '../settings/SettingsButton';
@@ -9,7 +9,6 @@ import GameCompleteModal from './GameCompleteModal';
 import LeaderboardButton from '../leaderboard/LeaderboardButton';
 import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
-
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
 
 const loadGlobe = () => import('../globe/Globe');
@@ -48,7 +47,15 @@ const GameContent: FC<GameContentProps> = ({
     progress,
     totalRegions,
     durationSecs,
-  } = useGameState(initialContinent, initialDifficulty, initialGameMode, challengeId, challengeType, seed, isDailyChallenge);
+  } = useGameState(
+    initialContinent,
+    initialDifficulty,
+    initialGameMode,
+    challengeId,
+    challengeType,
+    seed,
+    isDailyChallenge,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
@@ -58,7 +65,7 @@ const GameContent: FC<GameContentProps> = ({
       <Suspense fallback={null}>
         <Globe
           regionsFound={state.regionsFound}
-          flyToRegion={state.skippedRegion}
+          flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
           onRegionClick={selectRegion}
           onReady={onGlobeReady}
         />
@@ -79,20 +86,16 @@ const GameContent: FC<GameContentProps> = ({
         challengeType={state.challengeType}
       />
 
-      <FeedbackOverlay
-        lastAnswerCorrect={state.lastAnswerCorrect}
-        streak={state.streak}
-        skippedRegion={state.skippedRegion}
-      />
+      <FeedbackOverlay feedback={state.feedback} />
 
-      <div 
+      <div
         className="fixed z-30 flex gap-3"
-        style={{ 
+        style={{
           bottom: 'max(var(--sab), 1.5rem)',
-          left: 'max(var(--sal), 1.5rem)'
+          left: 'max(var(--sal), 1.5rem)',
         }}
       >
-        {(!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND) ? (
+        {!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND ? (
           <SettingsButton onClick={() => setSettingsOpen(true)} />
         ) : (
           <QuitChallengeButton />
@@ -107,6 +110,7 @@ const GameContent: FC<GameContentProps> = ({
         continent={state.continent}
         gameMode={state.gameMode}
         challengeId={state.challengeId}
+        challengeType={state.challengeType}
         isDailyChallenge={state.isDailyChallenge}
       />
 
@@ -124,10 +128,20 @@ const GameContent: FC<GameContentProps> = ({
 
       <GameCompleteModal
         open={state.gameOver}
+        runId={state.runId}
         score={state.score}
+        baseScore={state.baseScore}
+        bonusScore={state.bonusScore}
+        maxPossibleScore={state.maxPossibleScore}
+        scoreBreakdown={state.scoreBreakdown}
         errors={state.errors}
         bestStreak={state.bestStreak}
         totalRegions={totalRegions}
+        correctAnswers={state.correctAnswers}
+        skippedCount={state.skippedCount}
+        firstTryCount={state.firstTryCount}
+        secondTryCount={state.secondTryCount}
+        thirdTrySaveCount={state.thirdTrySaveCount}
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
@@ -137,6 +151,7 @@ const GameContent: FC<GameContentProps> = ({
         seed={state.seed}
         isDailyChallenge={state.isDailyChallenge}
         onPlayAgain={resetGame}
+        onViewLeaderboard={() => setLeaderboardOpen(true)}
       />
     </div>
   );
