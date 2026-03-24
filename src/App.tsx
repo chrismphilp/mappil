@@ -6,7 +6,7 @@ import ContinentQuizPage from './pages/landing/ContinentQuizPage';
 
 const PlayRedirect: FC = () => {
   const { search } = useLocation();
-  return <Navigate to={`/${search}`} replace />;
+  return <Navigate to={{ pathname: '/', search }} replace />;
 };
 
 const App: FC = () => {
