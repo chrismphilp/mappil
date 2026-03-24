@@ -36,9 +36,14 @@ const HomePage: FC = () => {
         <div className="fixed bottom-6 right-6 z-[100]">
           <button 
             onClick={() => setShowSEO(true)}
-            className="px-6 py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
+            className="w-14 h-14 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+            aria-label="About Mappil"
           >
-            About
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4" />
+              <path d="M12 8h.01" />
+            </svg>
           </button>
         </div>
       )}
@@ -49,9 +54,12 @@ const HomePage: FC = () => {
             <div className="fixed bottom-6 right-6 z-[100]">
               <button 
                 onClick={() => setShowSEO(false)}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
+                className="w-14 h-14 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+                aria-label="Close Info"
               >
-                Close
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
           )}

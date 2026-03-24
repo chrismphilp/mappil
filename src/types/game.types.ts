@@ -27,6 +27,9 @@ export interface GameState {
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
+  challengeId?: string;
+  seed?: string;
+  isDailyChallenge?: boolean;
   score: number;
   errors: number;
   currentGuessErrors: number;
