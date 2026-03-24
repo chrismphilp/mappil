@@ -1,6 +1,6 @@
 import { FC, lazy, Suspense, useState } from 'react';
 import { useGameState } from '../../hooks/game/useGameState';
-import { ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
+import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
 import HUD from './HUD';
 import FeedbackOverlay from './FeedbackOverlay';
 import SettingsButton from '../settings/SettingsButton';
@@ -22,6 +22,7 @@ interface GameContentProps {
   initialDifficulty?: Difficulty;
   initialGameMode?: GameMode;
   challengeId?: string;
+  challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
 }
@@ -32,6 +33,7 @@ const GameContent: FC<GameContentProps> = ({
   initialDifficulty = Difficulty.MEDIUM,
   initialGameMode = GameMode.QUICK,
   challengeId,
+  challengeType,
   seed,
   isDailyChallenge,
 }) => {
@@ -46,7 +48,7 @@ const GameContent: FC<GameContentProps> = ({
     progress,
     totalRegions,
     durationSecs,
-  } = useGameState(initialContinent, initialDifficulty, initialGameMode, challengeId, seed, isDailyChallenge);
+  } = useGameState(initialContinent, initialDifficulty, initialGameMode, challengeId, challengeType, seed, isDailyChallenge);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
@@ -74,6 +76,7 @@ const GameContent: FC<GameContentProps> = ({
         gameOver={state.gameOver}
         onSkip={skipRegion}
         isDailyChallenge={state.isDailyChallenge}
+        challengeType={state.challengeType}
       />
 
       <FeedbackOverlay
@@ -89,7 +92,7 @@ const GameContent: FC<GameContentProps> = ({
           left: 'max(var(--sal), 1.5rem)'
         }}
       >
-        {!state.isDailyChallenge ? (
+        {(!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND) ? (
           <SettingsButton onClick={() => setSettingsOpen(true)} />
         ) : (
           <QuitChallengeButton />
@@ -130,6 +133,7 @@ const GameContent: FC<GameContentProps> = ({
         gameMode={state.gameMode}
         durationSecs={durationSecs}
         challengeId={state.challengeId}
+        challengeType={state.challengeType}
         seed={state.seed}
         isDailyChallenge={state.isDailyChallenge}
         onPlayAgain={resetGame}

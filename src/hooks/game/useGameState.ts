@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
+import { GameState, GameAction, ActionType, Difficulty, ContinentFilter, GameMode, ChallengeType } from '../../types/game.types';
 import { getFilteredRegions } from '../../data/maps';
 import { SeededRandom } from '../../lib/seededRandom';
 
@@ -20,6 +20,7 @@ interface RunConfig {
   continent: ContinentFilter;
   gameMode: GameMode;
   challengeId?: string;
+  challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
 }
@@ -46,6 +47,7 @@ function buildInitialState(config: RunConfig): GameState {
     continent: config.continent,
     gameMode: config.gameMode,
     challengeId: config.challengeId,
+    challengeType: config.challengeType,
     seed: config.seed,
     isDailyChallenge: config.isDailyChallenge,
     score: 0,
@@ -179,6 +181,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         continent: state.continent, 
         gameMode: state.gameMode,
         challengeId: state.challengeId,
+        challengeType: state.challengeType,
         seed: state.seed,
         isDailyChallenge: state.isDailyChallenge
       });
@@ -196,6 +199,7 @@ export function useGameState(
   initialDifficulty: Difficulty = Difficulty.MEDIUM,
   initialGameMode: GameMode = GameMode.QUICK,
   challengeId?: string,
+  challengeType?: ChallengeType,
   seed?: string,
   isDailyChallenge?: boolean,
 ) {
@@ -205,6 +209,7 @@ export function useGameState(
       continent: initialContinent, 
       gameMode: initialGameMode,
       challengeId,
+      challengeType,
       seed,
       isDailyChallenge
     })

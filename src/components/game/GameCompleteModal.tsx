@@ -2,6 +2,9 @@ import { FC, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { submitScore } from '../../lib/leaderboard';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import { createFriendChallenge } from '../../lib/friendChallenge';
+import { shareChallengeLink } from '../../lib/share';
+import { ContinentFilter, Difficulty, GameMode, ChallengeType, ShareState } from '../../types/game.types';
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -9,11 +12,12 @@ interface GameCompleteModalProps {
   errors: number;
   bestStreak: number;
   totalRegions: number;
-  difficulty: string;
-  continent: string;
-  gameMode: string;
+  difficulty: Difficulty;
+  continent: ContinentFilter;
+  gameMode: GameMode;
   durationSecs: number;
   challengeId?: string;
+  challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
   onPlayAgain: () => void;
@@ -32,6 +36,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   gameMode,
   durationSecs,
   challengeId,
+  challengeType,
   seed,
   isDailyChallenge,
   onPlayAgain,
@@ -39,11 +44,13 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   const [username, setUsername] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '');
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
   const { isCoarsePointer } = useIsMobileViewport();
 
   useEffect(() => {
     if (open) {
       setSubmitState('idle');
+      setShareState(ShareState.IDLE);
       setErrorMsg('');
       import('canvas-confetti').then(({ default: confetti }) => {
         confetti({
@@ -89,6 +96,41 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     }
   };
 
+  const handleShareChallenge = async () => {
+    const trimmed = username.trim();
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      setErrorMsg('Please set a username (3-20 chars) to challenge a friend.');
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, trimmed);
+    setShareState(ShareState.SHARING);
+    setErrorMsg('');
+
+    try {
+      // If we are already in a friend challenge, share the same ID. Otherwise create one.
+      let shareId = challengeId;
+      if (challengeType !== ChallengeType.FRIEND) {
+        shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
+      }
+
+      if (!shareId) throw new Error('Failed to resolve challenge ID');
+
+      const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
+      const title = 'Mappil Friend Challenge';
+      const text = `I scored ${score}/${totalRegions} in Mappil (${continent} - ${difficulty}). Can you beat me?`;
+
+      const success = await shareChallengeLink(title, text, url);
+      setShareState(success ? ShareState.SHARED : ShareState.ERROR);
+      if (!success) {
+        setErrorMsg('Failed to copy to clipboard.');
+      }
+    } catch (e: any) {
+      setShareState(ShareState.ERROR);
+      setErrorMsg(e.message ?? 'Failed to create challenge link.');
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -108,6 +150,11 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             {isDailyChallenge && (
               <div className="mb-4 inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
                 Daily Challenge Complete
+              </div>
+            )}
+            {challengeType === ChallengeType.FRIEND && (
+              <div className="mb-4 inline-block px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                Friend Challenge Complete
               </div>
             )}
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Game Complete!</h2>
@@ -157,23 +204,39 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               <p className="text-emerald-400 text-sm mb-6">Score submitted!</p>
             )}
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onPlayAgain}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow mb-3"
-            >
-              Play Again
-            </motion.button>
-
-            {isDailyChallenge && (
-              <a 
-                href="/"
-                className="block w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors"
+            <div className="flex flex-col gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onPlayAgain}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
               >
-                Back to Free Play
-              </a>
-            )}
+                {challengeType === ChallengeType.FRIEND ? 'Rematch Challenge' : 'Play Again'}
+              </motion.button>
+
+              {!isDailyChallenge && (
+                <button
+                  onClick={handleShareChallenge}
+                  disabled={shareState === ShareState.SHARING}
+                  className={`w-full py-3 rounded-xl border font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    shareState === ShareState.SHARED 
+                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                      : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-400'
+                  }`}
+                >
+                  {shareState === ShareState.SHARING ? 'Generating...' : shareState === ShareState.SHARED ? 'Link Copied!' : 'Challenge a Friend'}
+                </button>
+              )}
+
+              {(isDailyChallenge || challengeType === ChallengeType.FRIEND) && (
+                <a 
+                  href="/"
+                  className="block w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors mt-1"
+                >
+                  Back to Free Play
+                </a>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

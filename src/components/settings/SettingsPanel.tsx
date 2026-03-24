@@ -1,8 +1,10 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Difficulty, ContinentFilter, GameMode } from '../../types/game.types';
+import { Difficulty, ContinentFilter, GameMode, ShareState } from '../../types/game.types';
 import OptionSelector from './OptionSelector';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import { createFriendChallenge } from '../../lib/friendChallenge';
+import { shareChallengeLink } from '../../lib/share';
 
 const CONTINENT_OPTIONS: ContinentFilter[] = [
   ContinentFilter.WORLD,
@@ -23,6 +25,8 @@ const CONTINENT_LABELS: Record<ContinentFilter, string> = {
   [ContinentFilter.SOUTH_AMERICA]: 'S. America',
   [ContinentFilter.OCEANIA]: 'Oceania',
 };
+
+const STORAGE_KEY = 'mappil_username';
 
 interface SettingsPanelProps {
   open: boolean;
@@ -48,6 +52,38 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
   onReset,
 }) => {
   const { isMobile } = useIsMobileViewport();
+  const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
+
+  const handleCreateChallenge = async () => {
+    let username = localStorage.getItem(STORAGE_KEY);
+    if (!username) {
+      username = prompt('Enter a username to create a challenge:', '');
+      if (!username || username.trim().length < 3) {
+        alert('A valid username is required to challenge a friend.');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, username.trim());
+    }
+
+    setShareState(ShareState.SHARING);
+    try {
+      const shareId = await createFriendChallenge(username.trim(), difficulty, continent, gameMode);
+      const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
+      const title = 'Mappil Friend Challenge';
+      const text = `I challenge you to a Mappil match (${continent} - ${difficulty}). Can you beat my time?`;
+
+      const success = await shareChallengeLink(title, text, url);
+      setShareState(success ? ShareState.SHARED : ShareState.ERROR);
+      if (!success) {
+        alert('Failed to copy to clipboard.');
+      }
+      setTimeout(() => setShareState(ShareState.IDLE), 3000);
+    } catch (e) {
+      console.error(e);
+      setShareState(ShareState.ERROR);
+      alert('Failed to create challenge link.');
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -88,12 +124,26 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
               )}
             </div>
 
-            <a 
-              href="/play?daily=true"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
-            >
-              Play Daily Challenge
-            </a>
+            <div className="flex flex-col gap-2">
+              <a 
+                href="/play?daily=true"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
+              >
+                Play Daily Challenge
+              </a>
+
+              <button
+                onClick={handleCreateChallenge}
+                disabled={shareState === ShareState.SHARING}
+                className={`w-full py-3 rounded-xl border font-bold text-center transition-colors shadow-lg ${
+                  shareState === ShareState.SHARED 
+                    ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                    : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-400'
+                }`}
+              >
+                {shareState === ShareState.SHARING ? 'Generating...' : shareState === ShareState.SHARED ? 'Link Copied!' : 'Challenge a Friend'}
+              </button>
+            </div>
 
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">

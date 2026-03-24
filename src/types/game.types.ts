@@ -19,6 +19,18 @@ export enum ContinentFilter {
   OCEANIA = 'Oceania',
 }
 
+export enum ChallengeType {
+  DAILY = 'daily',
+  FRIEND = 'friend',
+}
+
+export enum ShareState {
+  IDLE = 'idle',
+  SHARING = 'sharing',
+  SHARED = 'shared',
+  ERROR = 'error',
+}
+
 export interface GameState {
   regionsToFind: string[];
   regionToFind: string | undefined;
@@ -28,6 +40,7 @@ export interface GameState {
   continent: ContinentFilter;
   gameMode: GameMode;
   challengeId?: string;
+  challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
   score: number;
