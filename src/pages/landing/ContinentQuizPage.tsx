@@ -1,7 +1,8 @@
-import React, { FC } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { SEO } from '../../components/SEO';
+import { SEO } from '../../components/app/SEO';
 import { ContinentFilter } from '../../types/game.types';
+import PlayPage from '../app/PlayPage';
 
 const QUIZ_DATA: Record<string, { title: string; continent: ContinentFilter; desc: string; faq: {q: string, a: string}[] }> = {
   'world-map-quiz': {
@@ -66,6 +67,14 @@ const QUIZ_DATA: Record<string, { title: string; continent: ContinentFilter; des
 
 const ContinentQuizPage: FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
+  
+  const isSnap = typeof window !== 'undefined' && window.navigator.userAgent.includes('ReactSnap');
+  const [showSEO, setShowSEO] = useState(isSnap);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!quizId || !QUIZ_DATA[quizId]) {
     return <Navigate to="/" replace />;
@@ -73,59 +82,81 @@ const ContinentQuizPage: FC = () => {
 
   const { title, continent, desc, faq } = QUIZ_DATA[quizId];
   const urlParam = encodeURIComponent(continent);
+  const showGame = mounted && !isSnap;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col py-12 px-4 selection:bg-blue-500/30">
+    <div className={`relative w-full overflow-x-hidden selection:bg-blue-500/30 ${isSnap ? 'bg-slate-900 min-h-screen text-slate-100' : ''}`}>
       <SEO 
         title={`${title} Map Quiz - Play Mappil 3D Geography Game`}
         description={desc}
         canonicalUrl={`https://mappil.com/${quizId}`}
       />
 
-      <main className="max-w-4xl mx-auto w-full space-y-12 mt-10">
-        <header className="text-center space-y-6">
-          <Link to="/" className="text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm">
-            ← Back to Home
-          </Link>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white">
-            {title} Map Quiz
-          </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            {desc}
-          </p>
-        </header>
+      {/* Real users see the game immediately; react-snap skips it to prevent WebGL timeouts */}
+      {showGame && <PlayPage continent={continent} />}
 
-        <section className="bg-slate-800/60 rounded-3xl p-8 md:p-12 border border-slate-700/50 shadow-2xl text-center">
-          <h2 className="text-2xl font-bold mb-4 text-slate-200">Ready to test your knowledge?</h2>
-          <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-            Find the countries of {title} on our interactive 3D globe. You can adjust the difficulty from Easy to Hard inside the game.
-          </p>
-          <Link 
-             to={`/play?continent=${urlParam}&mode=Quick%20Play&difficulty=Medium`}
-             className="inline-block px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg transition-all hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+      {/* About Section Button */}
+      {showGame && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button 
+            onClick={() => setShowSEO(!showSEO)}
+            className="px-6 py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
           >
-            Start {title} Quiz
-          </Link>
-        </section>
+            {showSEO ? 'Close' : 'About'}
+          </button>
+        </div>
+      )}
 
-        {faq.length > 0 && (
-          <section className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-6 text-slate-200 text-center">Frequently Asked Questions</h2>
-            <div className="space-y-4">
-              {faq.map((item, idx) => (
-                <div key={idx} className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/30">
-                  <h3 className="font-semibold text-lg text-slate-300">{item.q}</h3>
-                  <p className="text-slate-400 mt-2 leading-relaxed">{item.a}</p>
+      {(showSEO || isSnap) && (
+        <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
+          <main className="max-w-4xl mx-auto w-full space-y-12 mt-10 pb-20 text-slate-100">
+            <header className="text-center space-y-6">
+              <Link to="/" className="text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm">
+                ← Back to Home
+              </Link>
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400">
+                {title} Map Quiz
+              </h1>
+              <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                {desc}
+              </p>
+            </header>
+
+            <section className="bg-slate-800/60 rounded-3xl p-8 md:p-12 border border-slate-700/50 shadow-2xl text-center">
+              <h2 className="text-2xl font-bold mb-4 text-slate-200">Play the {title} Map Quiz</h2>
+              <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+                Find the countries of {title} on our interactive 3D globe. Use the in-game settings to adjust the difficulty from Easy to Hard.
+              </p>
+              {!showGame && (
+                <Link 
+                  to={`/play?continent=${urlParam}&mode=Quick%20Play&difficulty=Medium`}
+                  className="inline-block px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                >
+                  Start {title} Quiz
+                </Link>
+              )}
+            </section>
+
+            {faq.length > 0 && (
+              <section className="max-w-2xl mx-auto">
+                <h2 className="text-2xl font-semibold mb-6 text-slate-200 text-center">Frequently Asked Questions</h2>
+                <div className="space-y-4">
+                  {faq.map((item, idx) => (
+                    <div key={idx} className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/30">
+                      <h3 className="font-semibold text-lg text-slate-300">{item.q}</h3>
+                      <p className="text-slate-400 mt-2 leading-relaxed">{item.a}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </section>
+            )}
 
-        <section className="border-t border-slate-800 pt-8 mt-12 text-center text-slate-500">
-          <p>Looking for other regions? Visit the <Link to="/" className="text-blue-400 hover:underline">homepage</Link> to explore more map quizzes.</p>
-        </section>
-      </main>
+            <section className="border-t border-slate-800 pt-8 mt-12 text-center text-slate-500">
+              <p>Looking for other regions? Visit the <Link to="/" className="text-blue-400 hover:underline">homepage</Link> to explore more map quizzes.</p>
+            </section>
+          </main>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { FC, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SEO } from '../components/SEO';
+import { SEO } from '../../components/app/SEO';
 import PlayPage from './PlayPage';
 
 const QA = [
@@ -31,20 +31,30 @@ const HomePage: FC = () => {
       {/* Real users see the game immediately; react-snap skips it to prevent WebGL timeouts */}
       {showGame && <PlayPage />}
 
-      {/* For real users, provide a button to scroll/show the SEO content overlay. For crawlers, show immediately. */}
-      {showGame && (
-        <div className="fixed bottom-6 right-6 z-50">
+      {/* About Section Button */}
+      {showGame && !showSEO && (
+        <div className="fixed bottom-6 right-6 z-[100]">
           <button 
-            onClick={() => setShowSEO(!showSEO)}
+            onClick={() => setShowSEO(true)}
             className="px-6 py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
           >
-            {showSEO ? 'Close' : 'About'}
+            About
           </button>
         </div>
       )}
 
       {(showSEO || isSnap) && (
         <div className={isSnap ? "py-12 px-4 flex flex-col items-center" : "fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center py-12 px-4 overflow-y-auto"}>
+          {!isSnap && (
+            <div className="fixed bottom-6 right-6 z-[100]">
+              <button 
+                onClick={() => setShowSEO(false)}
+                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          )}
           <main className="max-w-4xl w-full flex flex-col gap-12 mt-4 pb-20 text-slate-100">
             <header className="text-center space-y-6">
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-400">

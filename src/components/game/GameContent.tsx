@@ -9,7 +9,7 @@ import GameCompleteModal from './GameCompleteModal';
 import LeaderboardButton from '../leaderboard/LeaderboardButton';
 import LeaderboardModal from '../leaderboard/LeaderboardModal';
 
-import ShootingStarsBackground from '../ShootingStarsBackground';
+import ShootingStarsBackground from '../app/ShootingStarsBackground';
 
 const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
