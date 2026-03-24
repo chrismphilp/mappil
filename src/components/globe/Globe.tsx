@@ -336,7 +336,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   return (
     <div
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
       onPointerDownCapture={handlePointerDown}
       onPointerUpCapture={handlePointerUp}
     >

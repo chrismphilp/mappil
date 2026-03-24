@@ -83,7 +83,7 @@ const ShootingStarsBackground: React.FC<ShootingStarsBackgroundProps> = ({ enabl
         y,
         vx,
         vy,
-        length: 30 + Math.random() * 50, // Longer tail
+        length: 15 + Math.random() * 30, // Shorter tail
         life: 0,
         maxLife: minLife + Math.random() * (maxLife - minLife),
         alpha: 0.4 + Math.random() * 0.4,
@@ -134,7 +134,7 @@ const ShootingStarsBackground: React.FC<ShootingStarsBackgroundProps> = ({ enabl
         ctx.moveTo(star.x, star.y);
         ctx.lineTo(tailX, tailY);
         ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 0.8;
         // Optionally, give it a tiny head highlight
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -164,7 +164,7 @@ const ShootingStarsBackground: React.FC<ShootingStarsBackgroundProps> = ({ enabl
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 1, // Will sit above index.css starfield, below Globe
+        zIndex: 0, // Will sit above index.css starfield, below Globe
       }}
     />
   );
