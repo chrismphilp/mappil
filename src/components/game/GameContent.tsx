@@ -8,6 +8,7 @@ import SettingsPanel from '../settings/SettingsPanel';
 import GameCompleteModal from './GameCompleteModal';
 import LeaderboardButton from '../leaderboard/LeaderboardButton';
 import LeaderboardModal from '../leaderboard/LeaderboardModal';
+import QuitChallengeButton from './QuitChallengeButton';
 
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
 
@@ -88,8 +89,10 @@ const GameContent: FC<GameContentProps> = ({
           left: 'max(var(--sal), 1.5rem)'
         }}
       >
-        {!state.isDailyChallenge && (
+        {!state.isDailyChallenge ? (
           <SettingsButton onClick={() => setSettingsOpen(true)} />
+        ) : (
+          <QuitChallengeButton />
         )}
         <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
       </div>
