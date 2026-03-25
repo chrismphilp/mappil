@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  background-color: #020617;
+  background-image:
+    radial-gradient(1px 1px at 25px 50px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 75px 120px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 150px 30px, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 220px 180px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(2px 2px at 280px 90px, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 350px 220px, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 410px 40px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 460px 150px, rgba(255, 255, 255, 0.3), transparent);
+  background-size: 500px 500px;
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  position: relative;
+}
+
+/* Hide globe.gl default tooltip styling overrides */
+.scene-tooltip {
+  font-family: inherit !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  pointer-events: none !important;
+}

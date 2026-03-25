@@ -62,6 +62,23 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
     }
   }, [open, profile.username]);
 
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') {
+      return;
+    }
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [open]);
+
   const favoriteRuleset = useMemo(() => {
     if (!profile.summary.favoriteRulesetKey) {
       return null;
@@ -97,7 +114,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
     } catch (error) {
       console.error(error);
       setShareState(ShareState.ERROR);
-      alert('Failed to create challenge link.');
+      alert(error instanceof Error ? error.message : 'Failed to create challenge link.');
       setTimeout(() => setShareState(ShareState.IDLE), 3000);
     }
   };
@@ -130,48 +147,55 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={
               isMobile
-                ? 'fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-2xl border-t border-white/10 p-6 rounded-t-3xl flex flex-col gap-6 max-h-[85dvh] overflow-y-auto'
-                : 'fixed left-0 top-0 bottom-0 z-50 w-[22rem] bg-slate-900/90 backdrop-blur-2xl border-r border-white/10 p-6 flex flex-col gap-6 overflow-y-auto'
+                ? 'fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh]'
+                : 'fixed left-0 top-0 bottom-0 z-50 w-[26rem] max-w-[calc(100vw-3rem)] overflow-hidden'
             }
-            style={isMobile ? { paddingBottom: 'max(1.5rem, var(--sab))' } : undefined}
           >
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Settings</h2>
-              {isMobile && (
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            <div className="rounded-2xl bg-slate-800/55 border border-white/5 p-4">
-              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">
-                Username
-              </label>
-              <div className="flex gap-2">
-                <input
-                  value={usernameInput}
-                  onChange={(event) => setUsernameInput(event.target.value)}
-                  placeholder="Set username"
-                  maxLength={20}
-                  className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
-                />
-                <button
-                  onClick={handleSaveUsername}
-                  className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-colors"
-                >
-                  Save
-                </button>
+            <div
+              className={
+                isMobile
+                  ? 'h-full rounded-t-3xl border-t border-white/10 bg-slate-900 p-6 flex flex-col gap-6 overflow-y-auto overscroll-contain'
+                  : 'h-full border-r border-white/10 bg-[#141e33] p-6 flex flex-col gap-6 overflow-y-auto overscroll-contain shadow-[24px_0_80px_rgba(2,6,23,0.55)]'
+              }
+              style={isMobile ? { paddingBottom: 'max(1.5rem, var(--sab))' } : undefined}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Settings</h2>
+                {isMobile && (
+                  <button
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Saved locally for leaderboards, daily runs, and friend challenges.
-              </p>
-            </div>
+
+              <div className="rounded-2xl bg-slate-800/55 border border-white/5 p-4">
+                <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">
+                  Username
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={usernameInput}
+                    onChange={(event) => setUsernameInput(event.target.value)}
+                    placeholder="Set username"
+                    maxLength={20}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                  />
+                  <button
+                    onClick={handleSaveUsername}
+                    className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Saved locally for leaderboards, daily runs, and friend challenges.
+                </p>
+              </div>
 
             <div className="flex flex-col gap-2">
               <a
@@ -307,6 +331,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             >
               Clear Local Progress
             </button>
+            </div>
           </motion.div>
         </>
       )}

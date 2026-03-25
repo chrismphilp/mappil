@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabase } from './supabase';
 import { ContinentFilter, Difficulty, GameMode } from '../types/game.types';
 
 export interface FriendChallenge {
@@ -26,6 +26,7 @@ export async function createFriendChallenge(
   continent: ContinentFilter,
   gameMode: GameMode
 ): Promise<string> {
+  const supabase = getSupabase();
   const id = `friend:${generateShortId()}`;
   const seed = generateShortId(); // Just a random seed for the game
 
@@ -46,6 +47,7 @@ export async function createFriendChallenge(
 }
 
 export async function getFriendChallenge(id: string): Promise<FriendChallenge | null> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('friend_challenges')
     .select('*')

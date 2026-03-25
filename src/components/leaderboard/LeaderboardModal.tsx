@@ -90,6 +90,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
     totalPlayers: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState<string>(difficulty);
   const [filterContinent, setFilterContinent] = useState<string>(continent);
   const [filterGameMode, setFilterGameMode] = useState<string>(gameMode);
@@ -106,6 +107,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
 
     let cancelled = false;
     setLoading(true);
+    setErrorMessage('');
 
     fetchLeaderboard(
       filterDifficulty || undefined,
@@ -126,6 +128,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
             playerEntry: null,
             totalPlayers: 0,
           });
+          setErrorMessage('Unable to load leaderboard right now.');
         }
       })
       .finally(() => {
@@ -236,11 +239,15 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                 <p className="text-slate-500 text-sm text-center py-8">Loading leaderboard...</p>
               )}
 
-              {!loading && result.entries.length === 0 && (
+              {!loading && errorMessage && (
+                <p className="text-amber-300 text-sm text-center py-8">{errorMessage}</p>
+              )}
+
+              {!loading && !errorMessage && result.entries.length === 0 && (
                 <p className="text-slate-500 text-sm text-center py-8">No scores yet. Be the first.</p>
               )}
 
-              {!loading && result.entries.length > 0 && (
+              {!loading && !errorMessage && result.entries.length > 0 && (
                 <div className="space-y-2">
                   {result.entries.map((entry, index) => (
                     <EntryRow key={entry.id} entry={entry} index={index} />
@@ -249,6 +256,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
               )}
 
               {!loading &&
+                !errorMessage &&
                 result.playerEntry &&
                 result.playerEntry.rank &&
                 result.playerEntry.rank > result.entries.length && (
@@ -260,7 +268,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
                   </div>
                 )}
 
-              {!loading && result.totalPlayers > 0 && (
+              {!loading && !errorMessage && result.totalPlayers > 0 && (
                 <p className="text-center text-xs text-slate-500 mt-4">
                   {result.totalPlayers} players ranked on this board.
                 </p>

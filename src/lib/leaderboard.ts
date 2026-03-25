@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabase } from './supabase';
 
 export const LEADERBOARD_LIMIT = 20;
 const RAW_FETCH_LIMIT = 500;
@@ -69,6 +69,7 @@ function collapseBestAttempts(entries: ScoreEntry[]): ScoreEntry[] {
 }
 
 export async function submitScore(params: SubmitScoreParams): Promise<void> {
+  const supabase = getSupabase();
   const { error } = await supabase.from('scores').insert(params);
   if (error) throw new Error(error.message);
 }
@@ -80,6 +81,7 @@ export async function fetchLeaderboard(
   challengeId?: string,
   currentPlayerId?: string,
 ): Promise<LeaderboardResult> {
+  const supabase = getSupabase();
   let query = supabase.from('scores').select(`
       id,
       created_at,

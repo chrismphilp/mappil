@@ -58,6 +58,21 @@ interface ActionConfig {
   onClick?: () => void;
 }
 
+function getLeaderboardActionLabel(args: {
+  challengeType?: ChallengeType;
+  isDailyChallenge?: boolean;
+}): string {
+  if (args.isDailyChallenge) {
+    return 'View Daily Leaderboard';
+  }
+
+  if (args.challengeType === ChallengeType.FRIEND) {
+    return 'View Challenge Board';
+  }
+
+  return 'View Leaderboard';
+}
+
 const PERSONAL_BEST_LABELS: Record<
   PersonalBestFlag,
   { fresh: string; tied: string }
@@ -106,7 +121,7 @@ function renderActionButton(action: ActionConfig, className: string) {
   }
 
   return (
-    <button onClick={action.onClick} className={className}>
+    <button type="button" onClick={action.onClick} className={className}>
       {action.label}
     </button>
   );
@@ -421,6 +436,15 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     primaryAction.label,
   ]);
 
+  const leaderboardActionLabel = useMemo(
+    () => getLeaderboardActionLabel({ challengeType, isDailyChallenge }),
+    [challengeType, isDailyChallenge],
+  );
+
+  const shouldShowSeparateLeaderboardButton =
+    submitState === SubmitState.SUBMITTED &&
+    (!nextSuggestion || nextSuggestion.label !== leaderboardActionLabel);
+
   const personalBestBadges = useMemo(() => {
     if (!runResult) return [];
 
@@ -654,19 +678,34 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             )}
 
             {submitState !== SubmitState.SUBMITTED && (
-              <div className="mb-5">
+              <form
+                className="mb-5"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSubmit();
+                }}
+              >
                 <label className="text-xs text-slate-400 uppercase tracking-[0.24em] block mb-2">
                   Leaderboard Username
                 </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="Enter username"
-                  maxLength={20}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
-                />
-              </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder="Enter username"
+                    maxLength={20}
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitState === SubmitState.SUBMITTING}
+                    className="shrink-0 px-4 py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
+                  >
+                    {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit'}
+                  </button>
+                </div>
+              </form>
             )}
 
             {errorMsg && (
@@ -689,25 +728,19 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                   'w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition-colors text-center',
                 )}
 
-              {submitState !== SubmitState.SUBMITTED ? (
+              {shouldShowSeparateLeaderboardButton && (
                 <button
-                  onClick={handleSubmit}
-                  disabled={submitState === SubmitState.SUBMITTING}
-                  className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
-                >
-                  {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit To Leaderboard'}
-                </button>
-              ) : (
-                <button
+                  type="button"
                   onClick={onViewLeaderboard}
                   className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-colors"
                 >
-                  View Leaderboard
+                  {leaderboardActionLabel}
                 </button>
               )}
 
               {!isDailyChallenge && (
                 <button
+                  type="button"
                   onClick={handleShareChallenge}
                   disabled={shareState === ShareState.SHARING}
                   className={`w-full py-3 rounded-xl border font-semibold transition-colors ${

@@ -1,5 +1,7 @@
+'use client';
+
 import { FC, lazy, Suspense, useCallback, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useGameState } from '../../hooks/game/useGameState';
 import { ChallengeType, ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 import HUD from './HUD';
@@ -37,8 +39,10 @@ const GameContent: FC<GameContentProps> = ({
   seed,
   isDailyChallenge,
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentPathname = pathname ?? '/';
   const {
     state,
     selectRegion,
@@ -69,7 +73,7 @@ const GameContent: FC<GameContentProps> = ({
         changeRuleset(nextDifficulty, nextContinent, nextGameMode);
       }
 
-      const search = new URLSearchParams(location.search);
+      const search = new URLSearchParams(searchParams?.toString() ?? '');
       search.delete('daily');
       search.delete('challenge');
 
@@ -91,12 +95,9 @@ const GameContent: FC<GameContentProps> = ({
         search.set('mode', nextGameMode);
       }
 
-      navigate(
-        {
-          pathname: location.pathname,
-          search: search.toString() ? `?${search.toString()}` : '',
-        },
-        { replace: true },
+      router.replace(
+        search.toString() ? `${currentPathname}?${search.toString()}` : currentPathname,
+        { scroll: false },
       );
     },
     [
@@ -104,9 +105,9 @@ const GameContent: FC<GameContentProps> = ({
       state.difficulty,
       state.gameMode,
       changeRuleset,
-      location.pathname,
-      location.search,
-      navigate,
+      currentPathname,
+      router,
+      searchParams,
     ],
   );
 

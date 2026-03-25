@@ -10,7 +10,7 @@ export async function loadGeoJson(
     return geoJsonData;
   }
 
-  const response = await fetch(`${process.env.PUBLIC_URL}/data/world.optimized.geo.json`);
+  const response = await fetch('/data/world.optimized.geo.json');
   const contentLength = response.headers.get('Content-Length');
 
   if (!contentLength || !response.body) {

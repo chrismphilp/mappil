@@ -1,12 +1,15 @@
+'use client';
+
 import React, { FC, useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { loadGeoJson } from '../../data/maps';
 import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
 import LoadingOverlay from '../../components/app/LoadingOverlay';
 import GameContent, { preloadGlobe } from '../../components/game/GameContent';
-import { SEO } from '../../components/app/SEO';
 import { getDailyChallengeConfig } from '../../lib/dailyChallenge';
 import { getFriendChallenge, FriendChallenge } from '../../lib/friendChallenge';
+import { SUPABASE_UNAVAILABLE_MESSAGE } from '../../lib/supabase';
 
 interface PlayPageProps {
   continent?: ContinentFilter;
@@ -16,22 +19,27 @@ interface PlayPageProps {
 }
 
 const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppressSEO = false }) => {
-  const [searchParams] = useSearchParams();
-  const isDaily = searchParams.get('daily') === 'true';
-  const challengeParam = searchParams.get('challenge');
+  const searchParams = useSearchParams();
+  const isDaily = searchParams?.get('daily') === 'true';
+  const challengeParam = searchParams?.get('challenge') ?? null;
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
 
   const [friendConfig, setFriendConfig] = useState<FriendChallenge | null>(null);
   const [friendConfigLoading, setFriendConfigLoading] = useState(!!challengeParam);
+  const [friendChallengeError, setFriendChallengeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (challengeParam) {
       getFriendChallenge(challengeParam)
         .then((config) => {
           setFriendConfig(config);
+          setFriendChallengeError(null);
         })
-        .catch(console.error)
+        .catch((error: any) => {
+          console.error(error);
+          setFriendChallengeError(error?.message ?? 'Unable to load this challenge.');
+        })
         .finally(() => {
           setFriendConfigLoading(false);
         });
@@ -42,7 +50,7 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppress
     if (friendConfig) return friendConfig.continent;
     if (dailyConfig) return dailyConfig.continent;
     if (continent) return continent;
-    const p = searchParams.get('continent');
+    const p = searchParams?.get('continent');
     if (p && Object.values(ContinentFilter).includes(p as ContinentFilter)) {
       return p as ContinentFilter;
     }
@@ -53,7 +61,7 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppress
     if (friendConfig) return friendConfig.difficulty;
     if (dailyConfig) return dailyConfig.difficulty;
     if (difficulty) return difficulty;
-    const p = searchParams.get('difficulty');
+    const p = searchParams?.get('difficulty');
     if (p && Object.values(Difficulty).includes(p as Difficulty)) {
       return p as Difficulty;
     }
@@ -64,7 +72,7 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppress
     if (friendConfig) return friendConfig.game_mode;
     if (dailyConfig) return dailyConfig.gameMode;
     if (gameMode) return gameMode;
-    const p = searchParams.get('mode');
+    const p = searchParams?.get('mode');
     if (p && Object.values(GameMode).includes(p as GameMode)) {
       return p as GameMode;
     }
@@ -113,13 +121,22 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppress
     : dataProgress * 0.9;
 
   if (challengeParam && !friendConfig && !friendConfigLoading) {
+    const onlineFeaturesUnavailable =
+      friendChallengeError === SUPABASE_UNAVAILABLE_MESSAGE;
+
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4 text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Challenge Not Found</h2>
-        <p className="text-slate-400 mb-6">This challenge link might be invalid or has expired.</p>
-        <a href="/" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          {onlineFeaturesUnavailable ? 'Online Features Unavailable' : 'Challenge Not Found'}
+        </h2>
+        <p className="text-slate-400 mb-6">
+          {onlineFeaturesUnavailable
+            ? friendChallengeError
+            : 'This challenge link might be invalid or has expired.'}
+        </p>
+        <Link href="/" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">
           Return Home
-        </a>
+        </Link>
       </div>
     );
   }
@@ -128,13 +145,6 @@ const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppress
 
   return (
     <>
-      {!suppressSEO && (
-        <SEO
-          title={isDaily ? 'Daily Challenge - Mappil' : friendConfig ? `Challenge from ${friendConfig.created_by_username} - Mappil` : `Play Mappil - ${initialContinent} Map Quiz`}
-          description="Test your geography knowledge with Mappil. Identify countries and regions on an interactive 3D globe."
-          canonicalUrl="https://mappil.com/play"
-        />
-      )}
       {dataLoaded && !friendConfigLoading && (
         <GameContent 
           onGlobeReady={handleGlobeReady} 
