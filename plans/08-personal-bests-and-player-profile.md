@@ -1,367 +1,257 @@
 # Personal Bests And Player Profile Plan
 
-**Recommendation:** Build a lightweight player profile that starts local-first and centers on personal improvement: best scores, best streaks, fastest clears, recent runs, and mastery progress by ruleset.
+**Recommendation:** Treat this as a phase-two plan. Mappil already has a local-first player profile foundation, so the next pass should harden that storage, expose it in a dedicated progress surface, and defer mastery and cloud sync until the app collects the right data.
 
-**Why this approach:** Mappil currently remembers only one piece of player identity locally: the username stored by `src/components/GameCompleteModal.tsx`. Everything else resets per session except what is visible on the global leaderboard. That means the app celebrates public competition more than private progress, even though personal improvement is one of the strongest reasons to replay a skill game and one of the best ways to keep weaker players engaged.
+**Why this change:** The current codebase already ships stable local player IDs, ruleset-specific personal best tracking, recent run storage, completion-screen PB badges, a settings snapshot, and leaderboard submission with `player_id`. The plan should stop describing those as future work and instead focus on the real remaining gaps.
 
-**Primary v1 goal:** Give every player a persistent sense of “my progress” even before a full account system exists.
+**Primary goal:** Make existing personal progress visible, trustworthy, and easy to revisit.
 
-**Scope rule for v1:** Keep the first version local-first, comprehensible, and useful. Do not block on authentication or social features.
-
----
-
-## 1. Current Gap Snapshot
-
-### What exists today
-- `GameCompleteModal.tsx` stores `mappil_username` in localStorage
-- `src/lib/leaderboard.ts` supports public score submission and retrieval
-- the live game tracks run-level stats such as score, errors, best streak, and duration
-
-### What is missing
-- no personal bests by ruleset
-- no persistent player profile
-- no run history
-- no mastery breakdown
-- no “new best” comparisons at the end of a run
-- no stable local player id separate from display username
-
-### Likely consequence
-Players who are not chasing the global leaderboard have little visible proof that they are improving over time.
+**Scope rule for this phase:** No auth system, no cloud merge logic, and no region-level mastery features until the necessary data exists.
 
 ---
 
-## 2. Recommendation
+## 1. Current State
 
-### Chosen implementation
-Ship a player profile in two layers:
-- local-first personal progress storage
-- optional cloud sync later through Supabase
+### Already shipped
+- [EXISTS] `src/types/profile.types.ts`
+- [EXISTS] `src/lib/playerProfileStorage.ts`
+- [EXISTS] `src/hooks/usePlayerProfile.ts`
+- [EXISTS] `src/components/game/GameCompleteModal.tsx` records completed runs, shows PB and tied-PB badges, and compares against the previous best score
+- [EXISTS] `src/components/settings/SettingsPanel.tsx` exposes username, a compact progress snapshot, favorite ruleset, and clear local progress
+- [EXISTS] `src/lib/leaderboard.ts` accepts `player_id` and uses it when collapsing repeat attempts
 
-### Why local-first
-This app does not currently have a user account system. Local-first storage lets Mappil add meaningful persistent progress quickly without blocking on auth, profile merging, or cross-device identity.
+### Real remaining gaps
+- no dedicated profile screen or panel for browsing personal bests and recent runs
+- no detailed per-ruleset view beyond the compact settings snapshot
+- no migration version or explicit upgrade path for local profile data
+- no automated coverage for profile storage, ruleset keying, or PB comparison logic
+- no telemetry path for validating whether profile features improve replay behavior
+- no region-level attempt data, so mastery-by-country claims are not currently implementable
 
-### What the profile should optimize for
-The profile should answer:
-- what am I best at
-- how have I improved
-- what should I try next
-
-Not merely:
-- what username did I enter once
+### Consequence if left as-is
+The foundation exists, but most of it stays invisible after the completion modal disappears. Players get a momentary PB celebration, not an ongoing sense of progress.
 
 ---
 
-## 3. Profile Design
+## 2. Revised Recommendation
 
-### A. Stable local player identity
+### Phase focus
+1. harden local profile storage
+2. expose the stored progress in a real profile surface
+3. improve post-run comparisons and replay prompts
+4. defer mastery instrumentation and cloud sync until the local feature proves useful
 
-#### [NEW] `src/lib/playerProfile.ts`
+### What the profile should answer
+- what am I improving at
+- what is my best ruleset right now
+- what should I replay next
+- how recently have I been active
 
-Generate and persist a stable local player id separate from the chosen username.
+---
 
-Recommended keys:
-- `mappil_player_id`
-- `mappil_username`
-- `mappil_profile_v1`
+## 3. Product Design
 
-This lets the app connect local run history to a durable client-side identity even if the display name changes later.
+### A. Dedicated profile surface
 
-### B. Profile summary
+#### [NEW] `src/components/profile/ProfilePanel.tsx`
 
-The profile summary should include:
-- username
-- total runs played
-- total regions found
-- cumulative play time
-- best overall streak
-- favorite ruleset or most-played ruleset
-- recent activity summary
+Build a lightweight profile panel or modal that opens from settings first. It should show:
+- player summary
+- recent runs
+- ruleset personal best cards
+- favorite ruleset
+- last played timestamp
+- clear local progress action
 
-### C. Ruleset-specific personal bests
+Keep it focused on progress, not social identity.
 
-Track bests by a normalized ruleset key containing:
-- continent
-- difficulty
-- game mode
-- challenge mode if present later
-- map pack if multiple map datasets are added later
+### B. Entry points
 
-Recommended personal bests:
-- highest score
-- fewest errors
-- fastest perfect run
-- best streak
-- longest no-skip streak or best no-skip completion
+#### [MODIFY] `src/components/settings/SettingsPanel.tsx`
 
-### D. Run history
+Turn the current snapshot into a launch point:
+- add a `View Profile` action
+- keep the compact stats visible in settings
+- move dense history and ruleset cards into the profile panel
 
-Store recent runs with enough detail to show:
-- date and time
-- ruleset
-- score
-- errors
-- best streak
-- duration
-- whether it was a personal best
+#### [MODIFY] `src/components/game/GameCompleteModal.tsx`
 
-Cap stored history to a reasonable recent limit in v1.
+Add a low-friction path from a completed run into the profile panel, especially when the player sets or ties a PB.
+
+### C. Better post-run comparison
+
+The current modal compares only score against the previous local best. Expand this to show concise deltas for the active ruleset:
+- score vs previous best
+- errors vs cleanest prior run
+- streak vs prior best streak
+- clean-clear time vs prior fastest clean clear when relevant
+
+Do not overload the modal. One compact comparison card is enough.
 
 ---
 
 ## 4. Technical Design
 
-### A. Profile types
+### A. Harden the profile model
 
-#### [NEW] `src/types/profile.types.ts`
+#### [MODIFY] `src/types/profile.types.ts`
 
-Recommended model split:
+Add explicit versioning to the stored profile model, for example:
 
 ```ts
 interface PlayerProfile {
-  playerId: string;
-  username: string;
-  createdAt: string;
-  updatedAt: string;
-  summary: PlayerSummary;
-  personalBests: Record<string, RulesetBest>;
-  recentRuns: RunRecord[];
+  version: 1;
+  // existing fields...
 }
 ```
 
-Keep the model explicit rather than burying it in ad hoc localStorage blobs.
+This gives future schema changes a safe migration path instead of silent reset-or-hope behavior.
 
-### B. Profile storage helpers
+### B. Add migration and sanitization paths
 
-#### [NEW] `src/lib/playerProfileStorage.ts`
+#### [MODIFY] `src/lib/playerProfileStorage.ts`
 
-Responsibilities:
-- load profile
-- initialize a default profile
-- update username
-- append a completed run
-- recompute personal bests and summary stats
-- persist safely
+Responsibilities for the next pass:
+- migrate older profile shapes forward
+- sanitize corrupted or partial local data without losing a valid `playerId`
+- keep storage bounded
+- centralize profile load behavior so all surfaces read the same normalized state
+- optionally listen for `storage` events later if cross-tab consistency matters
 
-### C. Profile hook
+### C. Keep ruleset identity as the source of truth
 
-#### [NEW] `src/hooks/usePlayerProfile.ts`
+#### [EXISTS] `src/lib/ruleset.ts`
 
-Responsibilities:
-- expose the current profile
-- expose mutations like `recordRun`, `updateUsername`, and `clearProfile`
-- memoize derived profile views for UI
+Reuse the existing ruleset key builder everywhere. Do not let profile UI invent alternate grouping logic.
 
-### D. Completion integration
+### D. Add test coverage
 
-#### [MODIFY] `src/components/GameCompleteModal.tsx`
-
-At the end of every run:
-- compare results against the player’s ruleset-specific bests
-- show `New Best` callouts
-- record the run locally
-- update username in the profile store if it changed
-
-The completion screen should become the primary moment where personal progress is made visible.
-
-### E. Leaderboard integration
-
-#### [MODIFY] `src/lib/leaderboard.ts`
-
-When scores are submitted, include the local player id if useful for future cloud syncing or nearby-player context.
-
-This is optional for the first pass, but it is a good forward-compatible field to add early.
+There is currently no automated test harness in the repo. Before expanding the profile feature further, add a lightweight test setup and cover:
+- profile initialization
+- migration of older stored payloads
+- run recording idempotency by `runId`
+- ruleset-specific PB separation
+- tied PB handling
+- corrupted localStorage recovery
 
 ---
 
 ## 5. UI Surfaces
 
-### A. Completion screen
+### A. Profile panel contents
 
-#### [MODIFY] `src/components/GameCompleteModal.tsx`
+#### [NEW] `src/components/profile/ProfilePanel.tsx`
 
-Add:
-- `New Best Score`
-- `Fastest Clear`
-- `Best Streak Tied`
-- comparison against previous personal best for the same ruleset
+Recommended sections:
+- summary header with username and totals
+- recent runs list capped to the stored history limit
+- ruleset PB cards sorted by most-played or most-recent
+- latest PB badge strip or recent highlight
+- empty state for first-time players
 
-This is the highest-value place to surface progress because it arrives at the emotional peak of a run.
+### B. Settings integration
 
-### B. Profile entry point
+#### [MODIFY] `src/components/settings/SettingsPanel.tsx`
 
-#### [NEW] `src/components/ProfileButton.tsx`
-#### [NEW] `src/components/ProfilePanel.tsx`
-
-Add a lightweight profile surface with:
-- summary stats
-- recent personal bests
-- recent runs
-- favorite modes or continents
-
-This should feel more like a progress journal than a heavy account dashboard.
-
-### C. Settings integration
-
-#### [MODIFY] `src/components/SettingsPanel.tsx`
-
-Settings should expose:
-- current username
+The settings panel should remain the shallow surface:
+- username editing
+- current snapshot
 - view profile
-- reset or clear local progress with a guarded confirmation
+- clear progress
+- gameplay options
 
-### D. HUD and leaderboard hints
-Add small non-intrusive hints such as:
-- “PB pace” indicators later
-- “Your best: 8/10” in the leaderboard filter view
+### C. Completion flow
 
-Do not overload the HUD in the first release.
+#### [MODIFY] `src/components/game/GameCompleteModal.tsx`
 
----
+Keep the end-of-run experience focused on:
+- PB badges
+- one comparison card
+- one replay recommendation
+- optional link into the full profile view
 
-## 6. Mastery Tracking
+### D. Avoid in-HUD expansion for now
 
-### A. Educational mastery layer
-The profile should not stop at abstract score records.
-
-Recommended mastery concepts:
-- first-try correctness by region
-- regions frequently missed
-- continent-specific completion comfort
-- consistency over recent runs
-
-### B. Ruleset mastery cards
-Show profile cards such as:
-- `Europe Quick`
-- `World Full Hard`
-- `Africa Easy`
-
-Each card can summarize:
-- best score
-- fastest clean clear
-- total runs
-- mastery tier
-
-### C. Relationship to achievements
-Keep the profile model compatible with later achievement work from the gamification plan, but do not block this plan on a full achievements system.
+Do not add PB pace or profile clutter to the live HUD in this phase. The game screen should stay focused on play.
 
 ---
 
-## 7. Cloud Sync Direction
+## 6. Explicit Deferrals
 
-### A. Local-first v1
-The first implementation should work entirely without login.
+### A. Region-level mastery
 
-### B. Optional Supabase-backed v2
-Later, sync selected profile fields to Supabase:
-- username
-- summary stats
-- personal bests
-- key run milestones
+The current profile model stores aggregate counts, not per-region outcomes. Features like:
+- frequently missed regions
+- first-try correctness by country
+- weakest map clusters
 
-Recommended cloud tables:
-- `player_profiles`
-- `player_personal_bests`
-- `player_run_history`
+require new run instrumentation. Treat this as a later plan, not part of the current phase.
 
-### C. Merge strategy
-If cloud sync is added later:
-- local profile remains the source of truth until linked
-- merge by local `player_id`
-- prefer best-of-both-worlds logic for PBs
+### B. Cloud sync
 
-Avoid building this merge complexity into v1.
+Supabase sync remains a later extension. Only revisit it after the local profile UI is in use and there is evidence that cross-device continuity matters.
 
----
+### C. Analytics
 
-## 8. Data Retention And Privacy
-
-### Keep local storage bounded
-Do not store unlimited run history.
-
-Recommended v1 guardrails:
-- cap recent runs
-- store aggregates rather than huge raw event logs
-- allow users to reset local profile data
-
-### Be clear about scope
-If there is no login, make sure the UI implies:
-- progress is on this device
-- cloud sync is not guaranteed yet
-
-This avoids false expectations.
-
----
-
-## 9. Analytics And Measurement
-
-### Track profile usage
-Add events for:
+There is no current analytics layer in the repo. Do not make telemetry a blocking dependency for the profile work. If analytics is introduced later, then track:
 - profile opened
-- personal best achieved
-- replay started after a PB comparison
-- profile reset
-
-### Primary success metrics
-Track:
-- percentage of runs that generate a visible PB comparison
-- replay rate after a `New Best` moment
-- profile open rate
-- returning player rate after personal progress surfaces ship
+- PB achieved
+- replay started from the completion modal
+- progress reset
 
 ---
 
-## 10. Implementation Order
+## 7. Implementation Order
 
-1. Add profile types and storage helpers.
-2. Generate a stable local player id and migrate username handling into the profile layer.
-3. Record completed runs and recompute ruleset-specific personal bests.
-4. Surface PB comparisons in `GameCompleteModal.tsx`.
-5. Add a lightweight profile panel and settings integration.
-6. Add mastery summaries and richer progress cards.
-7. Consider optional Supabase sync only after the local-first version proves useful.
+1. Update the plan and treat the existing storage and profile foundation as shipped work.
+2. Add profile versioning and migration or sanitization in `playerProfileStorage.ts`.
+3. Introduce automated tests for profile storage, PB comparison, and ruleset separation.
+4. Build a dedicated `ProfilePanel` using the existing `usePlayerProfile` data.
+5. Add entry points from settings and the completion modal.
+6. Expand the completion comparison card to show more than score when it helps the replay decision.
+7. Reassess mastery instrumentation and cloud sync only after the above ships cleanly.
 
 ---
 
-## 11. Verification
+## 8. Verification
 
 ### Manual checks
-- the app creates a stable local player id once
-- username changes persist across runs
-- a completed run updates profile summary and history
-- personal bests are tracked separately per ruleset
-- the completion screen correctly detects new and tied personal bests
-- local profile reset works without breaking normal play
+- existing users keep their `playerId`, username, and valid local profile data after the migration change
+- a run is recorded only once per `runId`
+- ruleset PBs remain separated between free play, daily, and friend challenge variants
+- the profile panel reflects new runs immediately
+- clearing progress resets stats while preserving a stable local player ID
+- the completion modal shows accurate deltas against the previous best ruleset record
 
-### Regression focus
-Pay particular attention to:
-- corrupted local storage handling
-- PB comparisons using the wrong ruleset key
-- profile writes firing multiple times on one completed run
-- performance issues from storing too much history in local storage
-
----
-
-## 12. Risks And Mitigations
-
-### Risk: the profile becomes too heavy for a small game
-Mitigation: keep v1 centered on PBs, summary stats, and recent runs, not a full social account system.
-
-### Risk: local-only progress disappoints players who switch devices
-Mitigation: state clearly that profile progress is device-local in v1 and keep the model cloud-ready.
-
-### Risk: progress surfaces overwhelm the completion flow
-Mitigation: prioritize one or two high-signal PB callouts and a compact summary rather than a dense dashboard.
-
-### Risk: ruleset identity gets messy as more modes are added
-Mitigation: define one normalized ruleset key early and reuse it everywhere.
+### Automated checks
+- profile load and migration
+- PB and tied-PB computation
+- recent-run capping
+- corrupted storage fallback
 
 ---
 
-## 13. Exit Criteria
+## 9. Risks And Mitigations
 
-This plan is complete when:
-- every player has a persistent local profile
-- personal bests are tracked per ruleset
-- run history and summary stats survive refreshes
-- the completion screen clearly shows personal improvement
-- players have a visible reason to chase their own progress, not only the public leaderboard
+### Risk: the plan keeps expanding into a full account system
+Mitigation: keep this phase local-only and UI-focused.
+
+### Risk: schema changes break existing local profiles
+Mitigation: add a version field, migration path, and explicit tests before new UI surfaces rely on the data.
+
+### Risk: mastery promises more insight than the data supports
+Mitigation: defer per-region mastery until the game stores per-region outcomes.
+
+### Risk: the profile UI becomes another settings dump
+Mitigation: make the profile panel progress-first, with recent runs and ruleset cards as the primary content.
+
+---
+
+## 10. Exit Criteria
+
+This phase is complete when:
+- the plan matches the real codebase
+- the local profile model is versioned and migration-safe
+- profile logic has automated coverage
+- players can open a dedicated profile surface to review recent runs and ruleset personal bests
+- the completion screen helps players understand their next improvement target without becoming cluttered
