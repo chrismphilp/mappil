@@ -15,12 +15,19 @@ interface PlayPageProps {
   continent?: ContinentFilter;
   difficulty?: Difficulty;
   gameMode?: GameMode;
+  dailyChallenge?: boolean;
   suppressSEO?: boolean;
 }
 
-const PlayPage: FC<PlayPageProps> = ({ continent, difficulty, gameMode, suppressSEO = false }) => {
+const PlayPage: FC<PlayPageProps> = ({
+  continent,
+  difficulty,
+  gameMode,
+  dailyChallenge = false,
+  suppressSEO = false,
+}) => {
   const searchParams = useSearchParams();
-  const isDaily = searchParams?.get('daily') === 'true';
+  const isDaily = dailyChallenge || searchParams?.get('daily') === 'true';
   const challengeParam = searchParams?.get('challenge') ?? null;
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);

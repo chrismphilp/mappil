@@ -1,6 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import ContinentQuizPage from '../../views/landing/ContinentQuizPage';
+import LandingPageShell from '../../components/landing/LandingPageShell';
+import {
+  getOrganicPageContent,
+  isOrganicRoute,
+  ORGANIC_ROUTE_IDS,
+  OrganicRouteId,
+} from '../../lib/growthLandingPages';
 import {
   getQuizPageContent,
   isQuizRoute,
@@ -15,7 +21,7 @@ interface QuizPageProps {
 }
 
 export const generateStaticParams = () => {
-  return QUIZ_ROUTE_IDS.map((quizId) => ({ quizId }));
+  return [...QUIZ_ROUTE_IDS, ...ORGANIC_ROUTE_IDS].map((quizId) => ({ quizId }));
 };
 
 export const generateMetadata = async ({
@@ -23,11 +29,13 @@ export const generateMetadata = async ({
 }: QuizPageProps): Promise<Metadata> => {
   const { quizId } = await params;
 
-  if (!isQuizRoute(quizId)) {
+  if (!isQuizRoute(quizId) && !isOrganicRoute(quizId)) {
     return {};
   }
 
-  const content = getQuizPageContent(quizId as QuizRouteId);
+  const content = isQuizRoute(quizId)
+    ? getQuizPageContent(quizId as QuizRouteId)
+    : getOrganicPageContent(quizId as OrganicRouteId);
 
   return {
     title: content.title,
@@ -52,11 +60,15 @@ export const generateMetadata = async ({
 const Page = async ({ params }: QuizPageProps) => {
   const { quizId } = await params;
 
-  if (!isQuizRoute(quizId)) {
+  if (!isQuizRoute(quizId) && !isOrganicRoute(quizId)) {
     notFound();
   }
 
-  return <ContinentQuizPage quizId={quizId as QuizRouteId} />;
+  const content = isQuizRoute(quizId)
+    ? getQuizPageContent(quizId as QuizRouteId)
+    : getOrganicPageContent(quizId as OrganicRouteId);
+
+  return <LandingPageShell content={content} />;
 };
 
 export default Page;

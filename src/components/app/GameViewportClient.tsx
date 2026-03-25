@@ -11,12 +11,14 @@ interface GameViewportClientProps {
   continent?: ContinentFilter;
   difficulty?: Difficulty;
   gameMode?: GameMode;
+  dailyChallenge?: boolean;
 }
 
 const GameViewportClient = ({
   continent,
   difficulty,
   gameMode,
+  dailyChallenge,
 }: GameViewportClientProps) => {
   return (
     <div className="fixed inset-0 z-10 bg-transparent">
@@ -24,6 +26,7 @@ const GameViewportClient = ({
         continent={continent}
         difficulty={difficulty}
         gameMode={gameMode}
+        dailyChallenge={dailyChallenge}
         suppressSEO
       />
     </div>

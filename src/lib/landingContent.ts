@@ -35,6 +35,7 @@ export interface LandingGameProps {
   continent?: ContinentFilter;
   difficulty?: Difficulty;
   gameMode?: GameMode;
+  dailyChallenge?: boolean;
 }
 
 export interface LandingPageContent {
@@ -63,7 +64,7 @@ export type QuizRouteId =
   | 'south-america-map-quiz'
   | 'oceania-map-quiz';
 
-const REGION_TILES: LandingTile[] = [
+export const REGION_TILES: LandingTile[] = [
   {
     href: '/world-map-quiz',
     title: 'World Map Quiz',
@@ -147,6 +148,43 @@ export const HOME_PAGE_CONTENT: LandingPageContent = {
       tiles: REGION_TILES,
     },
     {
+      title: 'Choose Your Entry Point',
+      text:
+        'Different visitors land here with different goals. These pages map the same live game to teacher, student, trivia, and daily-challenge use cases.',
+      tiles: [
+        {
+          href: '/for-teachers',
+          title: 'For Teachers',
+          description: 'Use Mappil for geography warm-ups, region drills, and shared class challenges.',
+        },
+        {
+          href: '/for-students',
+          title: 'For Students',
+          description: 'Turn short runs and continent practice into a repeatable revision loop.',
+        },
+        {
+          href: '/for-trivia-fans',
+          title: 'For Trivia Fans',
+          description: 'Use daily boards, friend rematches, and streak chasing as a map contest.',
+        },
+        {
+          href: '/daily-geography-challenge',
+          title: 'Daily Geography Challenge',
+          description: 'Play the same seeded board everyone else gets today.',
+        },
+        {
+          href: '/continent-quiz-collection',
+          title: 'Continent Quiz Collection',
+          description: 'Browse every world and region-specific quiz page in one place.',
+        },
+        {
+          href: '/all-map-game-modes',
+          title: 'All Map Game Modes',
+          description: 'See free play, full runs, daily challenges, friend boards, and difficulty scaling together.',
+        },
+      ],
+    },
+    {
       title: 'Frequently Asked Questions',
       faqs: [
         {
@@ -214,6 +252,41 @@ export const MAP_GAME_PAGE_CONTENT: LandingPageContent = {
       text:
         'The same interactive game can be narrowed to a single continent when you want faster repetition. That makes Mappil useful both as a broad world map game and as focused geography practice for one region at a time.',
       tiles: REGION_TILES,
+    },
+    {
+      title: 'More Ways To Use The Game',
+      tiles: [
+        {
+          href: '/geography-games',
+          title: 'Geography Games',
+          description: 'Read the broader discovery page for geography-game and map-study intent.',
+        },
+        {
+          href: '/world-map-game',
+          title: 'World Map Game',
+          description: 'Take the world-board-focused search route.',
+        },
+        {
+          href: '/for-teachers',
+          title: 'For Teachers',
+          description: 'See how Mappil fits classroom warm-ups, region quizzes, and daily challenges.',
+        },
+        {
+          href: '/for-students',
+          title: 'For Students',
+          description: 'Use Mappil as a revision tool rather than only as a game.',
+        },
+        {
+          href: '/daily-geography-challenge',
+          title: 'Daily Geography Challenge',
+          description: 'Jump into the seeded board designed for repeat visits and sharing.',
+        },
+        {
+          href: '/continent-quiz-collection',
+          title: 'Continent Quiz Collection',
+          description: 'Open the full collection of region-specific practice pages.',
+        },
+      ],
     },
     {
       title: 'Frequently Asked Questions',

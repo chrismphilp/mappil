@@ -4,6 +4,7 @@ import { createFriendChallenge } from '../../lib/friendChallenge';
 import { submitScore } from '../../lib/leaderboard';
 import {
   buildRulesetIdentity,
+  buildFreePlayHref,
   buildRulesetKey,
   describeRuleset,
 } from '../../lib/ruleset';
@@ -56,6 +57,13 @@ interface ActionConfig {
   helper: string;
   href?: string;
   onClick?: () => void;
+}
+
+interface ShareConfig {
+  title: string;
+  text: string;
+  url: string;
+  ctaLabel: string;
 }
 
 function getLeaderboardActionLabel(args: {
@@ -244,6 +252,64 @@ function buildNextSuggestion(args: {
   return null;
 }
 
+function buildResultShareConfig(args: {
+  score: number;
+  errors: number;
+  bestStreak: number;
+  durationSecs: number;
+  rulesetLabel: string;
+  difficulty: Difficulty;
+  continent: ContinentFilter;
+  gameMode: GameMode;
+  challengeId?: string;
+  challengeType?: ChallengeType;
+  isDailyChallenge?: boolean;
+}): ShareConfig {
+  const origin = window.location.origin;
+
+  if (args.isDailyChallenge) {
+    return {
+      title: 'Mappil Daily Geography Challenge',
+      text: `I scored ${args.score} on today’s Mappil daily geography challenge with ${args.errors} errors, a ${args.bestStreak} streak, and a ${formatDuration(args.durationSecs)} finish. Can you beat it?`,
+      url: `${origin}/play?daily=true`,
+      ctaLabel: 'Share Today’s Board',
+    };
+  }
+
+  if (args.challengeType === ChallengeType.FRIEND && args.challengeId) {
+    return {
+      title: 'Mappil Friend Challenge Result',
+      text: `I just put up ${args.score} points on this Mappil friend challenge with ${args.errors} errors and a ${args.bestStreak} streak. Same seed, same rules. Can you top it?`,
+      url: `${origin}/play?challenge=${encodeURIComponent(args.challengeId)}`,
+      ctaLabel: 'Share Result & Rematch',
+    };
+  }
+
+  return {
+    title: 'Mappil Map Game Result',
+    text: `I scored ${args.score} points on ${args.rulesetLabel} in Mappil with ${args.errors} errors and a ${args.bestStreak} streak. Can you beat this map run?`,
+    url: `${origin}${buildFreePlayHref(args.difficulty, args.continent, args.gameMode)}`,
+    ctaLabel: 'Share This Result',
+  };
+}
+
+function getChallengeShareLabel(args: {
+  challengeType?: ChallengeType;
+  shareState: ShareState;
+}): string {
+  if (args.shareState === ShareState.SHARING) {
+    return 'Generating...';
+  }
+
+  if (args.shareState === ShareState.SHARED) {
+    return 'Link Copied!';
+  }
+
+  return args.challengeType === ChallengeType.FRIEND
+    ? 'Share Rematch Link'
+    : 'Challenge A Friend';
+}
+
 const GameCompleteModal: FC<GameCompleteModalProps> = ({
   open,
   runId,
@@ -275,7 +341,8 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   const { profile, recordRun, updateUsername } = usePlayerProfile();
   const [username, setUsername] = useState(profile.username);
   const [submitState, setSubmitState] = useState<SubmitState>(SubmitState.IDLE);
-  const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
+  const [resultShareState, setResultShareState] = useState<ShareState>(ShareState.IDLE);
+  const [challengeShareState, setChallengeShareState] = useState<ShareState>(ShareState.IDLE);
   const [errorMsg, setErrorMsg] = useState('');
   const [runResult, setRunResult] = useState<RecordRunResult | null>(null);
   const recordedRunIdRef = useRef<string | null>(null);
@@ -310,7 +377,8 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     if (!open) return;
 
     setSubmitState(SubmitState.IDLE);
-    setShareState(ShareState.IDLE);
+    setResultShareState(ShareState.IDLE);
+    setChallengeShareState(ShareState.IDLE);
     setErrorMsg('');
     setUsername(profile.username);
 
@@ -464,6 +532,36 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     return [...fresh, ...tied];
   }, [runResult]);
 
+  const resultShareConfig = useMemo(
+    () =>
+      buildResultShareConfig({
+        score,
+        errors,
+        bestStreak,
+        durationSecs,
+        rulesetLabel,
+        difficulty,
+        continent,
+        gameMode,
+        challengeId,
+        challengeType,
+        isDailyChallenge,
+      }),
+    [
+      score,
+      errors,
+      bestStreak,
+      durationSecs,
+      rulesetLabel,
+      difficulty,
+      continent,
+      gameMode,
+      challengeId,
+      challengeType,
+      isDailyChallenge,
+    ],
+  );
+
   const handleSubmit = async () => {
     const trimmed = username.trim();
 
@@ -510,7 +608,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     }
 
     updateUsername(trimmed);
-    setShareState(ShareState.SHARING);
+    setChallengeShareState(ShareState.SHARING);
     setErrorMsg('');
 
     try {
@@ -524,13 +622,34 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
 
       const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
       const title = challengeType === ChallengeType.FRIEND ? 'Mappil Rematch Challenge' : 'Mappil Friend Challenge';
-      const text = `I just scored ${score} points on ${rulesetLabel} in Mappil with a ${bestStreak} streak. Can you beat it?`;
+      const text =
+        challengeType === ChallengeType.FRIEND
+          ? `I just improved my Mappil friend challenge run to ${score} points with ${errors} errors and a ${bestStreak} streak. Same seed, same rules. Can you beat it?`
+          : `I just scored ${score} points on ${rulesetLabel} in Mappil with ${errors} errors and a ${bestStreak} streak. I turned it into a same-seed challenge. Can you beat it?`;
 
       const success = await shareChallengeLink(title, text, url);
-      setShareState(success ? ShareState.SHARED : ShareState.IDLE);
+      setChallengeShareState(success ? ShareState.SHARED : ShareState.IDLE);
     } catch (error: any) {
-      setShareState(ShareState.ERROR);
+      setChallengeShareState(ShareState.ERROR);
       setErrorMsg(error.message ?? 'Failed to create challenge link.');
+    }
+  };
+
+  const handleShareResult = async () => {
+    setResultShareState(ShareState.SHARING);
+    setErrorMsg('');
+
+    try {
+      const success = await shareChallengeLink(
+        resultShareConfig.title,
+        resultShareConfig.text,
+        resultShareConfig.url,
+      );
+
+      setResultShareState(success ? ShareState.SHARED : ShareState.IDLE);
+    } catch (error: any) {
+      setResultShareState(ShareState.ERROR);
+      setErrorMsg(error.message ?? 'Failed to share this result.');
     }
   };
 
@@ -677,6 +796,43 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               </div>
             )}
 
+            <div className="rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.92))] p-4 mb-5">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/85 font-semibold mb-3">
+                Shareable Snapshot
+              </div>
+              <div className="flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-4xl font-black text-white leading-none">{score}</div>
+                  <div className="mt-2 text-sm font-semibold text-cyan-200">{rulesetLabel}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-right">
+                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Grade</div>
+                    <div className="text-lg font-bold text-white">{grade.letter}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Time</div>
+                    <div className="text-lg font-bold text-white">{formatDuration(durationSecs)}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Errors</div>
+                    <div className="text-lg font-bold text-white">{errors}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Streak</div>
+                    <div className="text-lg font-bold text-white">{bestStreak}</div>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                {isDailyChallenge
+                  ? 'Built for sharing the daily board with a concrete score to beat.'
+                  : challengeType === ChallengeType.FRIEND
+                    ? 'A clean rematch card for the same seed and the same rules.'
+                    : 'A simple result card that gives people a score, ruleset, and target to chase.'}
+              </p>
+            </div>
+
             {submitState !== SubmitState.SUBMITTED && (
               <form
                 className="mb-5"
@@ -738,24 +894,38 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 </button>
               )}
 
+              <button
+                type="button"
+                onClick={handleShareResult}
+                disabled={resultShareState === ShareState.SHARING}
+                className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
+                  resultShareState === ShareState.SHARED
+                    ? 'bg-cyan-500/18 border-cyan-400/30 text-cyan-200'
+                    : 'bg-slate-800/95 border-cyan-400/20 hover:bg-slate-700 text-slate-100'
+                }`}
+              >
+                {resultShareState === ShareState.SHARING
+                  ? 'Sharing...'
+                  : resultShareState === ShareState.SHARED
+                    ? 'Share Copy Ready'
+                    : resultShareConfig.ctaLabel}
+              </button>
+
               {!isDailyChallenge && (
                 <button
                   type="button"
                   onClick={handleShareChallenge}
-                  disabled={shareState === ShareState.SHARING}
+                  disabled={challengeShareState === ShareState.SHARING}
                   className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
-                    shareState === ShareState.SHARED
+                    challengeShareState === ShareState.SHARED
                       ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
                       : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-300'
                   }`}
                 >
-                  {shareState === ShareState.SHARING
-                    ? 'Generating...'
-                    : shareState === ShareState.SHARED
-                      ? 'Link Copied!'
-                      : challengeType === ChallengeType.FRIEND
-                        ? 'Share Rematch Link'
-                        : 'Challenge A Friend'}
+                  {getChallengeShareLabel({
+                    challengeType,
+                    shareState: challengeShareState,
+                  })}
                 </button>
               )}
 

@@ -23,7 +23,16 @@ export interface ScoreEntry {
 export interface LeaderboardResult {
   entries: ScoreEntry[];
   playerEntry: ScoreEntry | null;
+  playerGap: LeaderboardGap | null;
   totalPlayers: number;
+}
+
+export interface LeaderboardGap {
+  aboveEntry: ScoreEntry;
+  scoreDelta: number;
+  errorsDelta: number;
+  durationDelta: number;
+  streakDelta: number;
 }
 
 export interface SubmitScoreParams {
@@ -66,6 +75,19 @@ function collapseBestAttempts(entries: ScoreEntry[]): ScoreEntry[] {
   }
 
   return Array.from(bestByPlayer.values()).sort(sortEntries);
+}
+
+function buildLeaderboardGap(
+  currentEntry: ScoreEntry,
+  aboveEntry: ScoreEntry,
+): LeaderboardGap {
+  return {
+    aboveEntry,
+    scoreDelta: Math.max(0, aboveEntry.score - currentEntry.score),
+    errorsDelta: Math.max(0, currentEntry.errors - aboveEntry.errors),
+    durationDelta: Math.max(0, currentEntry.duration_secs - aboveEntry.duration_secs),
+    streakDelta: Math.max(0, aboveEntry.best_streak - currentEntry.best_streak),
+  };
 }
 
 export async function submitScore(params: SubmitScoreParams): Promise<void> {
@@ -129,14 +151,19 @@ export async function fetchLeaderboard(
     isCurrentPlayer: currentPlayerId ? entry.player_id === currentPlayerId : false,
   }));
 
-  const playerEntry =
-    currentPlayerId
-      ? rankedEntries.find((entry) => entry.player_id === currentPlayerId) ?? null
+  const playerIndex = currentPlayerId
+    ? rankedEntries.findIndex((entry) => entry.player_id === currentPlayerId)
+    : -1;
+  const playerEntry = playerIndex >= 0 ? rankedEntries[playerIndex] : null;
+  const playerGap =
+    playerIndex > 0
+      ? buildLeaderboardGap(rankedEntries[playerIndex], rankedEntries[playerIndex - 1])
       : null;
 
   return {
     entries: rankedEntries.slice(0, LEADERBOARD_LIMIT),
     playerEntry,
+    playerGap,
     totalPlayers: rankedEntries.length,
   };
 }
