@@ -19,7 +19,7 @@ const GameViewportClient = ({
   gameMode,
 }: GameViewportClientProps) => {
   return (
-    <div className="fixed inset-0 z-10 bg-slate-950">
+    <div className="fixed inset-0 z-10 bg-transparent">
       <PlayPage
         continent={continent}
         difficulty={difficulty}

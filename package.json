@@ -6,8 +6,8 @@
     "node": ">=20.10.0"
   },
   "scripts": {
-    "dev": "next dev --webpack",
-    "start": "next dev --webpack",
+    "dev": "next dev",
+    "start": "next dev",
     "build": "next build",
     "typecheck": "tsc --noEmit --incremental false",
     "optimize:geojson": "node scripts/simplify-world-geojson.js"

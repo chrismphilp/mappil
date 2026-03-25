@@ -28,14 +28,14 @@ body {
   overscroll-behavior: none;
   background-color: #020617;
   background-image:
-    radial-gradient(1px 1px at 25px 50px, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(1px 1px at 75px 120px, rgba(255, 255, 255, 0.6), transparent),
-    radial-gradient(2px 2px at 150px 30px, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 220px 180px, rgba(255, 255, 255, 0.7), transparent),
-    radial-gradient(2px 2px at 280px 90px, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 350px 220px, rgba(255, 255, 255, 0.9), transparent),
-    radial-gradient(1px 1px at 410px 40px, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(2px 2px at 460px 150px, rgba(255, 255, 255, 0.3), transparent);
+    radial-gradient(1px 1px at 25px 50px, rgba(255, 255, 255, 0.92), transparent),
+    radial-gradient(1px 1px at 75px 120px, rgba(255, 255, 255, 0.74), transparent),
+    radial-gradient(2px 2px at 150px 30px, rgba(255, 255, 255, 0.54), transparent),
+    radial-gradient(1px 1px at 220px 180px, rgba(255, 255, 255, 0.82), transparent),
+    radial-gradient(2px 2px at 280px 90px, rgba(255, 255, 255, 0.64), transparent),
+    radial-gradient(1px 1px at 350px 220px, rgba(255, 255, 255, 1), transparent),
+    radial-gradient(1px 1px at 410px 40px, rgba(255, 255, 255, 0.92), transparent),
+    radial-gradient(2px 2px at 460px 150px, rgba(255, 255, 255, 0.46), transparent);
   background-size: 500px 500px;
   color: #e2e8f0;
   -webkit-font-smoothing: antialiased;
