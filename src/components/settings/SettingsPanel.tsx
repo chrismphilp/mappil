@@ -147,14 +147,14 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={
               isMobile
-                ? 'fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh]'
+                ? 'fixed bottom-0 left-0 right-0 z-50 flex h-[85dvh] flex-col overflow-hidden'
                 : 'fixed left-0 top-0 bottom-0 z-50 w-[26rem] max-w-[calc(100vw-3rem)] overflow-hidden'
             }
           >
             <div
               className={
                 isMobile
-                  ? 'h-full rounded-t-3xl border-t border-white/10 bg-slate-900 p-6 flex flex-col gap-6 overflow-y-auto overscroll-contain'
+                  ? 'min-h-0 flex-1 rounded-t-3xl border-t border-white/10 bg-slate-900 p-6 flex flex-col gap-6 overflow-y-auto overscroll-contain'
                   : 'h-full border-r border-white/10 bg-[#141e33] p-6 flex flex-col gap-6 overflow-y-auto overscroll-contain shadow-[24px_0_80px_rgba(2,6,23,0.55)]'
               }
               style={isMobile ? { paddingBottom: 'max(1.5rem, var(--sab))' } : undefined}
