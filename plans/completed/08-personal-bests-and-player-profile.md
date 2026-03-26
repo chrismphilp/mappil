@@ -1,5 +1,7 @@
 # Personal Bests And Player Profile Plan
 
+**Status:** Completed on March 26, 2026. The app now ships versioned local profile storage, migration-safe loading, a dedicated profile panel, richer post-run comparison, and automated coverage for profile storage and personal-best logic.
+
 **Recommendation:** Treat this as a phase-two plan. Mappil already has a local-first player profile foundation, so the next pass should harden that storage, expose it in a dedicated progress surface, and defer mastery and cloud sync until the app collects the right data.
 
 **Why this change:** The current codebase already ships stable local player IDs, ruleset-specific personal best tracking, recent run storage, completion-screen PB badges, a settings snapshot, and leaderboard submission with `player_id`. The plan should stop describing those as future work and instead focus on the real remaining gaps.

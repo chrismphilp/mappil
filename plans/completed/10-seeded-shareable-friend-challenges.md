@@ -38,7 +38,7 @@ Do not block this on user accounts or a social graph. A good challenge-link syst
 This plan depends on the deterministic run generation described in [07-daily-challenge-and-seeded-runs.md](/Users/christopherph/personal/mappil/plans/07-daily-challenge-and-seeded-runs.md).
 
 ### Dependency on profile work
-This plan benefits from the local player identity and personal progress model described in [08-personal-bests-and-player-profile.md](/Users/christopherph/personal/mappil/plans/08-personal-bests-and-player-profile.md), but it should not be blocked on full profile UI.
+This plan benefits from the local player identity and personal progress model described in [08-personal-bests-and-player-profile.md](./08-personal-bests-and-player-profile.md), but it should not be blocked on full profile UI.
 
 ### Dependency on SEO/discoverability work
 Friend challenges can eventually support discoverability and sharing, but the first version is primarily a retention and social replay feature, not an SEO feature.

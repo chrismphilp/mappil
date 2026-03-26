@@ -61,6 +61,7 @@ export interface PlayerSummary {
 }
 
 export interface PlayerProfile {
+  version: 1;
   playerId: string;
   username: string;
   createdAt: string;
@@ -68,6 +69,7 @@ export interface PlayerProfile {
   summary: PlayerSummary;
   personalBests: Record<string, RulesetBest>;
   recentRuns: RunRecord[];
+  recordedRunIds: string[];
 }
 
 export interface RecordRunResult {

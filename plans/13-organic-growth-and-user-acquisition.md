@@ -18,7 +18,7 @@ Related plans:
 - [SEO And Discoverability](./completed/03-seo-and-discoverability.md)
 - [Gamification And Replayability](./05-gamification-and-replayability.md)
 - [Onboarding And First Run Experience](./06-onboarding-and-first-run-experience.md)
-- [Personal Bests And Player Profile](./08-personal-bests-and-player-profile.md)
+- [Personal Bests And Player Profile](./completed/08-personal-bests-and-player-profile.md)
 - [Additional Map Modes And Content Expansion](./09-additional-map-modes-and-content-expansion.md)
 
 This document should coordinate:

@@ -21,7 +21,7 @@ import {
   ShareState,
   SubmitState,
 } from '../../types/game.types';
-import type { PersonalBestFlag, RecordRunResult } from '../../types/profile.types';
+import type { PersonalBestFlag, RecordRunResult, RulesetBest } from '../../types/profile.types';
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -47,6 +47,7 @@ interface GameCompleteModalProps {
   challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
+  onOpenProfile: () => void;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
   onStartFreePlay: (difficulty: Difficulty, continent: ContinentFilter, gameMode: GameMode) => void;
@@ -64,6 +65,14 @@ interface ShareConfig {
   text: string;
   url: string;
   ctaLabel: string;
+}
+
+interface ComparisonRow {
+  label: string;
+  previous: string;
+  current: string;
+  delta: string;
+  tone: 'better' | 'worse' | 'tied';
 }
 
 function getLeaderboardActionLabel(args: {
@@ -111,6 +120,105 @@ function formatDuration(secs: number): string {
   const minutes = Math.floor(secs / 60);
   const seconds = secs % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function buildComparisonRows(args: {
+  previousBest: RulesetBest;
+  score: number;
+  errors: number;
+  bestStreak: number;
+  durationSecs: number;
+  skippedCount: number;
+}): ComparisonRow[] {
+  const rows: ComparisonRow[] = [];
+
+  rows.push({
+    label: 'Score',
+    previous: `${args.previousBest.highestScore} pts`,
+    current: `${args.score} pts`,
+    delta:
+      args.score === args.previousBest.highestScore
+        ? 'Matched'
+        : `${args.score > args.previousBest.highestScore ? '+' : ''}${args.score - args.previousBest.highestScore}`,
+    tone:
+      args.score > args.previousBest.highestScore
+        ? 'better'
+        : args.score < args.previousBest.highestScore
+          ? 'worse'
+          : 'tied',
+  });
+
+  rows.push({
+    label: 'Errors',
+    previous: `${args.previousBest.fewestErrors}`,
+    current: `${args.errors}`,
+    delta:
+      args.errors === args.previousBest.fewestErrors
+        ? 'Matched'
+        : `${args.errors < args.previousBest.fewestErrors ? '-' : '+'}${Math.abs(args.errors - args.previousBest.fewestErrors)}`,
+    tone:
+      args.errors < args.previousBest.fewestErrors
+        ? 'better'
+        : args.errors > args.previousBest.fewestErrors
+          ? 'worse'
+          : 'tied',
+  });
+
+  rows.push({
+    label: 'Best Streak',
+    previous: `${args.previousBest.bestStreak}`,
+    current: `${args.bestStreak}`,
+    delta:
+      args.bestStreak === args.previousBest.bestStreak
+        ? 'Matched'
+        : `${args.bestStreak > args.previousBest.bestStreak ? '+' : ''}${args.bestStreak - args.previousBest.bestStreak}`,
+    tone:
+      args.bestStreak > args.previousBest.bestStreak
+        ? 'better'
+        : args.bestStreak < args.previousBest.bestStreak
+          ? 'worse'
+          : 'tied',
+  });
+
+  if (args.previousBest.fastestCleanClearSecs !== null || (args.errors === 0 && args.skippedCount === 0)) {
+    const currentCleanTime = args.errors === 0 && args.skippedCount === 0 ? args.durationSecs : null;
+    const previousCleanTime = args.previousBest.fastestCleanClearSecs;
+
+    let delta = 'No clean clear';
+    let tone: ComparisonRow['tone'] = 'worse';
+
+    if (currentCleanTime !== null && previousCleanTime === null) {
+      delta = 'First clean clear';
+      tone = 'better';
+    } else if (currentCleanTime === null && previousCleanTime !== null) {
+      delta = 'Need a clean clear';
+      tone = 'worse';
+    } else if (currentCleanTime !== null && previousCleanTime !== null) {
+      if (currentCleanTime === previousCleanTime) {
+        delta = 'Matched';
+        tone = 'tied';
+      } else if (currentCleanTime < previousCleanTime) {
+        delta = `${previousCleanTime - currentCleanTime}s faster`;
+        tone = 'better';
+      } else {
+        delta = `${currentCleanTime - previousCleanTime}s slower`;
+        tone = 'worse';
+      }
+    } else {
+      delta = 'No clean clear';
+      tone = 'tied';
+    }
+
+    rows.push({
+      label: 'Clean Clear',
+      previous: previousCleanTime === null ? 'None' : formatDuration(previousCleanTime),
+      current: currentCleanTime === null ? 'None' : formatDuration(currentCleanTime),
+      delta,
+      tone,
+    });
+  }
+
+  return rows;
 }
 
 function getNextDifficulty(current: Difficulty): Difficulty | null {
@@ -334,6 +442,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   challengeType,
   seed,
   isDailyChallenge,
+  onOpenProfile,
   onPlayAgain,
   onViewLeaderboard,
   onStartFreePlay,
@@ -531,6 +640,21 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
 
     return [...fresh, ...tied];
   }, [runResult]);
+  const comparisonRows = useMemo(() => {
+    if (!runResult?.previousBest) {
+      return [];
+    }
+
+    return buildComparisonRows({
+      previousBest: runResult.previousBest,
+      score,
+      errors,
+      bestStreak,
+      durationSecs,
+      skippedCount,
+    });
+  }, [bestStreak, durationSecs, errors, runResult, score, skippedCount]);
+  const profileActionLabel = personalBestBadges.length > 0 ? 'View Updated Profile' : 'View Progress Profile';
 
   const resultShareConfig = useMemo(
     () =>
@@ -741,15 +865,72 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
 
             <div className="lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.92fr)] lg:items-start lg:gap-5 mb-5">
               <div>
-                {runResult?.previousBest && (
+                {runResult?.previousBest ? (
                   <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-slate-400">Previous local best</span>
-                      <span className="text-white font-semibold">{runResult.previousBest.highestScore} pts</span>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                          Ruleset Comparison
+                        </div>
+                        <div className="mt-1 text-sm text-slate-300">
+                          Against your previous local best on this ruleset.
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 text-sm mt-2">
-                      <span className="text-slate-400">This run</span>
-                      <span className="text-cyan-300 font-semibold">{score} pts</span>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {comparisonRows.map((row) => (
+                        <div
+                          key={row.label}
+                          className="rounded-2xl border border-white/6 bg-slate-950/35 p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                              {row.label}
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                                row.tone === 'better'
+                                  ? 'bg-emerald-500/12 text-emerald-200'
+                                  : row.tone === 'worse'
+                                    ? 'bg-rose-500/12 text-rose-200'
+                                    : 'bg-amber-500/12 text-amber-200'
+                              }`}
+                            >
+                              {row.delta}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex items-end justify-between gap-4">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                Previous
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-slate-200">
+                                {row.previous}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                This Run
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-cyan-200">
+                                {row.current}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                      First Local Benchmark
+                    </div>
+                    <div className="mt-2 text-white font-semibold">
+                      This is the first saved run for {rulesetLabel} on this device.
+                    </div>
+                    <div className="mt-2 text-sm text-slate-400">
+                      Future attempts will compare score, errors, streak, and clean-clear time against this mark.
                     </div>
                   </div>
                 )}
@@ -901,6 +1082,14 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                   {leaderboardActionLabel}
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                className="w-full py-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-100 font-semibold transition-colors"
+              >
+                {profileActionLabel}
+              </button>
 
               <button
                 type="button"

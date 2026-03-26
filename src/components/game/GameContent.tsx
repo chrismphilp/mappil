@@ -14,6 +14,7 @@ import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
 import StarfieldBackground from '../app/StarfieldBackground';
+import ProfilePanel from '../profile/ProfilePanel';
 
 const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
@@ -64,6 +65,7 @@ const GameContent: FC<GameContentProps> = ({
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [backgroundVisible, setBackgroundVisible] = useState(false);
   const startFreePlay = useCallback(
     (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
@@ -179,6 +181,10 @@ const GameContent: FC<GameContentProps> = ({
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        onOpenProfile={() => {
+          setSettingsOpen(false);
+          setProfileOpen(true);
+        }}
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
@@ -218,10 +224,13 @@ const GameContent: FC<GameContentProps> = ({
         challengeType={state.challengeType}
         seed={state.seed}
         isDailyChallenge={state.isDailyChallenge}
+        onOpenProfile={() => setProfileOpen(true)}
         onPlayAgain={resetGame}
         onViewLeaderboard={() => setLeaderboardOpen(true)}
         onStartFreePlay={startFreePlay}
       />
+
+      <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 };

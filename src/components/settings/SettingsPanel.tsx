@@ -31,6 +31,7 @@ const CONTINENT_LABELS: Record<ContinentFilter, string> = {
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
+  onOpenProfile: () => void;
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
@@ -43,6 +44,7 @@ interface SettingsPanelProps {
 const SettingsPanel: FC<SettingsPanelProps> = ({
   open,
   onClose,
+  onOpenProfile,
   difficulty,
   continent,
   gameMode,
@@ -52,15 +54,16 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
   onReset,
 }) => {
   const { isMobile } = useIsMobileViewport();
-  const { profile, updateUsername, clearProfile } = usePlayerProfile();
+  const { profile, refreshProfile, updateUsername, clearProfile } = usePlayerProfile();
   const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
   const [usernameInput, setUsernameInput] = useState(profile.username);
 
   useEffect(() => {
     if (open) {
-      setUsernameInput(profile.username);
+      const nextProfile = refreshProfile();
+      setUsernameInput(nextProfile.username);
     }
-  }, [open, profile.username]);
+  }, [open, refreshProfile]);
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') {
@@ -263,6 +266,14 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                   </div>
                 </div>
               )}
+
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                className="w-full rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-100 transition-colors hover:bg-cyan-500/20"
+              >
+                View Profile
+              </button>
             </div>
 
             <div>
