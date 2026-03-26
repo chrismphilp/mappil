@@ -87,66 +87,68 @@ const LandingPageShell = ({ content }: LandingPageShellProps) => {
           className="absolute inset-0 overflow-y-auto overscroll-contain border-t border-slate-800 bg-slate-950/96 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
         >
           <div className="max-w-5xl mx-auto w-full flex flex-col gap-12 px-4 py-12 pb-20 text-slate-100">
-            <div className="fixed top-6 right-6 z-50">
-              <button
-                type="button"
-                onClick={() => setShowAbout(false)}
-                className="w-12 h-12 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
-                aria-label="Close About Mappil"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+            <div className="flex flex-col gap-4">
+              <div className="sticky top-[max(var(--sat),1rem)] z-50 flex justify-end pr-[max(var(--sar),0px)] sm:fixed sm:right-6 sm:top-6 sm:pr-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAbout(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 shadow-xl transition-all sm:h-12 sm:w-12"
+                  aria-label="Close About Mappil"
                 >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <header className="text-center space-y-6">
-              {content.backLink && (
-                <Link
-                  href={content.backLink.href}
-                  className="inline-flex text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm"
-                >
-                  ← {content.backLink.label}
-                </Link>
-              )}
-              {content.introEyebrow && (
-                <p className="text-xs md:text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300/80">
-                  {content.introEyebrow}
-                </p>
-              )}
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-blue-400 to-emerald-400 pb-2">
-                {content.heading}
-              </h1>
-              <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                {content.intro}
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-                <Link
-                  href={content.primaryCta.href}
-                  className="inline-block px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-500/25 transition-transform hover:scale-105 active:scale-95"
-                >
-                  {content.primaryCta.label}
-                </Link>
-                {content.secondaryCta && (
-                  <Link
-                    href={content.secondaryCta.href}
-                    className="inline-block px-8 py-4 bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-slate-100 rounded-full font-bold text-lg shadow-lg shadow-slate-950/30 transition-transform hover:scale-105 active:scale-95"
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    {content.secondaryCta.label}
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <header className="text-center space-y-6">
+                {content.backLink && (
+                  <Link
+                    href={content.backLink.href}
+                    className="inline-flex text-blue-400 hover:text-blue-300 font-semibold tracking-wide uppercase text-sm"
+                  >
+                    ← {content.backLink.label}
                   </Link>
                 )}
-              </div>
-            </header>
+                {content.introEyebrow && (
+                  <p className="text-xs md:text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300/80">
+                    {content.introEyebrow}
+                  </p>
+                )}
+                <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-blue-400 to-emerald-400 pb-2">
+                  {content.heading}
+                </h1>
+                <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                  {content.intro}
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                  <Link
+                    href={content.primaryCta.href}
+                    className="inline-block px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-500/25 transition-transform hover:scale-105 active:scale-95"
+                  >
+                    {content.primaryCta.label}
+                  </Link>
+                  {content.secondaryCta && (
+                    <Link
+                      href={content.secondaryCta.href}
+                      className="inline-block px-8 py-4 bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-slate-100 rounded-full font-bold text-lg shadow-lg shadow-slate-950/30 transition-transform hover:scale-105 active:scale-95"
+                    >
+                      {content.secondaryCta.label}
+                    </Link>
+                  )}
+                </div>
+              </header>
+            </div>
 
             {content.sections.map((section) => (
               <section
