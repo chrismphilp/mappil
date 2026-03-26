@@ -667,7 +667,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.75, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 210, damping: 22 }}
-            className="bg-slate-900/92 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 max-w-lg w-[92vw] max-h-[92dvh] overflow-y-auto text-left shadow-2xl"
+            className="bg-slate-900/92 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 w-[92vw] max-w-lg lg:max-w-4xl xl:max-w-5xl max-h-[92dvh] overflow-y-auto text-left shadow-2xl"
           >
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {isDailyChallenge && (
@@ -722,221 +722,227 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
               </div>
             </div>
 
-            {personalBestBadges.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-5">
-                {personalBestBadges.map((badge) => (
-                  <span
-                    key={badge.key}
-                    className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest border ${
-                      badge.tone === 'emerald'
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                        : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                    }`}
-                  >
-                    {badge.text}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {runResult?.previousBest && (
-              <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-slate-400">Previous local best</span>
-                  <span className="text-white font-semibold">{runResult.previousBest.highestScore} pts</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 text-sm mt-2">
-                  <span className="text-slate-400">This run</span>
-                  <span className="text-cyan-300 font-semibold">{score} pts</span>
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
-                  Score Breakdown
-                </h3>
-                <span className="text-xs text-slate-500">{baseScore} base + {bonusScore} bonus</span>
-              </div>
-              <div className="space-y-2">
-                {scoreLines.map((line) => (
-                  <div key={line.id} className="flex items-center justify-between text-sm">
-                    <div className="min-w-0">
-                      <span className="text-slate-200">{line.label}</span>
-                      {line.count > 0 && line.id !== 'noSkipFinish' && line.id !== 'flawlessFinish' && (
-                        <span className="text-slate-500 text-xs ml-2">x{line.count}</span>
-                      )}
-                    </div>
-                    <span className="font-semibold text-cyan-300">+{line.points}</span>
+            <div className="xl:grid xl:grid-cols-[3fr_2fr] xl:items-start xl:gap-6">
+              <div>
+                {personalBestBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {personalBestBadges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest border ${
+                          badge.tone === 'emerald'
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                            : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                        }`}
+                      >
+                        {badge.text}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 text-sm">
-                <span className="text-slate-400">Max possible on this ruleset</span>
-                <span className="text-white font-semibold">{maxPossibleScore}</span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4 mb-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-300 font-semibold mb-2">
-                Primary Replay
-              </div>
-              <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
-              <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
-            </div>
-
-            {nextSuggestion && (
-              <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-semibold mb-2">
-                  Next Suggestion
-                </div>
-                <div className="text-white font-semibold">{nextSuggestion.label}</div>
-                <div className="text-sm text-slate-300 mt-1">{nextSuggestion.helper}</div>
-              </div>
-            )}
-
-            <div className="rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.92))] p-4 mb-5">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/85 font-semibold mb-3">
-                Shareable Snapshot
-              </div>
-              <div className="flex items-end justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="text-4xl font-black text-white leading-none">{score}</div>
-                  <div className="mt-2 text-sm font-semibold text-cyan-200">{rulesetLabel}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-right">
-                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Grade</div>
-                    <div className="text-lg font-bold text-white">{grade.letter}</div>
-                  </div>
-                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Time</div>
-                    <div className="text-lg font-bold text-white">{formatDuration(durationSecs)}</div>
-                  </div>
-                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Errors</div>
-                    <div className="text-lg font-bold text-white">{errors}</div>
-                  </div>
-                  <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Streak</div>
-                    <div className="text-lg font-bold text-white">{bestStreak}</div>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                {isDailyChallenge
-                  ? 'Built for sharing the daily board with a concrete score to beat.'
-                  : challengeType === ChallengeType.FRIEND
-                    ? 'A clean rematch card for the same seed and the same rules.'
-                    : 'A simple result card that gives people a score, ruleset, and target to chase.'}
-              </p>
-            </div>
-
-            {submitState !== SubmitState.SUBMITTED && (
-              <form
-                className="mb-5"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleSubmit();
-                }}
-              >
-                <label className="text-xs text-slate-400 uppercase tracking-[0.24em] block mb-2">
-                  Leaderboard Username
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    placeholder="Enter username"
-                    maxLength={20}
-                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitState === SubmitState.SUBMITTING}
-                    className="shrink-0 px-4 py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
-                  >
-                    {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {errorMsg && (
-              <p className="text-red-400 text-sm mb-4">{errorMsg}</p>
-            )}
-
-            {submitState === SubmitState.SUBMITTED && (
-              <p className="text-emerald-400 text-sm mb-4">Best attempt submitted to the leaderboard.</p>
-            )}
-
-            <div className="flex flex-col gap-3">
-              {renderActionButton(
-                primaryAction,
-                'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-center',
-              )}
-
-              {nextSuggestion &&
-                renderActionButton(
-                  nextSuggestion,
-                  'w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition-colors text-center',
                 )}
 
-              {shouldShowSeparateLeaderboardButton && (
-                <button
-                  type="button"
-                  onClick={onViewLeaderboard}
-                  className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-colors"
-                >
-                  {leaderboardActionLabel}
-                </button>
-              )}
+                {runResult?.previousBest && (
+                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-slate-400">Previous local best</span>
+                      <span className="text-white font-semibold">{runResult.previousBest.highestScore} pts</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 text-sm mt-2">
+                      <span className="text-slate-400">This run</span>
+                      <span className="text-cyan-300 font-semibold">{score} pts</span>
+                    </div>
+                  </div>
+                )}
 
-              <button
-                type="button"
-                onClick={handleShareResult}
-                disabled={resultShareState === ShareState.SHARING}
-                className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
-                  resultShareState === ShareState.SHARED
-                    ? 'bg-cyan-500/18 border-cyan-400/30 text-cyan-200'
-                    : 'bg-slate-800/95 border-cyan-400/20 hover:bg-slate-700 text-slate-100'
-                }`}
-              >
-                {resultShareState === ShareState.SHARING
-                  ? 'Sharing...'
-                  : resultShareState === ShareState.SHARED
-                    ? 'Share Copy Ready'
-                    : resultShareConfig.ctaLabel}
-              </button>
+                <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5 xl:mb-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
+                      Score Breakdown
+                    </h3>
+                    <span className="text-xs text-slate-500">{baseScore} base + {bonusScore} bonus</span>
+                  </div>
+                  <div className="space-y-2">
+                    {scoreLines.map((line) => (
+                      <div key={line.id} className="flex items-center justify-between text-sm">
+                        <div className="min-w-0">
+                          <span className="text-slate-200">{line.label}</span>
+                          {line.count > 0 && line.id !== 'noSkipFinish' && line.id !== 'flawlessFinish' && (
+                            <span className="text-slate-500 text-xs ml-2">x{line.count}</span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-cyan-300">+{line.points}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 text-sm">
+                    <span className="text-slate-400">Max possible on this ruleset</span>
+                    <span className="text-white font-semibold">{maxPossibleScore}</span>
+                  </div>
+                </div>
+              </div>
 
-              {!isDailyChallenge && (
-                <button
-                  type="button"
-                  onClick={handleShareChallenge}
-                  disabled={challengeShareState === ShareState.SHARING}
-                  className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
-                    challengeShareState === ShareState.SHARED
-                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-                      : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-300'
-                  }`}
-                >
-                  {getChallengeShareLabel({
-                    challengeType,
-                    shareState: challengeShareState,
-                  })}
-                </button>
-              )}
+              <div>
+                <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4 mb-4">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-300 font-semibold mb-2">
+                    Primary Replay
+                  </div>
+                  <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
+                  <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
+                </div>
 
-              {(isDailyChallenge || challengeType === ChallengeType.FRIEND) && (
-                <a
-                  href="/"
-                  className="block w-full py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-semibold transition-colors text-center"
-                >
-                  Back To Free Play
-                </a>
-              )}
+                {nextSuggestion && (
+                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-semibold mb-2">
+                      Next Suggestion
+                    </div>
+                    <div className="text-white font-semibold">{nextSuggestion.label}</div>
+                    <div className="text-sm text-slate-300 mt-1">{nextSuggestion.helper}</div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.92))] p-4 mb-5">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/85 font-semibold mb-3">
+                    Shareable Snapshot
+                  </div>
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-4xl font-black text-white leading-none">{score}</div>
+                      <div className="mt-2 text-sm font-semibold text-cyan-200">{rulesetLabel}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-right">
+                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Grade</div>
+                        <div className="text-lg font-bold text-white">{grade.letter}</div>
+                      </div>
+                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Time</div>
+                        <div className="text-lg font-bold text-white">{formatDuration(durationSecs)}</div>
+                      </div>
+                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Errors</div>
+                        <div className="text-lg font-bold text-white">{errors}</div>
+                      </div>
+                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Streak</div>
+                        <div className="text-lg font-bold text-white">{bestStreak}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                    {isDailyChallenge
+                      ? 'Built for sharing the daily board with a concrete score to beat.'
+                      : challengeType === ChallengeType.FRIEND
+                        ? 'A clean rematch card for the same seed and the same rules.'
+                        : 'A simple result card that gives people a score, ruleset, and target to chase.'}
+                  </p>
+                </div>
+
+                {submitState !== SubmitState.SUBMITTED && (
+                  <form
+                    className="mb-5"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleSubmit();
+                    }}
+                  >
+                    <label className="text-xs text-slate-400 uppercase tracking-[0.24em] block mb-2">
+                      Leaderboard Username
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        placeholder="Enter username"
+                        maxLength={20}
+                        className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={submitState === SubmitState.SUBMITTING}
+                        className="shrink-0 px-4 py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
+                      >
+                        {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {errorMsg && (
+                  <p className="text-red-400 text-sm mb-4">{errorMsg}</p>
+                )}
+
+                {submitState === SubmitState.SUBMITTED && (
+                  <p className="text-emerald-400 text-sm mb-4">Best attempt submitted to the leaderboard.</p>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {renderActionButton(
+                    primaryAction,
+                    'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-center',
+                  )}
+
+                  {nextSuggestion &&
+                    renderActionButton(
+                      nextSuggestion,
+                      'w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition-colors text-center',
+                    )}
+
+                  {shouldShowSeparateLeaderboardButton && (
+                    <button
+                      type="button"
+                      onClick={onViewLeaderboard}
+                      className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-colors"
+                    >
+                      {leaderboardActionLabel}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleShareResult}
+                    disabled={resultShareState === ShareState.SHARING}
+                    className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
+                      resultShareState === ShareState.SHARED
+                        ? 'bg-cyan-500/18 border-cyan-400/30 text-cyan-200'
+                        : 'bg-slate-800/95 border-cyan-400/20 hover:bg-slate-700 text-slate-100'
+                    }`}
+                  >
+                    {resultShareState === ShareState.SHARING
+                      ? 'Sharing...'
+                      : resultShareState === ShareState.SHARED
+                        ? 'Share Copy Ready'
+                        : resultShareConfig.ctaLabel}
+                  </button>
+
+                  {!isDailyChallenge && (
+                    <button
+                      type="button"
+                      onClick={handleShareChallenge}
+                      disabled={challengeShareState === ShareState.SHARING}
+                      className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
+                        challengeShareState === ShareState.SHARED
+                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                          : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-300'
+                      }`}
+                    >
+                      {getChallengeShareLabel({
+                        challengeType,
+                        shareState: challengeShareState,
+                      })}
+                    </button>
+                  )}
+
+                  {(isDailyChallenge || challengeType === ChallengeType.FRIEND) && (
+                    <a
+                      href="/"
+                      className="block w-full py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-semibold transition-colors text-center"
+                    >
+                      Back To Free Play
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
           </motion.div>
         </motion.div>
