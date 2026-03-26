@@ -2,20 +2,31 @@ import { Difficulty, ContinentFilter } from '../types/game.types';
 
 let geoJsonData: any = null;
 
+export type GeoJsonLoadStage = 'loading' | 'parsing' | 'ready';
+
+export interface GeoJsonLoadState {
+  stage: GeoJsonLoadStage;
+  fraction?: number;
+}
+
 export async function loadGeoJson(
-  onProgress?: (fraction: number) => void,
+  onStateChange?: (state: GeoJsonLoadState) => void,
 ): Promise<any> {
   if (geoJsonData) {
-    onProgress?.(1);
+    onStateChange?.({ stage: 'ready', fraction: 1 });
     return geoJsonData;
   }
+
+  onStateChange?.({ stage: 'loading', fraction: 0 });
 
   const response = await fetch('/data/world.optimized.geo.json');
   const contentLength = response.headers.get('Content-Length');
 
   if (!contentLength || !response.body) {
-    geoJsonData = await response.json();
-    onProgress?.(1);
+    const text = await response.text();
+    onStateChange?.({ stage: 'parsing' });
+    geoJsonData = JSON.parse(text);
+    onStateChange?.({ stage: 'ready', fraction: 1 });
     return geoJsonData;
   }
 
@@ -29,7 +40,7 @@ export async function loadGeoJson(
     if (done) break;
     chunks.push(value);
     received += value.length;
-    onProgress?.(received / total);
+    onStateChange?.({ stage: 'loading', fraction: received / total });
   }
 
   const merged = new Uint8Array(received);
@@ -39,7 +50,9 @@ export async function loadGeoJson(
     offset += chunk.length;
   }
 
+  onStateChange?.({ stage: 'parsing' });
   geoJsonData = JSON.parse(new TextDecoder().decode(merged));
+  onStateChange?.({ stage: 'ready', fraction: 1 });
   return geoJsonData;
 }
 

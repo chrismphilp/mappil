@@ -3,7 +3,7 @@
 import React, { FC, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { loadGeoJson } from '../../data/maps';
+import { loadGeoJson, type GeoJsonLoadStage } from '../../data/maps';
 import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
 import LoadingOverlay from '../../components/app/LoadingOverlay';
 import GameContent, { preloadGlobe } from '../../components/game/GameContent';
@@ -18,6 +18,21 @@ interface PlayPageProps {
   dailyChallenge?: boolean;
   suppressSEO?: boolean;
 }
+
+type StartupStage =
+  | 'loading_challenge'
+  | 'loading_regions'
+  | 'preparing_regions'
+  | 'loading_globe'
+  | 'finalizing_interaction';
+
+const STARTUP_STAGE_LABELS: Record<StartupStage, string> = {
+  loading_challenge: 'Loading challenge',
+  loading_regions: 'Loading region data',
+  preparing_regions: 'Preparing regions',
+  loading_globe: 'Loading globe',
+  finalizing_interaction: 'Finalizing interaction',
+};
 
 const PlayPage: FC<PlayPageProps> = ({
   continent,
@@ -86,28 +101,38 @@ const PlayPage: FC<PlayPageProps> = ({
     return GameMode.QUICK;
   }, [searchParams, gameMode, dailyConfig, friendConfig]);
 
-  const [dataProgress, setDataProgress] = useState(0);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [dataProgress, setDataProgress] = useState<number | null>(0);
+  const [geoJsonStage, setGeoJsonStage] = useState<GeoJsonLoadStage>('loading');
+  const [globeModuleLoaded, setGlobeModuleLoaded] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
   const globeReadyRef = useRef(false);
+  const dataLoaded = geoJsonStage === 'ready';
 
   useEffect(() => {
     let active = true;
     let frameId = 0;
 
-    void preloadGlobe();
+    void preloadGlobe().then(() => {
+      if (active) {
+        setGlobeModuleLoaded(true);
+      }
+    });
 
-    loadGeoJson((fraction) => {
+    loadGeoJson((state) => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
         if (active) {
-          setDataProgress(fraction);
+          setGeoJsonStage(state.stage);
+
+          if (state.stage === 'loading') {
+            setDataProgress(state.fraction ?? null);
+          } else if (state.stage === 'ready') {
+            setDataProgress(1);
+          } else {
+            setDataProgress(null);
+          }
         }
       });
-    }).then(() => {
-      if (active) {
-        setDataLoaded(true);
-      }
     });
 
     return () => {
@@ -122,10 +147,6 @@ const PlayPage: FC<PlayPageProps> = ({
       setGlobeReady(true);
     }
   }, []);
-
-  const totalProgress = dataLoaded
-    ? 0.9 + (globeReady ? 0.1 : 0)
-    : dataProgress * 0.9;
 
   if (challengeParam && !friendConfig && !friendConfigLoading) {
     const onlineFeaturesUnavailable =
@@ -148,7 +169,42 @@ const PlayPage: FC<PlayPageProps> = ({
     );
   }
 
-  const isLoading = !globeReady || friendConfigLoading;
+  const loadingState = useMemo(() => {
+    if (friendConfigLoading) {
+      return {
+        label: STARTUP_STAGE_LABELS.loading_challenge,
+      };
+    }
+
+    if (geoJsonStage === 'loading') {
+      return {
+        label: STARTUP_STAGE_LABELS.loading_regions,
+        progress: dataProgress ?? undefined,
+      };
+    }
+
+    if (geoJsonStage === 'parsing') {
+      return {
+        label: STARTUP_STAGE_LABELS.preparing_regions,
+      };
+    }
+
+    if (globeReady) {
+      return null;
+    }
+
+    if (!globeModuleLoaded) {
+      return {
+        label: STARTUP_STAGE_LABELS.loading_globe,
+      };
+    }
+
+    return {
+      label: STARTUP_STAGE_LABELS.finalizing_interaction,
+    };
+  }, [dataProgress, friendConfigLoading, geoJsonStage, globeModuleLoaded, globeReady]);
+
+  const isLoading = loadingState !== null;
 
   return (
     <>
@@ -164,7 +220,12 @@ const PlayPage: FC<PlayPageProps> = ({
           isDailyChallenge={!!dailyConfig}
         />
       )}
-      {isLoading && <LoadingOverlay progress={totalProgress} />}
+      {isLoading && loadingState && (
+        <LoadingOverlay
+          label={loadingState.label}
+          progress={loadingState.progress}
+        />
+      )}
     </>
   );
 };

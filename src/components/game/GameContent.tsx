@@ -13,6 +13,7 @@ import LeaderboardButton from '../leaderboard/LeaderboardButton';
 import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
+import StarfieldBackground from '../app/StarfieldBackground';
 
 const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
@@ -63,6 +64,7 @@ const GameContent: FC<GameContentProps> = ({
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [backgroundVisible, setBackgroundVisible] = useState(false);
   const startFreePlay = useCallback(
     (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
       if (
@@ -110,16 +112,21 @@ const GameContent: FC<GameContentProps> = ({
       searchParams,
     ],
   );
+  const handleGlobeReady = useCallback(() => {
+    setBackgroundVisible(true);
+    onGlobeReady();
+  }, [onGlobeReady]);
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
-      <ShootingStarsBackground />
+      {backgroundVisible && <StarfieldBackground />}
+      <ShootingStarsBackground enabled={backgroundVisible} />
       <Suspense fallback={null}>
         <Globe
           regionsFound={state.regionsFound}
           flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
           onRegionClick={selectRegion}
-          onReady={onGlobeReady}
+          onReady={handleGlobeReady}
         />
       </Suspense>
 
