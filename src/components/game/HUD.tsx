@@ -6,6 +6,7 @@ import ProgressBar from './ProgressBar';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { ChallengeType } from '../../types/game.types';
 import { getStreakState } from '../../lib/scoring';
+import { getRegionFlagEmoji } from '../../lib/regionFlags';
 
 interface HUDProps {
   regionToFind: string | undefined;
@@ -36,6 +37,31 @@ const STREAK_BANNER: Record<ReturnType<typeof getStreakState>['key'], string> = 
   hot: 'bg-orange-500/15 text-orange-300',
   on_fire: 'bg-rose-500/15 text-rose-300',
   legendary: 'bg-cyan-500/15 text-cyan-300',
+};
+
+interface FinderTargetProps {
+  regionToFind: string | undefined;
+  className: string;
+  textClassName?: string;
+}
+
+const FinderTarget: FC<FinderTargetProps> = ({
+  regionToFind,
+  className,
+  textClassName = '',
+}) => {
+  const regionFlag = getRegionFlagEmoji(regionToFind);
+
+  return (
+    <span className={className}>
+      <span className={textClassName}>{regionToFind ?? 'All done!'}</span>
+      {regionFlag && (
+        <span aria-hidden="true" className="shrink-0 text-[1.1em] leading-none">
+          {regionFlag}
+        </span>
+      )}
+    </span>
+  );
 };
 
 const HUD: FC<HUDProps> = ({
@@ -109,9 +135,13 @@ const HUD: FC<HUDProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
-                  className="text-base font-bold text-white block truncate"
+                  className="flex items-center gap-2 text-base font-bold text-white min-w-0"
                 >
-                  {regionToFind ?? 'All done!'}
+                  <FinderTarget
+                    regionToFind={regionToFind}
+                    className="flex items-center gap-2 min-w-0"
+                    textClassName="min-w-0 truncate"
+                  />
                 </motion.span>
               </AnimatePresence>
             </span>
@@ -135,9 +165,13 @@ const HUD: FC<HUDProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="text-xl font-bold text-white break-words"
+              className="text-xl font-bold text-white"
             >
-              {regionToFind ?? 'All done!'}
+              <FinderTarget
+                regionToFind={regionToFind}
+                className="flex max-w-full items-center gap-3"
+                textClassName="min-w-0 break-words"
+              />
             </motion.div>
           </AnimatePresence>
         </div>
