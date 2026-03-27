@@ -3,19 +3,24 @@ import { motion } from 'framer-motion';
 
 interface LeaderboardButtonProps {
   onClick: () => void;
+  compact?: boolean;
 }
 
-const LeaderboardButton: FC<LeaderboardButtonProps> = ({ onClick }) => (
+const LeaderboardButton: FC<LeaderboardButtonProps> = ({ onClick, compact = false }) => (
   <motion.button
     whileHover={{ scale: 1.1 }}
     whileTap={{ scale: 0.9 }}
     onClick={onClick}
-    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
+    className={`flex items-center justify-center rounded-full text-slate-300 ${
+      compact
+        ? 'h-11 w-11 border border-transparent bg-white/0 hover:bg-white/8 hover:text-white'
+        : 'h-12 w-12 border border-white/10 bg-slate-900/70 shadow-xl backdrop-blur-xl hover:text-white'
+    }`}
     aria-label="Leaderboard"
   >
     <svg
-      width="22"
-      height="22"
+      width={compact ? '20' : '22'}
+      height={compact ? '20' : '22'}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

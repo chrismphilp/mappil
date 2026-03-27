@@ -1,17 +1,25 @@
 import { FC } from 'react';
 import { motion } from 'framer-motion';
 
-const QuitChallengeButton: FC = () => (
+interface QuitChallengeButtonProps {
+  compact?: boolean;
+}
+
+const QuitChallengeButton: FC<QuitChallengeButtonProps> = ({ compact = false }) => (
   <motion.a
     href="/"
     whileHover={{ scale: 1.1 }}
     whileTap={{ scale: 0.9 }}
-    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-red-400 shadow-xl"
+    className={`flex items-center justify-center rounded-full text-slate-300 ${
+      compact
+        ? 'h-11 w-11 border border-transparent bg-white/0 hover:bg-white/8 hover:text-red-400'
+        : 'h-12 w-12 border border-white/10 bg-slate-900/70 shadow-xl backdrop-blur-xl hover:text-red-400'
+    }`}
     aria-label="Quit Challenge"
   >
     <svg
-      width="22"
-      height="22"
+      width={compact ? '20' : '22'}
+      height={compact ? '20' : '22'}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
