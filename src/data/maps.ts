@@ -1,6 +1,8 @@
-import { Difficulty, ContinentFilter } from '../types/game.types';
-
-let geoJsonData: any = null;
+import {
+  ContinentFilter,
+  Difficulty,
+  type ExperienceMode,
+} from '../types/game.types';
 
 export type GeoJsonLoadStage = 'loading' | 'parsing' | 'ready';
 
@@ -9,56 +11,45 @@ export interface GeoJsonLoadState {
   fraction?: number;
 }
 
-export async function loadGeoJson(
-  onStateChange?: (state: GeoJsonLoadState) => void,
-): Promise<any> {
-  if (geoJsonData) {
-    onStateChange?.({ stage: 'ready', fraction: 1 });
-    return geoJsonData;
-  }
-
-  onStateChange?.({ stage: 'loading', fraction: 0 });
-
-  const response = await fetch('/data/world.optimized.geo.json');
-  const contentLength = response.headers.get('Content-Length');
-
-  if (!contentLength || !response.body) {
-    const text = await response.text();
-    onStateChange?.({ stage: 'parsing' });
-    geoJsonData = JSON.parse(text);
-    onStateChange?.({ stage: 'ready', fraction: 1 });
-    return geoJsonData;
-  }
-
-  const total = parseInt(contentLength, 10);
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    onStateChange?.({ stage: 'loading', fraction: received / total });
-  }
-
-  const merged = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  onStateChange?.({ stage: 'parsing' });
-  geoJsonData = JSON.parse(new TextDecoder().decode(merged));
-  onStateChange?.({ stage: 'ready', fraction: 1 });
-  return geoJsonData;
+export interface RegionCentroid {
+  lat: number;
+  lng: number;
 }
 
-export function getGeoJsonData(): any {
-  return geoJsonData;
+export interface WorldRegionMeta {
+  id: string;
+  name: string;
+  continent: ContinentFilter;
+  population: number;
+  centroid: RegionCentroid | null;
 }
+
+export type WorldGeometryTier = 'preview' | 'full';
+
+export interface WorldGeometryFeature {
+  type: 'Feature';
+  properties: {
+    name_long: string;
+  };
+  geometry: any;
+}
+
+export interface WorldGeometryCollection {
+  type: 'FeatureCollection';
+  features: WorldGeometryFeature[];
+}
+
+const WORLD_META_URL = '/data/world.meta.json';
+const WORLD_GEOMETRY_URL: Record<WorldGeometryTier, string> = {
+  preview: '/data/world.preview.geo.json',
+  full: '/data/world.full.geo.json',
+};
+
+let worldMetaData: WorldRegionMeta[] | null = null;
+let worldMetaPromise: Promise<WorldRegionMeta[]> | null = null;
+const worldGeometryData = new Map<WorldGeometryTier, WorldGeometryCollection>();
+const worldGeometryPromises = new Map<WorldGeometryTier, Promise<WorldGeometryCollection>>();
+let centroidByRegion = new Map<string, RegionCentroid>();
 
 const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
   [Difficulty.EASY]: 50_000_000,
@@ -66,22 +57,125 @@ const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
   [Difficulty.HARD]: 10_000,
 };
 
-export function getFilteredRegions(difficulty: Difficulty, continent?: ContinentFilter): string[] {
-  const threshold = POPULATION_THRESHOLDS[difficulty];
-  let features = geoJsonData.features;
+async function loadJson<T>(
+  url: string,
+  onStateChange?: (state: GeoJsonLoadState) => void,
+): Promise<T> {
+  onStateChange?.({ stage: 'loading', fraction: 0 });
 
-  if (continent && continent !== ContinentFilter.WORLD) {
-    features = features.filter((f: any) => f.properties.continent === continent);
+  const response = await fetch(url);
+  const text = await response.text();
+
+  onStateChange?.({ stage: 'parsing' });
+  const data = JSON.parse(text) as T;
+  onStateChange?.({ stage: 'ready', fraction: 1 });
+
+  return data;
+}
+
+function assertWorldMetaLoaded(): WorldRegionMeta[] {
+  if (!worldMetaData) {
+    throw new Error('World region metadata has not been loaded yet.');
   }
 
-  const filtered = features
-    .filter((f: any) => f.properties.pop_est > threshold)
-    .map((f: any) => f.properties.name_long);
+  return worldMetaData;
+}
 
-  // Fallback: if continent filter + difficulty leaves fewer than 2 countries,
-  // return all countries for that continent regardless of population
+export function getGeometryTierForExperience(
+  experience: ExperienceMode,
+): WorldGeometryTier {
+  return experience === 'preview' ? 'preview' : 'full';
+}
+
+export async function loadWorldMeta(
+  onStateChange?: (state: GeoJsonLoadState) => void,
+): Promise<WorldRegionMeta[]> {
+  if (worldMetaData) {
+    onStateChange?.({ stage: 'ready', fraction: 1 });
+    return worldMetaData;
+  }
+
+  if (!worldMetaPromise) {
+    worldMetaPromise = loadJson<WorldRegionMeta[]>(WORLD_META_URL, onStateChange).then(
+      (data) => {
+        worldMetaData = data;
+        centroidByRegion = new Map(
+          data
+            .filter((entry) => entry.centroid)
+            .map((entry) => [entry.name, entry.centroid as RegionCentroid]),
+        );
+        return data;
+      },
+    );
+  } else {
+    onStateChange?.({ stage: 'loading', fraction: 0 });
+  }
+
+  const data = await worldMetaPromise;
+  onStateChange?.({ stage: 'ready', fraction: 1 });
+  return data;
+}
+
+export async function loadWorldGeometry(
+  tier: WorldGeometryTier,
+  onStateChange?: (state: GeoJsonLoadState) => void,
+): Promise<WorldGeometryCollection> {
+  const cached = worldGeometryData.get(tier);
+  if (cached) {
+    onStateChange?.({ stage: 'ready', fraction: 1 });
+    return cached;
+  }
+
+  if (!worldGeometryPromises.has(tier)) {
+    worldGeometryPromises.set(
+      tier,
+      loadJson<WorldGeometryCollection>(WORLD_GEOMETRY_URL[tier], onStateChange).then(
+        (data) => {
+          worldGeometryData.set(tier, data);
+          return data;
+        },
+      ),
+    );
+  } else {
+    onStateChange?.({ stage: 'loading', fraction: 0 });
+  }
+
+  const data = await worldGeometryPromises.get(tier)!;
+  onStateChange?.({ stage: 'ready', fraction: 1 });
+  return data;
+}
+
+export function getWorldMeta(): WorldRegionMeta[] | null {
+  return worldMetaData;
+}
+
+export function getWorldGeometry(
+  tier: WorldGeometryTier,
+): WorldGeometryCollection | null {
+  return worldGeometryData.get(tier) ?? null;
+}
+
+export function getRegionCentroid(name: string): RegionCentroid | null {
+  return centroidByRegion.get(name) ?? null;
+}
+
+export function getFilteredRegionsFromMeta(
+  difficulty: Difficulty,
+  continent?: ContinentFilter,
+): string[] {
+  const threshold = POPULATION_THRESHOLDS[difficulty];
+  let entries = assertWorldMetaLoaded();
+
+  if (continent && continent !== ContinentFilter.WORLD) {
+    entries = entries.filter((entry) => entry.continent === continent);
+  }
+
+  const filtered = entries
+    .filter((entry) => entry.population > threshold)
+    .map((entry) => entry.name);
+
   if (filtered.length < 2 && continent && continent !== ContinentFilter.WORLD) {
-    return features.map((f: any) => f.properties.name_long);
+    return entries.map((entry) => entry.name);
   }
 
   return filtered;

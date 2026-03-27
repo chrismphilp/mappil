@@ -1,0 +1,18 @@
+{
+  "routeEntryMaxBytes": {
+    "/": 80000,
+    "/map-game": 80000,
+    "/play": 70000,
+    "/[quizId]": 80000
+  },
+  "publicDataMaxBytes": 1100000,
+  "requiredPublicDataFiles": [
+    "world.full.geo.json",
+    "world.meta.json",
+    "world.preview.geo.json"
+  ],
+  "forbiddenPublicDataFiles": [
+    "world.geo.json",
+    "world.optimized.geo.json"
+  ]
+}

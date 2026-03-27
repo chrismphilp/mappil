@@ -1,7 +1,5 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { createFriendChallenge } from '../../lib/friendChallenge';
-import { submitScore } from '../../lib/leaderboard';
 import {
   buildRulesetIdentity,
   buildFreePlayHref,
@@ -699,6 +697,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     setErrorMsg('');
 
     try {
+      const { submitScore } = await import('../../lib/leaderboard');
       await submitScore({
         player_id: profile.playerId,
         username: trimmed,
@@ -739,6 +738,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       let shareId = challengeId;
 
       if (challengeType !== ChallengeType.FRIEND) {
+        const { createFriendChallenge } = await import('../../lib/friendChallenge');
         shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
       }
 

@@ -1,16 +1,13 @@
 import { FC } from 'react';
-import { motion } from 'framer-motion';
 
 interface LeaderboardButtonProps {
   onClick: () => void;
 }
 
 const LeaderboardButton: FC<LeaderboardButtonProps> = ({ onClick }) => (
-  <motion.button
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.9 }}
+  <button
     onClick={onClick}
-    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-white shadow-xl"
+    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-slate-900/70 text-slate-300 shadow-xl backdrop-blur-xl transition-all hover:scale-110 hover:text-white active:scale-90"
     aria-label="Leaderboard"
   >
     <svg
@@ -30,7 +27,7 @@ const LeaderboardButton: FC<LeaderboardButtonProps> = ({ onClick }) => (
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
       <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
     </svg>
-  </motion.button>
+  </button>
 );
 
 export default LeaderboardButton;

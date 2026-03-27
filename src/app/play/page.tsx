@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 const Page = () => {
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <GameViewportClient />
+      <GameViewportClient experience="full" />
     </div>
   );
 };

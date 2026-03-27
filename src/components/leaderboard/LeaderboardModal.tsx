@@ -1,9 +1,6 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  fetchLeaderboard,
-  LeaderboardResult,
-} from '../../lib/leaderboard';
+import type { LeaderboardResult } from '../../lib/leaderboard';
 import {
   ChallengeType,
   ContinentFilter,
@@ -188,15 +185,18 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
     setLoading(true);
     setErrorMessage('');
 
-    fetchLeaderboard(
-      filterDifficulty || undefined,
-      filterContinent === ContinentFilter.WORLD
-        ? undefined
-        : filterContinent || undefined,
-      filterGameMode || undefined,
-      challengeId,
-      profile.playerId,
-    )
+    void import('../../lib/leaderboard')
+      .then(({ fetchLeaderboard }) =>
+        fetchLeaderboard(
+          filterDifficulty || undefined,
+          filterContinent === ContinentFilter.WORLD
+            ? undefined
+            : filterContinent || undefined,
+          filterGameMode || undefined,
+          challengeId,
+          profile.playerId,
+        ),
+      )
       .then((nextResult) => {
         if (!cancelled) {
           setResult(nextResult);

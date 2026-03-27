@@ -38,6 +38,8 @@ export enum SubmitState {
   ERROR = 'error',
 }
 
+export type ExperienceMode = 'preview' | 'full';
+
 export interface ScoreMetric {
   points: number;
   count: number;

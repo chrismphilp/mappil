@@ -1,21 +1,30 @@
 'use client';
 
-import { FC, lazy, Suspense, useCallback, useState } from 'react';
+import { FC, lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { getGeometryTierForExperience } from '../../data/maps';
 import { useGameState } from '../../hooks/game/useGameState';
-import { ChallengeType, ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
+import {
+  ChallengeType,
+  ContinentFilter,
+  Difficulty,
+  ExperienceMode,
+  GameMode,
+} from '../../types/game.types';
 import HUD from './HUD';
 import FeedbackOverlay from './FeedbackOverlay';
 import SettingsButton from '../settings/SettingsButton';
-import SettingsPanel from '../settings/SettingsPanel';
-import GameCompleteModal from './GameCompleteModal';
 import LeaderboardButton from '../leaderboard/LeaderboardButton';
-import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
-import ShootingStarsBackground from '../app/ShootingStarsBackground';
-import StarfieldBackground from '../app/StarfieldBackground';
 import ProfileButton from '../profile/ProfileButton';
-import ProfilePanel from '../profile/ProfilePanel';
+
+const SettingsPanel = dynamic(() => import('../settings/SettingsPanel'));
+const GameCompleteModal = dynamic(() => import('./GameCompleteModal'));
+const LeaderboardModal = dynamic(() => import('../leaderboard/LeaderboardModal'));
+const ProfilePanel = dynamic(() => import('../profile/ProfilePanel'));
+const ShootingStarsBackground = dynamic(() => import('../app/ShootingStarsBackground'));
+const StarfieldBackground = dynamic(() => import('../app/StarfieldBackground'));
 
 const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
@@ -30,6 +39,8 @@ interface GameContentProps {
   challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
+  experience: ExperienceMode;
+  geometryReady: boolean;
 }
 
 const GameContent: FC<GameContentProps> = ({
@@ -41,6 +52,8 @@ const GameContent: FC<GameContentProps> = ({
   challengeType,
   seed,
   isDailyChallenge,
+  experience,
+  geometryReady,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -68,6 +81,10 @@ const GameContent: FC<GameContentProps> = ({
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [backgroundVisible, setBackgroundVisible] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [leaderboardLoaded, setLeaderboardLoaded] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [gameCompleteLoaded, setGameCompleteLoaded] = useState(false);
   const startFreePlay = useCallback(
     (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
       if (
@@ -120,18 +137,48 @@ const GameContent: FC<GameContentProps> = ({
     onGlobeReady();
   }, [onGlobeReady]);
 
+  useEffect(() => {
+    if (settingsOpen) {
+      setSettingsLoaded(true);
+    }
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (leaderboardOpen) {
+      setLeaderboardLoaded(true);
+    }
+  }, [leaderboardOpen]);
+
+  useEffect(() => {
+    if (profileOpen) {
+      setProfileLoaded(true);
+    }
+  }, [profileOpen]);
+
+  useEffect(() => {
+    if (state.gameOver) {
+      setGameCompleteLoaded(true);
+    }
+  }, [state.gameOver]);
+
+  const showBackgroundEffects = experience === 'full' && backgroundVisible;
+  const geometryTier = getGeometryTierForExperience(experience);
+
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
-      {backgroundVisible && <StarfieldBackground />}
-      <ShootingStarsBackground enabled={backgroundVisible} />
-      <Suspense fallback={null}>
-        <Globe
-          regionsFound={state.regionsFound}
-          flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
-          onRegionClick={selectRegion}
-          onReady={handleGlobeReady}
-        />
-      </Suspense>
+      {showBackgroundEffects && <StarfieldBackground />}
+      {experience === 'full' && <ShootingStarsBackground enabled={showBackgroundEffects} />}
+      {geometryReady && (
+        <Suspense fallback={null}>
+          <Globe
+            regionsFound={state.regionsFound}
+            flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
+            onRegionClick={selectRegion}
+            onReady={handleGlobeReady}
+            geometryTier={geometryTier}
+          />
+        </Suspense>
+      )}
 
       <HUD
         regionToFind={state.regionToFind}
@@ -169,66 +216,74 @@ const GameContent: FC<GameContentProps> = ({
         <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
       </div>
 
-      <LeaderboardModal
-        open={leaderboardOpen}
-        onClose={() => setLeaderboardOpen(false)}
-        difficulty={state.difficulty}
-        continent={state.continent}
-        gameMode={state.gameMode}
-        challengeId={state.challengeId}
-        challengeType={state.challengeType}
-        isDailyChallenge={state.isDailyChallenge}
-      />
+      {leaderboardLoaded && (
+        <LeaderboardModal
+          open={leaderboardOpen}
+          onClose={() => setLeaderboardOpen(false)}
+          difficulty={state.difficulty}
+          continent={state.continent}
+          gameMode={state.gameMode}
+          challengeId={state.challengeId}
+          challengeType={state.challengeType}
+          isDailyChallenge={state.isDailyChallenge}
+        />
+      )}
 
-      <SettingsPanel
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        difficulty={state.difficulty}
-        continent={state.continent}
-        gameMode={state.gameMode}
-        onChangeDifficulty={(nextDifficulty) =>
-          startFreePlay(nextDifficulty, state.continent, state.gameMode)
-        }
-        onChangeContinent={(nextContinent) =>
-          startFreePlay(state.difficulty, nextContinent, state.gameMode)
-        }
-        onChangeGameMode={(nextGameMode) =>
-          startFreePlay(state.difficulty, state.continent, nextGameMode)
-        }
-        onReset={resetGame}
-      />
+      {settingsLoaded && (
+        <SettingsPanel
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          difficulty={state.difficulty}
+          continent={state.continent}
+          gameMode={state.gameMode}
+          onChangeDifficulty={(nextDifficulty) =>
+            startFreePlay(nextDifficulty, state.continent, state.gameMode)
+          }
+          onChangeContinent={(nextContinent) =>
+            startFreePlay(state.difficulty, nextContinent, state.gameMode)
+          }
+          onChangeGameMode={(nextGameMode) =>
+            startFreePlay(state.difficulty, state.continent, nextGameMode)
+          }
+          onReset={resetGame}
+        />
+      )}
 
-      <GameCompleteModal
-        open={state.gameOver}
-        runId={state.runId}
-        score={state.score}
-        baseScore={state.baseScore}
-        bonusScore={state.bonusScore}
-        maxPossibleScore={state.maxPossibleScore}
-        scoreBreakdown={state.scoreBreakdown}
-        errors={state.errors}
-        bestStreak={state.bestStreak}
-        totalRegions={totalRegions}
-        correctAnswers={state.correctAnswers}
-        skippedCount={state.skippedCount}
-        firstTryCount={state.firstTryCount}
-        secondTryCount={state.secondTryCount}
-        thirdTrySaveCount={state.thirdTrySaveCount}
-        difficulty={state.difficulty}
-        continent={state.continent}
-        gameMode={state.gameMode}
-        durationSecs={durationSecs}
-        challengeId={state.challengeId}
-        challengeType={state.challengeType}
-        seed={state.seed}
-        isDailyChallenge={state.isDailyChallenge}
-        onOpenProfile={() => setProfileOpen(true)}
-        onPlayAgain={resetGame}
-        onViewLeaderboard={() => setLeaderboardOpen(true)}
-        onStartFreePlay={startFreePlay}
-      />
+      {gameCompleteLoaded && (
+        <GameCompleteModal
+          open={state.gameOver}
+          runId={state.runId}
+          score={state.score}
+          baseScore={state.baseScore}
+          bonusScore={state.bonusScore}
+          maxPossibleScore={state.maxPossibleScore}
+          scoreBreakdown={state.scoreBreakdown}
+          errors={state.errors}
+          bestStreak={state.bestStreak}
+          totalRegions={totalRegions}
+          correctAnswers={state.correctAnswers}
+          skippedCount={state.skippedCount}
+          firstTryCount={state.firstTryCount}
+          secondTryCount={state.secondTryCount}
+          thirdTrySaveCount={state.thirdTrySaveCount}
+          difficulty={state.difficulty}
+          continent={state.continent}
+          gameMode={state.gameMode}
+          durationSecs={durationSecs}
+          challengeId={state.challengeId}
+          challengeType={state.challengeType}
+          seed={state.seed}
+          isDailyChallenge={state.isDailyChallenge}
+          onOpenProfile={() => setProfileOpen(true)}
+          onPlayAgain={resetGame}
+          onViewLeaderboard={() => setLeaderboardOpen(true)}
+          onStartFreePlay={startFreePlay}
+        />
+      )}
 
-      <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      {profileLoaded && (
+        <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      )}
     </div>
   );
 };

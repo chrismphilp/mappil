@@ -1,5 +1,4 @@
 import { FC, memo } from 'react';
-import { motion } from 'framer-motion';
 
 interface ProgressBarProps {
   progress: number; // 0 to 1
@@ -7,11 +6,12 @@ interface ProgressBarProps {
 
 const ProgressBar: FC<ProgressBarProps> = ({ progress }) => (
   <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
-    <motion.div
+    <div
       className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400"
-      initial={{ width: 0 }}
-      animate={{ width: `${progress * 100}%` }}
-      transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+      style={{
+        width: `${progress * 100}%`,
+        transition: 'width 240ms cubic-bezier(0.22, 1, 0.36, 1)',
+      }}
     />
   </div>
 );

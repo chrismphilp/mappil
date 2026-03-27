@@ -1,12 +1,9 @@
 import { FC } from 'react';
-import { motion } from 'framer-motion';
 
 const QuitChallengeButton: FC = () => (
-  <motion.a
+  <a
     href="/"
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.9 }}
-    className="w-12 h-12 rounded-full bg-slate-900/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-slate-300 hover:text-red-400 shadow-xl"
+    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-slate-900/70 text-slate-300 shadow-xl backdrop-blur-xl transition-all hover:scale-110 hover:text-red-400 active:scale-90"
     aria-label="Quit Challenge"
   >
     <svg
@@ -23,7 +20,7 @@ const QuitChallengeButton: FC = () => (
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
-  </motion.a>
+  </a>
 );
 
 export default QuitChallengeButton;

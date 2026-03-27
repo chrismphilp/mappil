@@ -1,47 +1,18 @@
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const INPUT_PATH = path.resolve(ROOT_DIR, 'public/data/world.geo.json');
-const OUTPUT_PATH = path.resolve(ROOT_DIR, 'public/data/world.optimized.geo.json');
-const CLEANED_INPUT_PATH = path.resolve(ROOT_DIR, 'public/data/.world.cleaned.tmp.geo.json');
-const TEMP_OUTPUT_PATH = path.resolve(ROOT_DIR, 'public/data/.world.optimized.tmp.geo.json');
-const RETAIN_PERCENTAGE = '50%';
-const PRESERVE_ORIGINAL_GEOMETRY = new Set([
-  'Argentina',
-  'Antarctica',
-  'Algeria',
-  'Australia',
-  'Bolivia',
-  'Brazil',
-  'Canada',
-  'Chad',
-  'China',
-  'Chile',
-  'Egypt',
-  'Greenland',
-  'Kazakhstan',
-  'Kyrgyzstan',
-  'Libya',
-  'Lesotho',
-  'Malawi',
-  'Mongolia',
-  'Mozambique',
-  'Niger',
-  'Norway',
-  'Paraguay',
-  'Russian Federation',
-  'San Marino',
-  'South Africa',
-  'Sudan',
-  'Tajikistan',
-  'United States',
-  'Italy',
-  'Uruguay',
-  'Uzbekistan',
-  'Vatican',
-]);
+const INPUT_PATH = path.resolve(ROOT_DIR, 'data-src/world.geo.json');
+const OUTPUT_DIR = path.resolve(ROOT_DIR, 'public/data');
+const META_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.meta.json');
+const PREVIEW_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.preview.geo.json');
+const FULL_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.full.geo.json');
+const LEGACY_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.optimized.geo.json');
+
+const PREVIEW_SIMPLIFY_TOLERANCE = 0.12;
+const FULL_SIMPLIFY_TOLERANCE = 0.035;
+const PREVIEW_DECIMALS = 3;
+const FULL_DECIMALS = 4;
 
 function countPoints(geometry) {
   if (geometry.type === 'Polygon') {
@@ -50,8 +21,9 @@ function countPoints(geometry) {
 
   if (geometry.type === 'MultiPolygon') {
     return geometry.coordinates.reduce(
-      (sum, polygon) => sum + polygon.reduce((polygonSum, ring) => polygonSum + ring.length, 0),
-      0
+      (sum, polygon) =>
+        sum + polygon.reduce((polygonSum, ring) => polygonSum + ring.length, 0),
+      0,
     );
   }
 
@@ -61,7 +33,10 @@ function countPoints(geometry) {
 function readStats(filePath) {
   const buffer = fs.readFileSync(filePath);
   const data = JSON.parse(buffer);
-  const pointCount = data.features.reduce((sum, feature) => sum + countPoints(feature.geometry), 0);
+  const pointCount = data.features.reduce(
+    (sum, feature) => sum + countPoints(feature.geometry),
+    0,
+  );
 
   return {
     featureCount: data.features.length,
@@ -70,105 +45,257 @@ function readStats(filePath) {
   };
 }
 
-function mergeOriginalGeometry(originalData, optimizedData) {
-  const originalByName = new Map(
-    originalData.features.map((feature) => [feature.properties.name_long, feature])
-  );
-
-  return {
-    ...optimizedData,
-    features: optimizedData.features.map((feature) => {
-      const name = feature.properties.name_long;
-      if (!PRESERVE_ORIGINAL_GEOMETRY.has(name)) {
-        return feature;
-      }
-
-      const originalFeature = originalByName.get(name);
-      if (!originalFeature) {
-        return feature;
-      }
-
-      return {
-        ...feature,
-        geometry: originalFeature.geometry,
-      };
-    }),
-  };
+function roundNumber(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
 }
 
-function main() {
-  execFileSync(
-    'npx',
-    [
-      'mapshaper',
-      INPUT_PATH,
-      '-clean',
-      '-o',
-      'format=geojson',
-      'gj2008',
-      'force',
-      CLEANED_INPUT_PATH,
-    ],
-    { stdio: 'inherit' }
-  );
+function getSqDist(p1, p2) {
+  const dx = p1[0] - p2[0];
+  const dy = p1[1] - p2[1];
+  return dx * dx + dy * dy;
+}
 
-  execFileSync(
-    'npx',
-    [
-      'mapshaper',
-      CLEANED_INPUT_PATH,
-      '-simplify',
-      'weighted',
-      RETAIN_PERCENTAGE,
-      'keep-shapes',
-      '-o',
-      'format=geojson',
-      'gj2008',
-      'force',
-      TEMP_OUTPUT_PATH,
-    ],
-    { stdio: 'inherit' }
-  );
+function getSqSegDist(point, start, end) {
+  let x = start[0];
+  let y = start[1];
+  let dx = end[0] - x;
+  let dy = end[1] - y;
 
-  try {
-    const originalData = JSON.parse(fs.readFileSync(CLEANED_INPUT_PATH, 'utf8'));
-    const optimizedData = JSON.parse(fs.readFileSync(TEMP_OUTPUT_PATH, 'utf8'));
-    const mergedData = mergeOriginalGeometry(originalData, optimizedData);
+  if (dx !== 0 || dy !== 0) {
+    const t = ((point[0] - x) * dx + (point[1] - y) * dy) / (dx * dx + dy * dy);
 
-    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(mergedData));
-  } finally {
-    if (fs.existsSync(CLEANED_INPUT_PATH)) {
-      fs.unlinkSync(CLEANED_INPUT_PATH);
-    }
-    if (fs.existsSync(TEMP_OUTPUT_PATH)) {
-      fs.unlinkSync(TEMP_OUTPUT_PATH);
+    if (t > 1) {
+      x = end[0];
+      y = end[1];
+    } else if (t > 0) {
+      x += dx * t;
+      y += dy * t;
     }
   }
 
-  const before = readStats(INPUT_PATH);
-  const after = readStats(OUTPUT_PATH);
-  const pointReduction = ((1 - after.pointCount / before.pointCount) * 100).toFixed(1);
-  const byteReduction = ((1 - after.bytes / before.bytes) * 100).toFixed(1);
+  dx = point[0] - x;
+  dy = point[1] - y;
+
+  return dx * dx + dy * dy;
+}
+
+function simplifyDouglasPeucker(points, sqTolerance) {
+  const last = points.length - 1;
+  const simplified = [points[0]];
+
+  function simplifyStep(first, lastIndex) {
+    let maxSqDist = sqTolerance;
+    let index = -1;
+
+    for (let i = first + 1; i < lastIndex; i += 1) {
+      const sqDist = getSqSegDist(points[i], points[first], points[lastIndex]);
+
+      if (sqDist > maxSqDist) {
+        index = i;
+        maxSqDist = sqDist;
+      }
+    }
+
+    if (index > -1) {
+      if (index - first > 1) {
+        simplifyStep(first, index);
+      }
+
+      simplified.push(points[index]);
+
+      if (lastIndex - index > 1) {
+        simplifyStep(index, lastIndex);
+      }
+    }
+  }
+
+  simplifyStep(0, last);
+  simplified.push(points[last]);
+
+  return simplified;
+}
+
+function simplifyLine(points, tolerance, decimals) {
+  if (points.length <= 4) {
+    return points.map((point) => [
+      roundNumber(point[0], decimals),
+      roundNumber(point[1], decimals),
+    ]);
+  }
+
+  const sqTolerance = tolerance * tolerance;
+  const simplified = simplifyDouglasPeucker(points, sqTolerance);
+
+  return simplified.map((point) => [
+    roundNumber(point[0], decimals),
+    roundNumber(point[1], decimals),
+  ]);
+}
+
+function simplifyRing(ring, tolerance, decimals) {
+  const hasClosedRing =
+    ring.length > 1 &&
+    ring[0][0] === ring[ring.length - 1][0] &&
+    ring[0][1] === ring[ring.length - 1][1];
+  const openRing = hasClosedRing ? ring.slice(0, -1) : ring.slice();
+  const simplifiedOpenRing = simplifyLine(openRing, tolerance, decimals);
+
+  const fallbackRing = openRing
+    .slice(0, Math.min(openRing.length, 4))
+    .map((point) => [roundNumber(point[0], decimals), roundNumber(point[1], decimals)]);
+
+  const nextOpenRing =
+    simplifiedOpenRing.length >= 3 ? simplifiedOpenRing : fallbackRing;
+
+  return [...nextOpenRing, nextOpenRing[0]];
+}
+
+function simplifyGeometry(geometry, tolerance, decimals) {
+  if (geometry.type === 'Polygon') {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((ring) =>
+        simplifyRing(ring, tolerance, decimals),
+      ),
+    };
+  }
+
+  if (geometry.type === 'MultiPolygon') {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((polygon) =>
+        polygon.map((ring) => simplifyRing(ring, tolerance, decimals)),
+      ),
+    };
+  }
+
+  return geometry;
+}
+
+function featureCentroid(feature) {
+  const coords = [];
+
+  function collectCoords(geometry) {
+    if (!geometry) return;
+
+    if (geometry.type === 'Polygon') {
+      geometry.coordinates[0].forEach((coordinate) => coords.push(coordinate));
+      return;
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach((polygon) =>
+        polygon[0].forEach((coordinate) => coords.push(coordinate)),
+      );
+    }
+  }
+
+  collectCoords(feature.geometry);
+
+  if (coords.length === 0) {
+    return null;
+  }
+
+  let lngSum = 0;
+  let latSum = 0;
+
+  for (const [lng, lat] of coords) {
+    lngSum += lng;
+    latSum += lat;
+  }
+
+  return {
+    lat: roundNumber(latSum / coords.length, 4),
+    lng: roundNumber(lngSum / coords.length, 4),
+  };
+}
+
+function createMetaEntries(data) {
+  return data.features.map((feature) => ({
+    id: feature.properties.name_long,
+    name: feature.properties.name_long,
+    continent: feature.properties.continent,
+    population: feature.properties.pop_est,
+    centroid: featureCentroid(feature),
+  }));
+}
+
+function createGeometryOutput(data, tolerance, decimals) {
+  return {
+    type: 'FeatureCollection',
+    features: data.features.map((feature) => ({
+      type: 'Feature',
+      properties: {
+        name_long: feature.properties.name_long,
+      },
+      geometry: simplifyGeometry(feature.geometry, tolerance, decimals),
+    })),
+  };
+}
+
+function ensureInputExists() {
+  if (!fs.existsSync(INPUT_PATH)) {
+    throw new Error(`GeoJSON source not found at ${INPUT_PATH}`);
+  }
+}
+
+function main() {
+  ensureInputExists();
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+  const inputData = JSON.parse(fs.readFileSync(INPUT_PATH, 'utf8'));
+
+  fs.writeFileSync(META_OUTPUT_PATH, JSON.stringify(createMetaEntries(inputData)));
+  fs.writeFileSync(
+    PREVIEW_OUTPUT_PATH,
+    JSON.stringify(
+      createGeometryOutput(
+        inputData,
+        PREVIEW_SIMPLIFY_TOLERANCE,
+        PREVIEW_DECIMALS,
+      ),
+    ),
+  );
+  fs.writeFileSync(
+    FULL_OUTPUT_PATH,
+    JSON.stringify(
+      createGeometryOutput(
+        inputData,
+        FULL_SIMPLIFY_TOLERANCE,
+        FULL_DECIMALS,
+      ),
+    ),
+  );
+
+  if (fs.existsSync(LEGACY_OUTPUT_PATH)) {
+    fs.unlinkSync(LEGACY_OUTPUT_PATH);
+  }
 
   console.log(
     JSON.stringify(
       {
         input: path.relative(ROOT_DIR, INPUT_PATH),
-        output: path.relative(ROOT_DIR, OUTPUT_PATH),
-        retainPercentage: RETAIN_PERCENTAGE,
-        beforeFeatures: before.featureCount,
-        afterFeatures: after.featureCount,
-        beforePoints: before.pointCount,
-        afterPoints: after.pointCount,
-        pointReduction: `${pointReduction}%`,
-        beforeBytes: before.bytes,
-        afterBytes: after.bytes,
-        byteReduction: `${byteReduction}%`,
-        preservedOriginalGeometry: Array.from(PRESERVE_ORIGINAL_GEOMETRY),
+        outputs: {
+          meta: {
+            path: path.relative(ROOT_DIR, META_OUTPUT_PATH),
+            bytes: fs.statSync(META_OUTPUT_PATH).size,
+          },
+          preview: {
+            path: path.relative(ROOT_DIR, PREVIEW_OUTPUT_PATH),
+            ...readStats(PREVIEW_OUTPUT_PATH),
+          },
+          full: {
+            path: path.relative(ROOT_DIR, FULL_OUTPUT_PATH),
+            ...readStats(FULL_OUTPUT_PATH),
+          },
+        },
+        previewSimplifyTolerance: PREVIEW_SIMPLIFY_TOLERANCE,
+        fullSimplifyTolerance: FULL_SIMPLIFY_TOLERANCE,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 

@@ -1,5 +1,4 @@
 import { FC, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import ScoreCounter from './ScoreCounter';
 import StreakIndicator from './StreakIndicator';
 import ProgressBar from './ProgressBar';
@@ -91,63 +90,55 @@ const HUD: FC<HUDProps> = ({
 
   return (
     <div
-      className="fixed inset-x-0 sm:right-4 sm:left-auto sm:w-80 z-20 pointer-events-none transition-all duration-300"
+      className="fixed inset-x-0 z-20 pointer-events-none transition-all duration-300 sm:left-auto sm:right-4 sm:w-80"
       style={{ top: 'max(var(--sat), 1rem)' }}
     >
       <div
-        className={`bg-slate-900/75 backdrop-blur-xl border-b sm:border sm:rounded-2xl pointer-events-auto overflow-hidden ${STREAK_SHELL[streakState.key]}`}
+        className={`overflow-hidden border-b bg-slate-900/75 backdrop-blur-xl pointer-events-auto sm:rounded-2xl sm:border ${STREAK_SHELL[streakState.key]}`}
       >
         {(isDailyChallenge || challengeType === ChallengeType.DAILY) && (
-          <div className="w-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest py-1 text-center border-b border-white/5">
+          <div className="w-full border-b border-white/5 bg-amber-500/20 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-amber-400">
             Daily Challenge
           </div>
         )}
         {challengeType === ChallengeType.FRIEND && (
-          <div className="w-full bg-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-widest py-1 text-center border-b border-white/5">
+          <div className="w-full border-b border-white/5 bg-purple-500/20 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-purple-400">
             Friend Challenge
           </div>
         )}
 
         {streakState.key !== 'cold' && (
           <div
-            className={`px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-center border-b border-white/5 ${STREAK_BANNER[streakState.key]}`}
+            className={`px-4 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.28em] border-b border-white/5 ${STREAK_BANNER[streakState.key]}`}
           >
             {streakState.label} Streak
           </div>
         )}
 
         <button
+          type="button"
           onClick={() => {
             setHasInteracted(true);
             setCollapsed((value) => !value);
           }}
-          className="w-full px-4 py-2 sm:py-3 flex items-center gap-3 cursor-pointer"
+          className="flex w-full items-center gap-3 px-4 py-2 sm:py-3"
         >
-          <div className="flex-1 min-w-0 flex items-baseline gap-2">
-            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest shrink-0">
+          <div className="flex min-w-0 flex-1 items-baseline gap-2">
+            <span className="shrink-0 text-[10px] uppercase tracking-widest text-slate-400 sm:text-xs">
               Find
             </span>
-            <span className="sm:hidden min-w-0">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={regionToFind ?? 'done'}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex items-center gap-2 text-base font-bold text-white min-w-0"
-                >
-                  <FinderTarget
-                    regionToFind={regionToFind}
-                    className="flex items-center gap-2 min-w-0"
-                    textClassName="min-w-0 truncate"
-                  />
-                </motion.span>
-              </AnimatePresence>
+            <span className="min-w-0 sm:hidden">
+              <span className="flex min-w-0 items-center gap-2 text-base font-bold text-white">
+                <FinderTarget
+                  regionToFind={regionToFind}
+                  className="flex min-w-0 items-center gap-2"
+                  textClassName="min-w-0 truncate"
+                />
+              </span>
             </span>
           </div>
           <svg
-            className={`w-4 h-4 text-slate-500 transition-transform shrink-0 ${collapsed ? '' : 'rotate-180'}`}
+            className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${collapsed ? '' : 'rotate-180'}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -157,71 +148,59 @@ const HUD: FC<HUDProps> = ({
           </svg>
         </button>
 
-        <div className="hidden sm:block px-4 pb-2">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={regionToFind ?? 'done'}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="text-xl font-bold text-white"
-            >
-              <FinderTarget
-                regionToFind={regionToFind}
-                className="flex max-w-full items-center gap-3"
-                textClassName="min-w-0 break-words"
-              />
-            </motion.div>
-          </AnimatePresence>
+        <div className="hidden px-4 pb-2 sm:block">
+          <div className="text-xl font-bold text-white">
+            <FinderTarget
+              regionToFind={regionToFind}
+              className="flex max-w-full items-center gap-3"
+              textClassName="min-w-0 break-words"
+            />
+          </div>
         </div>
 
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="px-4 pb-4">
-                <div className="flex justify-around mb-3">
-                  <ScoreCounter value={score} label="Score" color="text-emerald-400" />
-                  <ScoreCounter value={errors} label="Errors" color="text-red-400" />
-                  <StreakIndicator streak={streak} />
-                </div>
+        <div
+          className={`overflow-hidden transition-[max-height,opacity] duration-200 ${
+            collapsed ? 'max-h-0 opacity-0' : 'max-h-[24rem] opacity-100'
+          }`}
+        >
+          <div className="px-4 pb-4">
+            <div className="mb-3 flex justify-around">
+              <ScoreCounter value={score} label="Score" color="text-emerald-400" />
+              <ScoreCounter value={errors} label="Errors" color="text-red-400" />
+              <StreakIndicator streak={streak} />
+            </div>
 
-                <div className="flex justify-center gap-1.5 mb-2">
-                  {[0, 1, 2].map((index) => (
-                    <div
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                        index < currentGuessErrors ? 'bg-red-400' : 'bg-slate-600'
-                      }`}
-                    />
-                  ))}
-                </div>
+            <div className="mb-2 flex justify-center gap-1.5">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className={`h-2 w-2 rounded-full transition-colors duration-200 ${
+                    index < currentGuessErrors ? 'bg-red-400' : 'bg-slate-600'
+                  }`}
+                />
+              ))}
+            </div>
 
-                <div className="flex justify-center mb-3">
-                  <button
-                    onClick={onSkip}
-                    disabled={gameOver}
-                    className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Skip
-                  </button>
-                </div>
+            <div className="mb-3 flex justify-center">
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={gameOver}
+                className="text-xs text-slate-400 transition-colors hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Skip
+              </button>
+            </div>
 
-                <ProgressBar progress={progress} />
-                <div className="flex items-center justify-between mt-1.5 text-[10px] sm:text-xs text-slate-500">
-                  <span>{regionsFound} / {totalRegions}</span>
-                  <span>{Math.round(progress * 100)}% cleared</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <ProgressBar progress={progress} />
+            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-500 sm:text-xs">
+              <span>
+                {regionsFound} / {totalRegions}
+              </span>
+              <span>{Math.round(progress * 100)}% cleared</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

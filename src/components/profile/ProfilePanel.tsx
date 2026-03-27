@@ -231,14 +231,15 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
-        />
-        <div className="fixed inset-0 z-[61] flex items-end justify-center p-0 sm:items-center sm:p-6">
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+          />
+          <div className="fixed inset-0 z-[61] flex items-end justify-center p-0 sm:items-center sm:p-6">
             <motion.div
               initial={isMobile ? { y: '100%' } : { y: 28, opacity: 0, scale: 0.98 }}
               animate={isMobile ? { y: 0 } : { y: 0, opacity: 1, scale: 1 }}

@@ -1,5 +1,4 @@
-import { FC, useEffect, useState } from 'react';
-import { useSpring, useTransform } from 'framer-motion';
+import { FC, useEffect, useRef, useState } from 'react';
 
 interface ScoreCounterProps {
   value: number;
@@ -8,17 +7,49 @@ interface ScoreCounterProps {
 }
 
 const ScoreCounter: FC<ScoreCounterProps> = ({ value, label, color }) => {
-  const spring = useSpring(0, { stiffness: 100, damping: 20 });
-  const rounded = useTransform(spring, (v) => Math.round(v));
   const [display, setDisplay] = useState(value);
+  const displayRef = useRef(value);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    spring.set(value);
-  }, [value, spring]);
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+    }
 
-  useEffect(() => {
-    return rounded.on('change', (v) => setDisplay(v));
-  }, [rounded]);
+    const from = displayRef.current;
+    const delta = value - from;
+
+    if (delta === 0) {
+      return;
+    }
+
+    const start = performance.now();
+    const duration = 280;
+
+    const step = (timestamp: number) => {
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(from + delta * eased);
+
+      displayRef.current = nextValue;
+      setDisplay(nextValue);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(step);
+      } else {
+        frameRef.current = null;
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
+  }, [value]);
 
   return (
     <div className="flex flex-col items-center gap-0.5">

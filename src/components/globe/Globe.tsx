@@ -1,6 +1,10 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import { getGeoJsonData } from '../../data/maps';
+import {
+  getRegionCentroid,
+  getWorldGeometry,
+  type WorldGeometryTier,
+} from '../../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',
@@ -40,49 +44,7 @@ interface GlobeProps {
   flyToRegion: string | null;
   onRegionClick: (region: string) => void;
   onReady?: () => void;
-}
-
-// Compute centroid lat/lng from a GeoJSON feature
-function featureCentroid(feature: any): { lat: number; lng: number } | null {
-  const coords: number[][] = [];
-
-  function collectCoords(geometry: any) {
-    if (!geometry) return;
-    if (geometry.type === 'Polygon') {
-      geometry.coordinates[0].forEach((c: number[]) => coords.push(c));
-    } else if (geometry.type === 'MultiPolygon') {
-      geometry.coordinates.forEach((poly: number[][][]) =>
-        poly[0].forEach((c: number[]) => coords.push(c))
-      );
-    }
-  }
-
-  collectCoords(feature.geometry);
-  if (coords.length === 0) return null;
-
-  let lngSum = 0;
-  let latSum = 0;
-  for (const [lng, lat] of coords) {
-    lngSum += lng;
-    latSum += lat;
-  }
-  return { lat: latSum / coords.length, lng: lngSum / coords.length };
-}
-
-// Lazy-init centroid lookup — computed once on first access
-let centroidMap: Map<string, { lat: number; lng: number }> | null = null;
-function getCentroidMap(): Map<string, { lat: number; lng: number }> {
-  if (centroidMap) return centroidMap;
-  centroidMap = new Map();
-  const data = getGeoJsonData();
-  if (data) {
-    for (const feature of data.features) {
-      const name = (feature as any).properties.name_long;
-      const centroid = featureCentroid(feature);
-      if (name && centroid) centroidMap.set(name, centroid);
-    }
-  }
-  return centroidMap;
+  geometryTier: WorldGeometryTier;
 }
 
 function getViewportDimensions() {
@@ -101,11 +63,17 @@ function getTargetPixelRatio() {
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
 
-const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
+const Globe: FC<GlobeProps> = ({
+  regionsFound,
+  flyToRegion,
+  onRegionClick,
+  onReady,
+  geometryTier,
+}) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
 
-  const geoJsonData = getGeoJsonData();
+  const geoJsonData = getWorldGeometry(geometryTier);
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
   const updateCameraClipping = useCallback(() => {
     const globe = globeRef.current;
@@ -183,7 +151,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   // Fly to skipped region on 3rd strike
   useEffect(() => {
     if (flyToRegion && globeRef.current) {
-      const target = getCentroidMap().get(flyToRegion);
+      const target = getRegionCentroid(flyToRegion);
       if (target) {
         globeRef.current.pointOfView(
           { lat: target.lat, lng: target.lng, altitude: 1.5 },

@@ -10,8 +10,11 @@
     "start": "next dev",
     "build": "next build",
     "test": "tsx --test src/**/*.test.ts",
-    "typecheck": "tsc --noEmit --incremental false",
-    "optimize:geojson": "node scripts/simplify-world-geojson.js"
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
+    "optimize:geojson": "node scripts/simplify-world-geojson.js",
+    "bundle:metrics": "node scripts/bundle-metrics.js",
+    "bundle:check": "node scripts/check-bundle-budget.js",
+    "analyze:bundle": "next experimental-analyze --output && node scripts/bundle-metrics.js --write .context/bundle-metrics.json --copy-analyze .context/bundle-baseline"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

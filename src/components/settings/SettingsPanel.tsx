@@ -1,6 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { createFriendChallenge } from '../../lib/friendChallenge';
 import { describeRuleset } from '../../lib/ruleset';
 import { shareChallengeLink } from '../../lib/share';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
@@ -100,6 +99,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
     setShareState(ShareState.SHARING);
 
     try {
+      const { createFriendChallenge } = await import('../../lib/friendChallenge');
       const shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
       const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
       const title = 'Mappil Friend Challenge';

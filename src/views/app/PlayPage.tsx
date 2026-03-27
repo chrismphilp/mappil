@@ -3,13 +3,23 @@
 import React, { FC, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { loadGeoJson, type GeoJsonLoadStage } from '../../data/maps';
-import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
+import {
+  getGeometryTierForExperience,
+  loadWorldGeometry,
+  loadWorldMeta,
+} from '../../data/maps';
+import {
+  ChallengeType,
+  ContinentFilter,
+  Difficulty,
+  ExperienceMode,
+  GameMode,
+} from '../../types/game.types';
 import LoadingOverlay from '../../components/app/LoadingOverlay';
 import GameContent, { preloadGlobe } from '../../components/game/GameContent';
 import { getDailyChallengeConfig } from '../../lib/dailyChallenge';
-import { getFriendChallenge, FriendChallenge } from '../../lib/friendChallenge';
-import { SUPABASE_UNAVAILABLE_MESSAGE } from '../../lib/supabase';
+import type { FriendChallenge } from '../../lib/friendChallenge';
+import { SUPABASE_UNAVAILABLE_MESSAGE } from '../../lib/supabaseConfig';
 
 interface PlayPageProps {
   continent?: ContinentFilter;
@@ -17,19 +27,18 @@ interface PlayPageProps {
   gameMode?: GameMode;
   dailyChallenge?: boolean;
   suppressSEO?: boolean;
+  experience: ExperienceMode;
 }
 
 type StartupStage =
   | 'loading_challenge'
   | 'loading_regions'
-  | 'preparing_regions'
   | 'loading_globe'
   | 'finalizing_interaction';
 
 const STARTUP_STAGE_LABELS: Record<StartupStage, string> = {
   loading_challenge: 'Loading challenge',
   loading_regions: 'Loading region data',
-  preparing_regions: 'Preparing regions',
   loading_globe: 'Loading globe',
   finalizing_interaction: 'Finalizing interaction',
 };
@@ -40,10 +49,15 @@ const PlayPage: FC<PlayPageProps> = ({
   gameMode,
   dailyChallenge = false,
   suppressSEO = false,
+  experience,
 }) => {
   const searchParams = useSearchParams();
   const isDaily = dailyChallenge || searchParams?.get('daily') === 'true';
   const challengeParam = searchParams?.get('challenge') ?? null;
+  const geometryTier = useMemo(
+    () => getGeometryTierForExperience(experience),
+    [experience],
+  );
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
 
@@ -52,20 +66,39 @@ const PlayPage: FC<PlayPageProps> = ({
   const [friendChallengeError, setFriendChallengeError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (challengeParam) {
-      getFriendChallenge(challengeParam)
+    if (!challengeParam) {
+      setFriendConfig(null);
+      setFriendConfigLoading(false);
+      setFriendChallengeError(null);
+      return;
+    }
+
+    let active = true;
+    setFriendConfigLoading(true);
+
+    void import('../../lib/friendChallenge')
+      .then(({ getFriendChallenge }) => getFriendChallenge(challengeParam))
         .then((config) => {
-          setFriendConfig(config);
-          setFriendChallengeError(null);
+          if (active) {
+            setFriendConfig(config);
+            setFriendChallengeError(null);
+          }
         })
         .catch((error: any) => {
-          console.error(error);
-          setFriendChallengeError(error?.message ?? 'Unable to load this challenge.');
+          if (active) {
+            console.error(error);
+            setFriendChallengeError(error?.message ?? 'Unable to load this challenge.');
+          }
         })
         .finally(() => {
-          setFriendConfigLoading(false);
+          if (active) {
+            setFriendConfigLoading(false);
+          }
         });
-    }
+
+    return () => {
+      active = false;
+    };
   }, [challengeParam]);
 
   const initialContinent = useMemo(() => {
@@ -101,16 +134,19 @@ const PlayPage: FC<PlayPageProps> = ({
     return GameMode.QUICK;
   }, [searchParams, gameMode, dailyConfig, friendConfig]);
 
-  const [dataProgress, setDataProgress] = useState<number | null>(0);
-  const [geoJsonStage, setGeoJsonStage] = useState<GeoJsonLoadStage>('loading');
+  const [metaLoaded, setMetaLoaded] = useState(false);
+  const [geometryLoaded, setGeometryLoaded] = useState(false);
   const [globeModuleLoaded, setGlobeModuleLoaded] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
   const globeReadyRef = useRef(false);
-  const dataLoaded = geoJsonStage === 'ready';
 
   useEffect(() => {
     let active = true;
-    let frameId = 0;
+    globeReadyRef.current = false;
+    setMetaLoaded(false);
+    setGeometryLoaded(false);
+    setGlobeModuleLoaded(false);
+    setGlobeReady(false);
 
     void preloadGlobe().then(() => {
       if (active) {
@@ -118,28 +154,22 @@ const PlayPage: FC<PlayPageProps> = ({
       }
     });
 
-    loadGeoJson((state) => {
-      cancelAnimationFrame(frameId);
-      frameId = requestAnimationFrame(() => {
-        if (active) {
-          setGeoJsonStage(state.stage);
+    void loadWorldMeta().then(() => {
+      if (active) {
+        setMetaLoaded(true);
+      }
+    });
 
-          if (state.stage === 'loading') {
-            setDataProgress(state.fraction ?? null);
-          } else if (state.stage === 'ready') {
-            setDataProgress(1);
-          } else {
-            setDataProgress(null);
-          }
-        }
-      });
+    void loadWorldGeometry(geometryTier).then(() => {
+      if (active) {
+        setGeometryLoaded(true);
+      }
     });
 
     return () => {
       active = false;
-      cancelAnimationFrame(frameId);
     };
-  }, []);
+  }, [geometryTier]);
 
   const handleGlobeReady = useCallback(() => {
     if (!globeReadyRef.current) {
@@ -169,23 +199,16 @@ const PlayPage: FC<PlayPageProps> = ({
     );
   }
 
-  const loadingState = useMemo(() => {
+  const loadingState = useMemo<{ label: string; progress?: number } | null>(() => {
     if (friendConfigLoading) {
       return {
         label: STARTUP_STAGE_LABELS.loading_challenge,
       };
     }
 
-    if (geoJsonStage === 'loading') {
+    if (!metaLoaded) {
       return {
         label: STARTUP_STAGE_LABELS.loading_regions,
-        progress: dataProgress ?? undefined,
-      };
-    }
-
-    if (geoJsonStage === 'parsing') {
-      return {
-        label: STARTUP_STAGE_LABELS.preparing_regions,
       };
     }
 
@@ -193,7 +216,7 @@ const PlayPage: FC<PlayPageProps> = ({
       return null;
     }
 
-    if (!globeModuleLoaded) {
+    if (!globeModuleLoaded || !geometryLoaded) {
       return {
         label: STARTUP_STAGE_LABELS.loading_globe,
       };
@@ -202,13 +225,13 @@ const PlayPage: FC<PlayPageProps> = ({
     return {
       label: STARTUP_STAGE_LABELS.finalizing_interaction,
     };
-  }, [dataProgress, friendConfigLoading, geoJsonStage, globeModuleLoaded, globeReady]);
+  }, [friendConfigLoading, geometryLoaded, globeModuleLoaded, globeReady, metaLoaded]);
 
   const isLoading = loadingState !== null;
 
   return (
     <>
-      {dataLoaded && !friendConfigLoading && (
+      {metaLoaded && !friendConfigLoading && (
         <GameContent 
           onGlobeReady={handleGlobeReady} 
           initialContinent={initialContinent}
@@ -218,6 +241,8 @@ const PlayPage: FC<PlayPageProps> = ({
           challengeType={friendConfig ? ChallengeType.FRIEND : (dailyConfig ? ChallengeType.DAILY : undefined)}
           seed={friendConfig ? friendConfig.seed : dailyConfig?.seed}
           isDailyChallenge={!!dailyConfig}
+          experience={experience}
+          geometryReady={geometryLoaded}
         />
       )}
       {isLoading && loadingState && (

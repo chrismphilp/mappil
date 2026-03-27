@@ -1,5 +1,4 @@
 import { FC, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { FeedbackState } from '../../types/game.types';
 import { getStreakState } from '../../lib/scoring';
@@ -68,7 +67,8 @@ const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback, currentGuessError
       subtitle = 'You kept the run alive';
     } else if (feedback.wasFirstTry) {
       title = POSITIVE_COPY[streakState.key][positiveIndex];
-      subtitle = streakState.key === 'cold' ? 'First try points secured' : `${streakState.label} streak`;
+      subtitle =
+        streakState.key === 'cold' ? 'First try points secured' : `${streakState.label} streak`;
     } else {
       title = 'Recovered';
       subtitle = 'Still banked the answer';
@@ -82,30 +82,24 @@ const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback, currentGuessError
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key={`feedback-${revisionRef.current}`}
-        initial={{ opacity: 0, scale: 0.58, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 1.12, y: -26 }}
-        transition={{ duration: 0.25 }}
-        className="fixed top-[38%] sm:top-1/3 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
-      >
-        <div className="rounded-3xl border border-white/10 bg-slate-950/70 px-6 py-4 text-center backdrop-blur-xl shadow-2xl min-w-[13rem]">
-          <span className={`block text-3xl sm:text-4xl font-bold drop-shadow-2xl ${titleClassName}`}>
-            {title}
+    <div
+      key={`feedback-${revisionRef.current}`}
+      className="fixed left-1/2 top-[38%] z-30 -translate-x-1/2 pointer-events-none sm:top-1/3"
+    >
+      <div className="min-w-[13rem] rounded-3xl border border-white/10 bg-slate-950/70 px-6 py-4 text-center shadow-2xl backdrop-blur-xl">
+        <span className={`block text-3xl font-bold drop-shadow-2xl sm:text-4xl ${titleClassName}`}>
+          {title}
+        </span>
+        <span className="mt-1 block text-sm font-medium text-slate-200/90 sm:text-base">
+          {subtitle}
+        </span>
+        {feedback.scoreDelta > 0 && (
+          <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300 sm:text-sm">
+            +{feedback.scoreDelta} points
           </span>
-          <span className="block text-sm sm:text-base font-medium text-slate-200/90 mt-1">
-            {subtitle}
-          </span>
-          {feedback.scoreDelta > 0 && (
-            <span className="block text-xs sm:text-sm font-semibold tracking-[0.18em] uppercase text-cyan-300 mt-2">
-              +{feedback.scoreDelta} points
-            </span>
-          )}
-        </div>
-      </motion.div>
-    </AnimatePresence>
+        )}
+      </div>
+    </div>
   );
 };
 

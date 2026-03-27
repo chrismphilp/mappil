@@ -1,5 +1,4 @@
 import { FC } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { getStreakState } from '../../lib/scoring';
 
 interface StreakIndicatorProps {
@@ -31,20 +30,11 @@ const StreakIndicator: FC<StreakIndicatorProps> = ({ streak }) => {
         <span className={`text-lg sm:text-xl font-bold tabular-nums ${STREAK_TONE[streakState.key]}`}>
           {streak}
         </span>
-        <AnimatePresence mode="wait">
-          {streakState.icon && (
-            <motion.span
-              key={streakState.icon}
-              initial={{ scale: 0.7, rotate: -25, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              exit={{ scale: 0.7, rotate: 25, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-              className="text-sm sm:text-base"
-            >
-              {streakState.icon}
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {streakState.icon && (
+          <span className="text-sm sm:text-base transition-transform duration-200">
+            {streakState.icon}
+          </span>
+        )}
       </div>
       <span
         className={`min-w-[4.75rem] rounded-full border px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.24em] text-center ${STREAK_BADGE[streakState.key]}`}
