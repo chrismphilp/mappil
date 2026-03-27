@@ -216,7 +216,7 @@ function filterGeometryFeatures(
 export function getGeometryTierForExperience(
   experience: ExperienceMode,
 ): WorldGeometryTier {
-  return experience === 'preview' ? 'preview' : 'full';
+  return 'full';
 }
 
 export async function loadWorldMeta(

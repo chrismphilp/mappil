@@ -58,7 +58,7 @@ const PlayPage: FC<PlayPageProps> = ({
     () => getGeometryTierForExperience(experience),
     [experience],
   );
-  const requiresMeta = experience === 'preview';
+  const requiresMeta = geometryTier === 'preview';
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
 
