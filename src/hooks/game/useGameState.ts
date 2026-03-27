@@ -9,7 +9,7 @@ import {
   GameMode,
   GameState,
 } from '../../types/game.types';
-import { getFilteredRegionsFromMeta } from '../../data/maps';
+import { getFilteredRegions } from '../../data/maps';
 import { SeededRandom } from '../../lib/seededRandom';
 import {
   SCORING_RULES,
@@ -50,7 +50,7 @@ interface RunConfig {
 }
 
 function buildInitialState(config: RunConfig): GameState {
-  let regions = getFilteredRegionsFromMeta(config.difficulty, config.continent);
+  let regions = getFilteredRegions(config.difficulty, config.continent);
   const rng = config.seed ? new SeededRandom(config.seed) : undefined;
 
   regions = shuffleArray(regions, rng);

@@ -58,6 +58,7 @@ const PlayPage: FC<PlayPageProps> = ({
     () => getGeometryTierForExperience(experience),
     [experience],
   );
+  const requiresMeta = experience === 'preview';
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
 
@@ -154,11 +155,13 @@ const PlayPage: FC<PlayPageProps> = ({
       }
     });
 
-    void loadWorldMeta().then(() => {
-      if (active) {
-        setMetaLoaded(true);
-      }
-    });
+    if (requiresMeta) {
+      void loadWorldMeta().then(() => {
+        if (active) {
+          setMetaLoaded(true);
+        }
+      });
+    }
 
     void loadWorldGeometry(geometryTier).then(() => {
       if (active) {
@@ -169,7 +172,7 @@ const PlayPage: FC<PlayPageProps> = ({
     return () => {
       active = false;
     };
-  }, [geometryTier]);
+  }, [geometryTier, requiresMeta]);
 
   const handleGlobeReady = useCallback(() => {
     if (!globeReadyRef.current) {
@@ -178,26 +181,9 @@ const PlayPage: FC<PlayPageProps> = ({
     }
   }, []);
 
-  if (challengeParam && !friendConfig && !friendConfigLoading) {
-    const onlineFeaturesUnavailable =
-      friendChallengeError === SUPABASE_UNAVAILABLE_MESSAGE;
-
-    return (
-      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4 text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          {onlineFeaturesUnavailable ? 'Online Features Unavailable' : 'Challenge Not Found'}
-        </h2>
-        <p className="text-slate-400 mb-6">
-          {onlineFeaturesUnavailable
-            ? friendChallengeError
-            : 'This challenge link might be invalid or has expired.'}
-        </p>
-        <Link href="/" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">
-          Return Home
-        </Link>
-      </div>
-    );
-  }
+  const dataLoaded = requiresMeta ? metaLoaded : geometryLoaded;
+  const onlineFeaturesUnavailable =
+    friendChallengeError === SUPABASE_UNAVAILABLE_MESSAGE;
 
   const loadingState = useMemo<{ label: string; progress?: number } | null>(() => {
     if (friendConfigLoading) {
@@ -206,7 +192,7 @@ const PlayPage: FC<PlayPageProps> = ({
       };
     }
 
-    if (!metaLoaded) {
+    if (!dataLoaded) {
       return {
         label: STARTUP_STAGE_LABELS.loading_regions,
       };
@@ -225,13 +211,31 @@ const PlayPage: FC<PlayPageProps> = ({
     return {
       label: STARTUP_STAGE_LABELS.finalizing_interaction,
     };
-  }, [friendConfigLoading, geometryLoaded, globeModuleLoaded, globeReady, metaLoaded]);
+  }, [dataLoaded, friendConfigLoading, geometryLoaded, globeModuleLoaded, globeReady]);
 
   const isLoading = loadingState !== null;
 
+  if (challengeParam && !friendConfig && !friendConfigLoading) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4 text-center">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          {onlineFeaturesUnavailable ? 'Online Features Unavailable' : 'Challenge Not Found'}
+        </h2>
+        <p className="text-slate-400 mb-6">
+          {onlineFeaturesUnavailable
+            ? friendChallengeError
+            : 'This challenge link might be invalid or has expired.'}
+        </p>
+        <Link href="/" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">
+          Return Home
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <>
-      {metaLoaded && !friendConfigLoading && (
+      {dataLoaded && !friendConfigLoading && (
         <GameContent 
           onGlobeReady={handleGlobeReady} 
           initialContinent={initialContinent}

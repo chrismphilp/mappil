@@ -26,11 +26,16 @@ export interface WorldRegionMeta {
 
 export type WorldGeometryTier = 'preview' | 'full';
 
+export interface WorldGeometryProperties {
+  name_long: string;
+  continent?: ContinentFilter;
+  pop_est?: number;
+  [key: string]: unknown;
+}
+
 export interface WorldGeometryFeature {
   type: 'Feature';
-  properties: {
-    name_long: string;
-  };
+  properties: WorldGeometryProperties;
   geometry: any;
 }
 
@@ -64,12 +69,40 @@ async function loadJson<T>(
   onStateChange?.({ stage: 'loading', fraction: 0 });
 
   const response = await fetch(url);
-  const text = await response.text();
+  const contentLength = response.headers.get('Content-Length');
+
+  if (!contentLength || !response.body) {
+    const text = await response.text();
+    onStateChange?.({ stage: 'parsing' });
+    const data = JSON.parse(text) as T;
+    onStateChange?.({ stage: 'ready', fraction: 1 });
+    return data;
+  }
+
+  const total = Number.parseInt(contentLength, 10);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    chunks.push(value);
+    received += value.length;
+    onStateChange?.({ stage: 'loading', fraction: received / total });
+  }
+
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
 
   onStateChange?.({ stage: 'parsing' });
-  const data = JSON.parse(text) as T;
+  const data = JSON.parse(new TextDecoder().decode(merged)) as T;
   onStateChange?.({ stage: 'ready', fraction: 1 });
-
   return data;
 }
 
@@ -79,6 +112,105 @@ function assertWorldMetaLoaded(): WorldRegionMeta[] {
   }
 
   return worldMetaData;
+}
+
+function assertFullGeometryLoaded(): WorldGeometryCollection {
+  const fullGeometry = worldGeometryData.get('full');
+  if (!fullGeometry) {
+    throw new Error('World full geometry has not been loaded yet.');
+  }
+
+  return fullGeometry;
+}
+
+function roundCoordinate(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
+}
+
+function featureCentroid(feature: WorldGeometryFeature): RegionCentroid | null {
+  const coords: number[][] = [];
+
+  function collectCoords(geometry: any) {
+    if (!geometry) return;
+
+    if (geometry.type === 'Polygon') {
+      geometry.coordinates[0].forEach((coordinate: number[]) => coords.push(coordinate));
+      return;
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach((polygon: number[][][]) =>
+        polygon[0].forEach((coordinate: number[]) => coords.push(coordinate)),
+      );
+    }
+  }
+
+  collectCoords(feature.geometry);
+
+  if (coords.length === 0) {
+    return null;
+  }
+
+  let lngSum = 0;
+  let latSum = 0;
+
+  for (const [lng, lat] of coords) {
+    lngSum += lng;
+    latSum += lat;
+  }
+
+  return {
+    lat: roundCoordinate(latSum / coords.length),
+    lng: roundCoordinate(lngSum / coords.length),
+  };
+}
+
+function filterMetaEntries(
+  entries: WorldRegionMeta[],
+  difficulty: Difficulty,
+  continent?: ContinentFilter,
+): string[] {
+  const threshold = POPULATION_THRESHOLDS[difficulty];
+  let filteredEntries = entries;
+
+  if (continent && continent !== ContinentFilter.WORLD) {
+    filteredEntries = filteredEntries.filter((entry) => entry.continent === continent);
+  }
+
+  const filtered = filteredEntries
+    .filter((entry) => entry.population > threshold)
+    .map((entry) => entry.name);
+
+  if (filtered.length < 2 && continent && continent !== ContinentFilter.WORLD) {
+    return filteredEntries.map((entry) => entry.name);
+  }
+
+  return filtered;
+}
+
+function filterGeometryFeatures(
+  features: WorldGeometryFeature[],
+  difficulty: Difficulty,
+  continent?: ContinentFilter,
+): string[] {
+  const threshold = POPULATION_THRESHOLDS[difficulty];
+  let filteredFeatures = features;
+
+  if (continent && continent !== ContinentFilter.WORLD) {
+    filteredFeatures = filteredFeatures.filter(
+      (feature) => feature.properties.continent === continent,
+    );
+  }
+
+  const filtered = filteredFeatures
+    .filter((feature) => Number(feature.properties.pop_est) > threshold)
+    .map((feature) => feature.properties.name_long);
+
+  if (filtered.length < 2 && continent && continent !== ContinentFilter.WORLD) {
+    return filteredFeatures.map((feature) => feature.properties.name_long);
+  }
+
+  return filtered;
 }
 
 export function getGeometryTierForExperience(
@@ -155,28 +287,44 @@ export function getWorldGeometry(
   return worldGeometryData.get(tier) ?? null;
 }
 
-export function getRegionCentroid(name: string): RegionCentroid | null {
-  return centroidByRegion.get(name) ?? null;
-}
-
-export function getFilteredRegionsFromMeta(
+export function getFilteredRegions(
   difficulty: Difficulty,
   continent?: ContinentFilter,
 ): string[] {
-  const threshold = POPULATION_THRESHOLDS[difficulty];
-  let entries = assertWorldMetaLoaded();
-
-  if (continent && continent !== ContinentFilter.WORLD) {
-    entries = entries.filter((entry) => entry.continent === continent);
+  if (worldMetaData) {
+    return filterMetaEntries(assertWorldMetaLoaded(), difficulty, continent);
   }
 
-  const filtered = entries
-    .filter((entry) => entry.population > threshold)
-    .map((entry) => entry.name);
+  return filterGeometryFeatures(assertFullGeometryLoaded().features, difficulty, continent);
+}
 
-  if (filtered.length < 2 && continent && continent !== ContinentFilter.WORLD) {
-    return entries.map((entry) => entry.name);
+export function getRegionCentroid(name: string): RegionCentroid | null {
+  const cached = centroidByRegion.get(name);
+  if (cached) {
+    return cached;
   }
 
-  return filtered;
+  const geometry =
+    worldGeometryData.get('full') ??
+    worldGeometryData.get('preview') ??
+    null;
+
+  if (!geometry) {
+    return null;
+  }
+
+  const feature = geometry.features.find(
+    (entry) => entry.properties.name_long === name,
+  );
+
+  if (!feature) {
+    return null;
+  }
+
+  const centroid = featureCentroid(feature);
+  if (centroid) {
+    centroidByRegion.set(name, centroid);
+  }
+
+  return centroid;
 }

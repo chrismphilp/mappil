@@ -216,14 +216,16 @@ function createMetaEntries(data) {
   }));
 }
 
-function createGeometryOutput(data, tolerance, decimals) {
+function createGeometryOutput(data, tolerance, decimals, preserveProperties = false) {
   return {
     type: 'FeatureCollection',
     features: data.features.map((feature) => ({
       type: 'Feature',
-      properties: {
-        name_long: feature.properties.name_long,
-      },
+      properties: preserveProperties
+        ? feature.properties
+        : {
+            name_long: feature.properties.name_long,
+          },
       geometry:
         typeof tolerance === 'number'
           ? simplifyGeometry(feature.geometry, tolerance, decimals)
@@ -261,7 +263,7 @@ function main() {
   );
   fs.writeFileSync(
     FULL_OUTPUT_PATH,
-    JSON.stringify(createGeometryOutput(fullGeometrySource)),
+    JSON.stringify(createGeometryOutput(fullGeometrySource, undefined, undefined, true)),
   );
 
   if (fs.existsSync(LEGACY_OUTPUT_PATH)) {
