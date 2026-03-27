@@ -1,12 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import {
-  ContinentFilter,
-  Difficulty,
-  ExperienceMode,
-  GameMode,
-} from '../../types/game.types';
+import { ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
 
 const PlayPage = dynamic(() => import('../../views/app/PlayPage'), {
   ssr: false,
@@ -17,7 +12,6 @@ interface GameViewportClientProps {
   difficulty?: Difficulty;
   gameMode?: GameMode;
   dailyChallenge?: boolean;
-  experience: ExperienceMode;
 }
 
 const GameViewportClient = ({
@@ -25,7 +19,6 @@ const GameViewportClient = ({
   difficulty,
   gameMode,
   dailyChallenge,
-  experience,
 }: GameViewportClientProps) => {
   return (
     <div className="fixed inset-0 z-10 bg-transparent">
@@ -35,7 +28,6 @@ const GameViewportClient = ({
         gameMode={gameMode}
         dailyChallenge={dailyChallenge}
         suppressSEO
-        experience={experience}
       />
     </div>
   );

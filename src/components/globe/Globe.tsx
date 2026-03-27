@@ -1,28 +1,41 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import {
-  getRegionCentroid,
-  getWorldGeometry,
-  type WorldGeometryTier,
-} from '../../data/maps';
+import { getGeoJsonData } from '../../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',
+  'Armenia',
+  'Azerbaijan',
+  'Bahrain',
   'Brazil',
   'Canada',
   'Chad',
+  'Cyprus',
   'Kazakhstan',
   'Mongolia',
   'Djibouti',
   'Egypt',
   'Eritrea',
+  'Georgia',
+  'Iran',
+  'Iraq',
+  'Israel',
+  'Jordan',
+  'Kuwait',
+  'Lebanon',
   'Niger',
   'Norway',
   'Oman',
+  'Pakistan',
   'Paraguay',
+  'Qatar',
   'Russian Federation',
   'Saudi Arabia',
   'Sudan',
+  'Syria',
+  'Turkey',
+  'Turkmenistan',
+  'United Arab Emirates',
   'United States',
   'Uruguay',
   'Yemen',
@@ -44,7 +57,47 @@ interface GlobeProps {
   flyToRegion: string | null;
   onRegionClick: (region: string) => void;
   onReady?: () => void;
-  geometryTier: WorldGeometryTier;
+}
+
+function featureCentroid(feature: any): { lat: number; lng: number } | null {
+  const coords: number[][] = [];
+
+  function collectCoords(geometry: any) {
+    if (!geometry) return;
+    if (geometry.type === 'Polygon') {
+      geometry.coordinates[0].forEach((c: number[]) => coords.push(c));
+    } else if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach((poly: number[][][]) =>
+        poly[0].forEach((c: number[]) => coords.push(c)),
+      );
+    }
+  }
+
+  collectCoords(feature.geometry);
+  if (coords.length === 0) return null;
+
+  let lngSum = 0;
+  let latSum = 0;
+  for (const [lng, lat] of coords) {
+    lngSum += lng;
+    latSum += lat;
+  }
+  return { lat: latSum / coords.length, lng: lngSum / coords.length };
+}
+
+let centroidMap: Map<string, { lat: number; lng: number }> | null = null;
+function getCentroidMap(): Map<string, { lat: number; lng: number }> {
+  if (centroidMap) return centroidMap;
+  centroidMap = new Map();
+  const data = getGeoJsonData();
+  if (data) {
+    for (const feature of data.features) {
+      const name = (feature as any).properties.name_long;
+      const centroid = featureCentroid(feature);
+      if (name && centroid) centroidMap.set(name, centroid);
+    }
+  }
+  return centroidMap;
 }
 
 function getViewportDimensions() {
@@ -63,17 +116,11 @@ function getTargetPixelRatio() {
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
 
-const Globe: FC<GlobeProps> = ({
-  regionsFound,
-  flyToRegion,
-  onRegionClick,
-  onReady,
-  geometryTier,
-}) => {
+const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
 
-  const geoJsonData = getWorldGeometry(geometryTier);
+  const geoJsonData = getGeoJsonData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
   const updateCameraClipping = useCallback(() => {
     const globe = globeRef.current;
@@ -111,8 +158,6 @@ const Globe: FC<GlobeProps> = ({
     };
   }, []);
 
-  // Configure controls — reduce sensitivity so small movements
-  // during a click don't get swallowed as drags/scrolls
   useEffect(() => {
     if (globeRef.current) {
       const controls = globeRef.current.controls();
@@ -133,29 +178,30 @@ const Globe: FC<GlobeProps> = ({
     canvas.height = 2;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = '#0f172a'; // A slightly blue, deep dark color to serve as oceans
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, 2, 2);
     }
     return canvas.toDataURL('image/png');
   }, []);
 
-  // Stop auto-rotate when zoomed in
   const AUTO_ROTATE_ALTITUDE = 1.8;
-  const handleZoom = useCallback((pov: { altitude: number }) => {
-    if (globeRef.current) {
-      globeRef.current.controls().autoRotate = pov.altitude >= AUTO_ROTATE_ALTITUDE;
-    }
-    updateCameraClipping();
-  }, [updateCameraClipping]);
+  const handleZoom = useCallback(
+    (pov: { altitude: number }) => {
+      if (globeRef.current) {
+        globeRef.current.controls().autoRotate = pov.altitude >= AUTO_ROTATE_ALTITUDE;
+      }
+      updateCameraClipping();
+    },
+    [updateCameraClipping],
+  );
 
-  // Fly to skipped region on 3rd strike
   useEffect(() => {
     if (flyToRegion && globeRef.current) {
-      const target = getRegionCentroid(flyToRegion);
+      const target = getCentroidMap().get(flyToRegion);
       if (target) {
         globeRef.current.pointOfView(
           { lat: target.lat, lng: target.lng, altitude: 1.5 },
-          1000
+          1000,
         );
       }
     }
@@ -172,34 +218,33 @@ const Globe: FC<GlobeProps> = ({
     pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
   }, []);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    // If OrbitControls or something swallowed pointerdown, default to current event
-    const downTime = pointerDownPos.current.time || Date.now();
-    const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
-    const downY = pointerDownPos.current.time ? pointerDownPos.current.y : e.clientY;
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      const downTime = pointerDownPos.current.time || Date.now();
+      const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
+      const downY = pointerDownPos.current.time ? pointerDownPos.current.y : e.clientY;
 
-    const dx = e.clientX - downX;
-    const dy = e.clientY - downY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const duration = Date.now() - downTime;
+      const dx = e.clientX - downX;
+      const dy = e.clientY - downY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const duration = Date.now() - downTime;
 
-    // Reset pointer down state
-    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+      pointerDownPos.current = { x: 0, y: 0, time: 0 };
 
-    // Relaxed tolerance for jittery touches/clicks (distance < 20px, duration < 600ms)
-    if (distance < 20 && duration < 600) {
-      if (hoveredPolygonRef.current) {
-        onRegionClick(hoveredPolygonRef.current.properties.name_long);
-      } else {
-        // Fallback for fast touch devices where hover state might lag by 1 frame
-        setTimeout(() => {
-          if (hoveredPolygonRef.current) {
-            onRegionClick(hoveredPolygonRef.current.properties.name_long);
-          }
-        }, 50);
+      if (distance < 20 && duration < 600) {
+        if (hoveredPolygonRef.current) {
+          onRegionClick(hoveredPolygonRef.current.properties.name_long);
+        } else {
+          setTimeout(() => {
+            if (hoveredPolygonRef.current) {
+              onRegionClick(hoveredPolygonRef.current.properties.name_long);
+            }
+          }, 50);
+        }
       }
-    }
-  }, [onRegionClick]);
+    },
+    [onRegionClick],
+  );
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -250,7 +295,7 @@ const Globe: FC<GlobeProps> = ({
       if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
       return 'rgba(71, 85, 105, 0.6)';
     },
-    [regionsFoundSet, flyToRegion]
+    [regionsFoundSet, flyToRegion],
   );
 
   const getSideColor = useCallback(
@@ -259,7 +304,7 @@ const Globe: FC<GlobeProps> = ({
       if (regionsFoundSet.has(name)) return 'rgba(16, 185, 129, 0.6)';
       return '';
     },
-    [regionsFoundSet]
+    [regionsFoundSet],
   );
 
   const getAltitude = useCallback(
@@ -271,10 +316,9 @@ const Globe: FC<GlobeProps> = ({
       }
       return 0.0015;
     },
-    [regionsFoundSet]
+    [regionsFoundSet],
   );
 
-  // Only show label for already-found countries
   const getLabel = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
@@ -283,7 +327,7 @@ const Globe: FC<GlobeProps> = ({
       }
       return '';
     },
-    [regionsFoundSet]
+    [regionsFoundSet],
   );
 
   const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);

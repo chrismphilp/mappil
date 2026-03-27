@@ -3,13 +3,11 @@
 import { FC, lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getGeometryTierForExperience } from '../../data/maps';
 import { useGameState } from '../../hooks/game/useGameState';
 import {
   ChallengeType,
   ContinentFilter,
   Difficulty,
-  ExperienceMode,
   GameMode,
 } from '../../types/game.types';
 import HUD from './HUD';
@@ -39,8 +37,6 @@ interface GameContentProps {
   challengeType?: ChallengeType;
   seed?: string;
   isDailyChallenge?: boolean;
-  experience: ExperienceMode;
-  geometryReady: boolean;
 }
 
 const GameContent: FC<GameContentProps> = ({
@@ -52,8 +48,6 @@ const GameContent: FC<GameContentProps> = ({
   challengeType,
   seed,
   isDailyChallenge,
-  experience,
-  geometryReady,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -161,24 +155,20 @@ const GameContent: FC<GameContentProps> = ({
     }
   }, [state.gameOver]);
 
-  const showBackgroundEffects = experience === 'full' && backgroundVisible;
-  const geometryTier = getGeometryTierForExperience(experience);
+  const showBackgroundEffects = backgroundVisible;
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
       {showBackgroundEffects && <StarfieldBackground />}
-      {experience === 'full' && <ShootingStarsBackground enabled={showBackgroundEffects} />}
-      {geometryReady && (
-        <Suspense fallback={null}>
-          <Globe
-            regionsFound={state.regionsFound}
-            flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
-            onRegionClick={selectRegion}
-            onReady={handleGlobeReady}
-            geometryTier={geometryTier}
-          />
-        </Suspense>
-      )}
+      <ShootingStarsBackground enabled={showBackgroundEffects} />
+      <Suspense fallback={null}>
+        <Globe
+          regionsFound={state.regionsFound}
+          flyToRegion={state.feedback?.outcome === 'skip' ? state.feedback.skippedRegion : null}
+          onRegionClick={selectRegion}
+          onReady={handleGlobeReady}
+        />
+      </Suspense>
 
       <HUD
         regionToFind={state.regionToFind}

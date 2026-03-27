@@ -13,7 +13,7 @@ const LandingPageShell = ({ content }: LandingPageShellProps) => {
       id="top"
       className="relative min-h-screen overflow-x-hidden selection:bg-blue-500/30"
     >
-      <GameViewportClient experience="preview" {...content.gameProps} />
+      <GameViewportClient {...content.gameProps} />
 
       <div className="pointer-events-none relative z-0 min-h-screen">
         <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />

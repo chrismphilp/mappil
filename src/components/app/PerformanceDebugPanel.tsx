@@ -1,8 +1,6 @@
 'use client';
 
 import { FC, memo } from 'react';
-import type { ExperienceMode } from '../../types/game.types';
-import type { WorldGeometryTier } from '../../data/maps';
 
 interface PerformanceSample {
   avgFps: number;
@@ -19,8 +17,8 @@ interface PerformanceTimings {
 }
 
 interface PerformanceDebugPanelProps {
-  experience: ExperienceMode;
-  geometryTier: WorldGeometryTier;
+  experienceLabel: string;
+  geometryTierLabel: string;
   hasChallenge: boolean;
   timings: PerformanceTimings;
   fpsSample: PerformanceSample | null;
@@ -31,8 +29,8 @@ function formatMs(value: number | null): string {
 }
 
 const PerformanceDebugPanel: FC<PerformanceDebugPanelProps> = ({
-  experience,
-  geometryTier,
+  experienceLabel,
+  geometryTierLabel,
   hasChallenge,
   timings,
   fpsSample,
@@ -42,7 +40,7 @@ const PerformanceDebugPanel: FC<PerformanceDebugPanelProps> = ({
       <div className="mb-3 flex items-center justify-between">
         <span className="text-cyan-300">Perf Debug</span>
         <span className="text-slate-400">
-          {experience}/{geometryTier}
+          {experienceLabel}/{geometryTierLabel}
         </span>
       </div>
 
