@@ -217,6 +217,8 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
     () => profile.recentRuns.find((run) => run.personalBestFlags.length > 0) ?? null,
     [profile.recentRuns],
   );
+  const hasMultipleRulesetBests = rulesetBests.length > 1;
+  const hasMultipleRecentRuns = profile.recentRuns.length > 1;
 
   const handleClearProgress = () => {
     if (!window.confirm('Clear your local progress and personal bests on this device?')) {
@@ -229,19 +231,21 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-        >
-          <div className="flex h-full w-full items-end justify-center p-0 sm:items-center sm:p-6">
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+          />
+          <div className="fixed inset-0 z-[61] flex items-end justify-center p-0 sm:items-center sm:p-6">
             <motion.div
-              initial={isMobile ? { y: '100%' } : { y: 24, opacity: 0 }}
-              animate={isMobile ? { y: 0 } : { y: 0, opacity: 1 }}
-              exit={isMobile ? { y: '100%' } : { y: 24, opacity: 0 }}
+              initial={isMobile ? { y: '100%' } : { y: 28, opacity: 0, scale: 0.98 }}
+              animate={isMobile ? { y: 0 } : { y: 0, opacity: 1, scale: 1 }}
+              exit={isMobile ? { y: '100%' } : { y: 28, opacity: 0, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-              className="relative flex h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_28%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] shadow-[0_30px_120px_rgba(2,6,23,0.55)] sm:h-[min(90dvh,56rem)] sm:rounded-[2rem]"
+              className="relative flex h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_24%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] shadow-[0_30px_120px_rgba(2,6,23,0.55)] sm:h-[min(88dvh,54rem)] sm:rounded-[2rem]"
             >
               <button
                 type="button"
@@ -255,9 +259,9 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                 </svg>
               </button>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-14 sm:px-8 sm:pb-8 sm:pt-8">
-                <div className="mx-auto flex max-w-5xl flex-col gap-6">
-                  <section className="rounded-[2rem] border border-cyan-400/14 bg-slate-900/55 p-6">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-14 sm:px-6 sm:pb-6 sm:pt-6">
+                <div className="mx-auto flex w-full flex-col gap-5">
+                  <section className="rounded-[2rem] border border-cyan-400/14 bg-slate-900/55 p-5 sm:p-6">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                       <div>
                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-200/70">
@@ -271,7 +275,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                         <div className="rounded-2xl border border-white/6 bg-slate-950/45 p-3">
                           <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Runs</div>
                           <div className="mt-1 text-2xl font-bold text-white">{profile.summary.totalRuns}</div>
@@ -328,7 +332,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                     </section>
                   ) : (
                     <>
-                      <section className="grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+                      <section className="grid gap-4 lg:grid-cols-[1.06fr,0.94fr]">
                         <div className="rounded-[1.75rem] border border-white/8 bg-slate-900/55 p-5">
                           <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
                             Favorite Ruleset
@@ -399,7 +403,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                             </h3>
                           </div>
                         </div>
-                        <div className="grid gap-4 xl:grid-cols-2">
+                        <div className={hasMultipleRulesetBests ? 'grid gap-4 md:grid-cols-2' : 'grid max-w-2xl gap-4'}>
                           {rulesetBests.map((best) => (
                             <RulesetBestCard key={best.ruleset.key} best={best} />
                           ))}
@@ -415,7 +419,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                             Latest boards on this device
                           </h3>
                         </div>
-                        <div className="grid gap-4 xl:grid-cols-2">
+                        <div className={hasMultipleRecentRuns ? 'grid gap-4 md:grid-cols-2' : 'grid max-w-2xl gap-4'}>
                           {profile.recentRuns.map((run) => (
                             <RecentRunCard key={run.id} run={run} />
                           ))}
@@ -450,7 +454,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

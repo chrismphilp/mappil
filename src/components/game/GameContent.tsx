@@ -14,6 +14,7 @@ import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
 import StarfieldBackground from '../app/StarfieldBackground';
+import ProfileButton from '../profile/ProfileButton';
 import ProfilePanel from '../profile/ProfilePanel';
 
 const loadGlobe = () => import('../globe/Globe');
@@ -164,6 +165,7 @@ const GameContent: FC<GameContentProps> = ({
         ) : (
           <QuitChallengeButton />
         )}
+        <ProfileButton onClick={() => setProfileOpen(true)} />
         <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
       </div>
 
@@ -181,10 +183,6 @@ const GameContent: FC<GameContentProps> = ({
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onOpenProfile={() => {
-          setSettingsOpen(false);
-          setProfileOpen(true);
-        }}
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
