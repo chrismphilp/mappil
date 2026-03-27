@@ -31,7 +31,6 @@ const CONTINENT_LABELS: Record<ContinentFilter, string> = {
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
-  onOpenProfile: () => void;
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
@@ -44,7 +43,6 @@ interface SettingsPanelProps {
 const SettingsPanel: FC<SettingsPanelProps> = ({
   open,
   onClose,
-  onOpenProfile,
   difficulty,
   continent,
   gameMode,
@@ -267,13 +265,6 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                className="w-full rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-100 transition-colors hover:bg-cyan-500/20"
-              >
-                View Profile
-              </button>
             </div>
 
             <div>

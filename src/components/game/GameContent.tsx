@@ -14,7 +14,9 @@ import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import QuitChallengeButton from './QuitChallengeButton';
 import ShootingStarsBackground from '../app/ShootingStarsBackground';
 import StarfieldBackground from '../app/StarfieldBackground';
+import ProfileButton from '../profile/ProfileButton';
 import ProfilePanel from '../profile/ProfilePanel';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 
 const loadGlobe = () => import('../globe/Globe');
 export const preloadGlobe = () => loadGlobe();
@@ -67,6 +69,7 @@ const GameContent: FC<GameContentProps> = ({
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [backgroundVisible, setBackgroundVisible] = useState(false);
+  const { isMobile } = useIsMobileViewport();
   const startFreePlay = useCallback(
     (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
       if (
@@ -153,18 +156,23 @@ const GameContent: FC<GameContentProps> = ({
       />
 
       <div
-        className="fixed z-30 flex gap-3"
+        className={`fixed z-30 flex items-center ${
+          isMobile
+            ? 'gap-1.5 rounded-full border border-white/10 bg-slate-950/55 p-1.5 shadow-2xl backdrop-blur-xl'
+            : 'gap-3'
+        }`}
         style={{
-          bottom: 'max(var(--sab), 1.5rem)',
-          left: 'max(var(--sal), 1.5rem)',
+          bottom: `max(var(--sab), ${isMobile ? '1rem' : '1.5rem'})`,
+          left: `max(var(--sal), ${isMobile ? '1rem' : '1.5rem'})`,
         }}
       >
         {!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND ? (
-          <SettingsButton onClick={() => setSettingsOpen(true)} />
+          <SettingsButton onClick={() => setSettingsOpen(true)} compact={isMobile} />
         ) : (
-          <QuitChallengeButton />
+          <QuitChallengeButton compact={isMobile} />
         )}
-        <LeaderboardButton onClick={() => setLeaderboardOpen(true)} />
+        <ProfileButton onClick={() => setProfileOpen(true)} compact={isMobile} />
+        <LeaderboardButton onClick={() => setLeaderboardOpen(true)} compact={isMobile} />
       </div>
 
       <LeaderboardModal
@@ -181,10 +189,6 @@ const GameContent: FC<GameContentProps> = ({
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onOpenProfile={() => {
-          setSettingsOpen(false);
-          setProfileOpen(true);
-        }}
         difficulty={state.difficulty}
         continent={state.continent}
         gameMode={state.gameMode}
