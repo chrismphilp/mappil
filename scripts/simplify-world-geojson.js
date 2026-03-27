@@ -2,17 +2,18 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const INPUT_PATH = path.resolve(ROOT_DIR, 'data-src/world.geo.json');
+const RAW_INPUT_PATH = path.resolve(ROOT_DIR, 'data-src/world.geo.json');
+// Keep metadata tied to the raw source, but build rendered tiers from the
+// cleaned geometry so the globe stays visually stable.
+const FULL_SOURCE_PATH = path.resolve(ROOT_DIR, 'data-src/world.optimized.geo.json');
 const OUTPUT_DIR = path.resolve(ROOT_DIR, 'public/data');
 const META_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.meta.json');
 const PREVIEW_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.preview.geo.json');
 const FULL_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.full.geo.json');
 const LEGACY_OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'world.optimized.geo.json');
 
-const PREVIEW_SIMPLIFY_TOLERANCE = 0.12;
-const FULL_SIMPLIFY_TOLERANCE = 0.035;
-const PREVIEW_DECIMALS = 3;
-const FULL_DECIMALS = 4;
+const PREVIEW_SIMPLIFY_TOLERANCE = 0.08;
+const PREVIEW_DECIMALS = 4;
 
 function countPoints(geometry) {
   if (geometry.type === 'Polygon') {
@@ -48,12 +49,6 @@ function readStats(filePath) {
 function roundNumber(value, decimals) {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
-}
-
-function getSqDist(p1, p2) {
-  const dx = p1[0] - p2[0];
-  const dy = p1[1] - p2[1];
-  return dx * dx + dy * dy;
 }
 
 function getSqSegDist(point, start, end) {
@@ -229,14 +224,17 @@ function createGeometryOutput(data, tolerance, decimals) {
       properties: {
         name_long: feature.properties.name_long,
       },
-      geometry: simplifyGeometry(feature.geometry, tolerance, decimals),
+      geometry:
+        typeof tolerance === 'number'
+          ? simplifyGeometry(feature.geometry, tolerance, decimals)
+          : feature.geometry,
     })),
   };
 }
 
 function ensureInputExists() {
-  if (!fs.existsSync(INPUT_PATH)) {
-    throw new Error(`GeoJSON source not found at ${INPUT_PATH}`);
+  if (!fs.existsSync(RAW_INPUT_PATH)) {
+    throw new Error(`GeoJSON source not found at ${RAW_INPUT_PATH}`);
   }
 }
 
@@ -244,14 +242,18 @@ function main() {
   ensureInputExists();
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const inputData = JSON.parse(fs.readFileSync(INPUT_PATH, 'utf8'));
+  const rawInputData = JSON.parse(fs.readFileSync(RAW_INPUT_PATH, 'utf8'));
+  const fullGeometrySourcePath = fs.existsSync(FULL_SOURCE_PATH)
+    ? FULL_SOURCE_PATH
+    : RAW_INPUT_PATH;
+  const fullGeometrySource = JSON.parse(fs.readFileSync(fullGeometrySourcePath, 'utf8'));
 
-  fs.writeFileSync(META_OUTPUT_PATH, JSON.stringify(createMetaEntries(inputData)));
+  fs.writeFileSync(META_OUTPUT_PATH, JSON.stringify(createMetaEntries(rawInputData)));
   fs.writeFileSync(
     PREVIEW_OUTPUT_PATH,
     JSON.stringify(
       createGeometryOutput(
-        inputData,
+        fullGeometrySource,
         PREVIEW_SIMPLIFY_TOLERANCE,
         PREVIEW_DECIMALS,
       ),
@@ -259,13 +261,7 @@ function main() {
   );
   fs.writeFileSync(
     FULL_OUTPUT_PATH,
-    JSON.stringify(
-      createGeometryOutput(
-        inputData,
-        FULL_SIMPLIFY_TOLERANCE,
-        FULL_DECIMALS,
-      ),
-    ),
+    JSON.stringify(createGeometryOutput(fullGeometrySource)),
   );
 
   if (fs.existsSync(LEGACY_OUTPUT_PATH)) {
@@ -275,7 +271,8 @@ function main() {
   console.log(
     JSON.stringify(
       {
-        input: path.relative(ROOT_DIR, INPUT_PATH),
+        rawInput: path.relative(ROOT_DIR, RAW_INPUT_PATH),
+        geometryInput: path.relative(ROOT_DIR, fullGeometrySourcePath),
         outputs: {
           meta: {
             path: path.relative(ROOT_DIR, META_OUTPUT_PATH),
@@ -291,7 +288,6 @@ function main() {
           },
         },
         previewSimplifyTolerance: PREVIEW_SIMPLIFY_TOLERANCE,
-        fullSimplifyTolerance: FULL_SIMPLIFY_TOLERANCE,
       },
       null,
       2,

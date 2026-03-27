@@ -5,7 +5,7 @@
     "/play": 70000,
     "/[quizId]": 80000
   },
-  "publicDataMaxBytes": 1100000,
+  "publicDataMaxBytes": 1800000,
   "requiredPublicDataFiles": [
     "world.full.geo.json",
     "world.meta.json",
