@@ -793,233 +793,191 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             transition={{ type: 'spring', stiffness: 210, damping: 22 }}
             className="bg-slate-900/92 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 w-[92vw] max-w-lg lg:max-w-4xl max-h-[92dvh] overflow-y-auto text-left shadow-2xl"
           >
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              {isDailyChallenge && (
-                <div className="inline-flex px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                  Daily Challenge Complete
-                </div>
-              )}
-              {challengeType === ChallengeType.FRIEND && (
-                <div className="inline-flex px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                  Friend Challenge Complete
-                </div>
-              )}
-              {!isDailyChallenge && challengeType !== ChallengeType.FRIEND && (
-                <div className="inline-flex px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                  Free Play Complete
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-[0.24em] mb-2">
-                  {rulesetLabel}
-                </p>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">Run Complete</h2>
-                <p className="text-slate-400 text-sm mt-2">
-                  {correctAnswers} correct, {skippedCount} skipped, {formatDuration(durationSecs)} on the clock.
-                </p>
-              </div>
-              <div className="shrink-0 rounded-3xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-center min-w-[5.5rem]">
-                <div className="text-3xl font-black text-cyan-300 leading-none">{grade.letter}</div>
-                <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/80 mt-1">{grade.label}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-3 mb-5">
-              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
-                <div className="text-xl sm:text-2xl font-bold text-emerald-400">{score}</div>
-                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Score</div>
-              </div>
-              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
-                <div className="text-xl sm:text-2xl font-bold text-cyan-300">{bonusScore}</div>
-                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Bonus</div>
-              </div>
-              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
-                <div className="text-xl sm:text-2xl font-bold text-red-400">{errors}</div>
-                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Errors</div>
-              </div>
-              <div className="rounded-2xl bg-slate-800/60 border border-white/5 p-3 text-center">
-                <div className="text-xl sm:text-2xl font-bold text-amber-400">{bestStreak}</div>
-                <div className="text-[10px] sm:text-xs text-slate-400 uppercase">Best Streak</div>
-              </div>
-            </div>
-
-            {personalBestBadges.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-5">
-                {personalBestBadges.map((badge) => (
-                  <span
-                    key={badge.key}
-                    className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest border ${
-                      badge.tone === 'emerald'
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                        : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                    }`}
-                  >
-                    {badge.text}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.92fr)] lg:items-start lg:gap-5 mb-5">
-              <div>
-                {runResult?.previousBest ? (
-                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                          Ruleset Comparison
-                        </div>
-                        <div className="mt-1 text-sm text-slate-300">
-                          Against your previous local best on this ruleset.
-                        </div>
+            <div className="rounded-[2rem] border border-cyan-400/18 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.12),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-5 sm:p-6 mb-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {isDailyChallenge && (
+                      <div className="inline-flex px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                        Daily Challenge Complete
                       </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {comparisonRows.map((row) => (
-                        <div
-                          key={row.label}
-                          className="rounded-2xl border border-white/6 bg-slate-950/35 p-3"
+                    )}
+                    {challengeType === ChallengeType.FRIEND && (
+                      <div className="inline-flex px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                        Friend Challenge Complete
+                      </div>
+                    )}
+                    {!isDailyChallenge && challengeType !== ChallengeType.FRIEND && (
+                      <div className="inline-flex px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                        Free Play Complete
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-slate-400 text-xs sm:text-sm uppercase tracking-[0.24em] mb-2">
+                    {rulesetLabel}
+                  </p>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white">Run Complete</h2>
+                  <p className="text-slate-300 text-sm mt-2">
+                    {correctAnswers} correct, {skippedCount} skipped, {formatDuration(durationSecs)} on the clock.
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-3xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-center min-w-[5.5rem]">
+                  <div className="text-3xl font-black text-cyan-300 leading-none">{grade.letter}</div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/80 mt-1">{grade.label}</div>
+                </div>
+              </div>
+
+              <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end lg:gap-6">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Final Score</div>
+                  <div className="mt-2 text-5xl sm:text-6xl font-black tracking-tight text-white leading-none">
+                    {score}
+                  </div>
+                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-300">
+                    {bonusScore > 0
+                      ? `${bonusScore} bonus points helped shape this run.`
+                      : 'This run was mostly built on base points.'}{' '}
+                    {errors === 0
+                      ? 'No errors on the board.'
+                      : `${errors} errors still left room to improve.`}
+                  </p>
+                  {personalBestBadges.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {personalBestBadges.map((badge) => (
+                        <span
+                          key={badge.key}
+                          className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-widest border ${
+                            badge.tone === 'emerald'
+                              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                              : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                          }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
-                              {row.label}
-                            </span>
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                          {badge.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-5 lg:mt-0">
+                  <div className="rounded-2xl border border-white/8 bg-slate-950/35 px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Time</div>
+                    <div className="mt-2 text-2xl font-bold text-white">{formatDuration(durationSecs)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-slate-950/35 px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Errors</div>
+                    <div className="mt-2 text-2xl font-bold text-rose-300">{errors}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-slate-950/35 px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Best Streak</div>
+                    <div className="mt-2 text-2xl font-bold text-amber-300">{bestStreak}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-slate-950/35 px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Bonus</div>
+                    <div className="mt-2 text-2xl font-bold text-cyan-300">{bonusScore}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5 mb-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+              {comparisonRows.length > 0 ? (
+                <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
+                      Compared To Your Best
+                    </h3>
+                    <span className="text-xs text-slate-500">Same ruleset</span>
+                  </div>
+                  <div className="space-y-3">
+                    {comparisonRows.map((row) => (
+                      <div key={row.label} className="rounded-xl border border-white/6 bg-slate-950/25 px-4 py-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-white">{row.label}</div>
+                            <div className="text-xs text-slate-500 mt-1">Best: {row.previous}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-base font-bold text-white">{row.current}</div>
+                            <div
+                              className={`text-xs font-semibold mt-1 ${
                                 row.tone === 'better'
-                                  ? 'bg-emerald-500/12 text-emerald-200'
+                                  ? 'text-emerald-300'
                                   : row.tone === 'worse'
-                                    ? 'bg-rose-500/12 text-rose-200'
-                                    : 'bg-amber-500/12 text-amber-200'
+                                    ? 'text-rose-300'
+                                    : 'text-cyan-300'
                               }`}
                             >
                               {row.delta}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex items-end justify-between gap-4">
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                                Previous
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-slate-200">
-                                {row.previous}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                                This Run
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-cyan-200">
-                                {row.current}
-                              </div>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4 mb-5">
-                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                      First Local Benchmark
-                    </div>
-                    <div className="mt-2 text-white font-semibold">
-                      This is the first saved run for {rulesetLabel} on this device.
-                    </div>
-                    <div className="mt-2 text-sm text-slate-400">
-                      Future attempts will compare score, errors, streak, and clean-clear time against this mark.
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
-                      Score Breakdown
-                    </h3>
-                    <span className="text-xs text-slate-500">{baseScore} base + {bonusScore} bonus</span>
-                  </div>
-                  <div className="space-y-2">
-                    {scoreLines.map((line) => (
-                      <div key={line.id} className="flex items-center justify-between text-sm">
-                        <div className="min-w-0">
-                          <span className="text-slate-200">{line.label}</span>
-                          {line.count > 0 && line.id !== 'noSkipFinish' && line.id !== 'flawlessFinish' && (
-                            <span className="text-slate-500 text-xs ml-2">x{line.count}</span>
-                          )}
-                        </div>
-                        <span className="font-semibold text-cyan-300">+{line.points}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 text-sm">
-                    <span className="text-slate-400">Max possible on this ruleset</span>
-                    <span className="text-white font-semibold">{maxPossibleScore}</span>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                    First Local Benchmark
+                  </div>
+                  <div className="mt-2 text-white font-semibold">
+                    This is the first saved run for {rulesetLabel} on this device.
+                  </div>
+                  <div className="mt-2 text-sm text-slate-400">
+                    Future attempts will compare score, errors, streak, and clean-clear time against this mark.
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="mt-5 lg:mt-0">
-                <div className="rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_55%),linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.92))] p-4">
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/85 font-semibold mb-3">
-                    Shareable Snapshot
-                  </div>
-                  <div className="flex items-end justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="text-4xl font-black text-white leading-none">{score}</div>
-                      <div className="mt-2 text-sm font-semibold text-cyan-200">{rulesetLabel}</div>
+              <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
+                    Score Breakdown
+                  </h3>
+                  <span className="text-xs text-slate-500">{baseScore} base + {bonusScore} bonus</span>
+                </div>
+                <div className="space-y-2">
+                  {scoreLines.map((line) => (
+                    <div
+                      key={line.id}
+                      className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 bg-slate-950/20 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-slate-200">{line.label}</span>
+                        {line.count > 0 && line.id !== 'noSkipFinish' && line.id !== 'flawlessFinish' && (
+                          <span className="text-slate-500 text-xs ml-2">x{line.count}</span>
+                        )}
+                      </div>
+                      <span className="font-semibold text-cyan-300 shrink-0">+{line.points}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-right">
-                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Grade</div>
-                        <div className="text-lg font-bold text-white">{grade.letter}</div>
-                      </div>
-                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Time</div>
-                        <div className="text-lg font-bold text-white">{formatDuration(durationSecs)}</div>
-                      </div>
-                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Errors</div>
-                        <div className="text-lg font-bold text-white">{errors}</div>
-                      </div>
-                      <div className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Streak</div>
-                        <div className="text-lg font-bold text-white">{bestStreak}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                    {isDailyChallenge
-                      ? 'Built for sharing the daily board with a concrete score to beat.'
-                      : challengeType === ChallengeType.FRIEND
-                        ? 'A clean rematch card for the same seed and the same rules.'
-                        : 'A simple result card that gives people a score, ruleset, and target to chase.'}
-                  </p>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 text-sm">
+                  <span className="text-slate-400">Max possible on this ruleset</span>
+                  <span className="text-white font-semibold">{maxPossibleScore}</span>
                 </div>
               </div>
             </div>
 
-            <div className={`grid gap-4 mb-5 ${nextSuggestion ? 'lg:grid-cols-2' : ''}`}>
-              <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-300 font-semibold mb-2">
-                  Primary Replay
-                </div>
-                <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
-                <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
+            <div className="mb-5">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-semibold mb-3">
+                Recommended Next Step
               </div>
-
-              {nextSuggestion && (
-                <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-semibold mb-2">
-                    Next Suggestion
-                  </div>
-                  <div className="text-white font-semibold">{nextSuggestion.label}</div>
-                  <div className="text-sm text-slate-300 mt-1">{nextSuggestion.helper}</div>
+              <div className={`grid gap-4 ${nextSuggestion ? 'lg:grid-cols-2' : ''}`}>
+                <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4">
+                  <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
+                  <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
                 </div>
-              )}
+
+                {nextSuggestion && (
+                  <div className="rounded-2xl bg-slate-800/45 border border-white/5 p-4">
+                    <div className="text-white font-semibold">{nextSuggestion.label}</div>
+                    <div className="text-sm text-slate-300 mt-1">{nextSuggestion.helper}</div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {submitState !== SubmitState.SUBMITTED && (
