@@ -285,7 +285,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.94, opacity: 0, y: 28 }}
             transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-            className={`relative flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] border border-white/10 px-4 pt-4 shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-[2rem] sm:px-6 sm:pt-6 ${toneClasses.shell}`}
+            className={`relative flex h-[92dvh] w-full flex-col overflow-y-auto rounded-t-[2rem] border border-white/10 px-4 pt-4 shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-[2rem] sm:px-6 sm:pt-6 ${toneClasses.shell}`}
             style={{ paddingBottom: 'max(1rem, var(--sab))' }}
           >
             <div className="shrink-0 space-y-4 border-b border-white/6 pb-4">
@@ -320,7 +320,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto pb-2 pt-5">
+            <div className="pb-2 pt-5">
               {loading && <LeaderboardSkeleton />}
 
               {!loading && errorMessage && (
