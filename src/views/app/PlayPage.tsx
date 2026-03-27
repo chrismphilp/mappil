@@ -6,6 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import { loadGeoJson, type GeoJsonLoadStage } from '../../data/maps';
 import { ContinentFilter, Difficulty, GameMode, ChallengeType } from '../../types/game.types';
 import LoadingOverlay from '../../components/app/LoadingOverlay';
+import PerformanceDebugPanel, {
+  type PerformanceSample,
+  type PerformanceTimings,
+} from '../../components/app/PerformanceDebugPanel';
 import GameContent, { preloadGlobe } from '../../components/game/GameContent';
 import { getDailyChallengeConfig } from '../../lib/dailyChallenge';
 import { getFriendChallenge, FriendChallenge } from '../../lib/friendChallenge';
@@ -44,6 +48,7 @@ const PlayPage: FC<PlayPageProps> = ({
   const searchParams = useSearchParams();
   const isDaily = dailyChallenge || searchParams?.get('daily') === 'true';
   const challengeParam = searchParams?.get('challenge') ?? null;
+  const perfEnabled = searchParams?.get('perf') === '1';
 
   const dailyConfig = useMemo(() => isDaily ? getDailyChallengeConfig() : null, [isDaily]);
 
@@ -106,7 +111,52 @@ const PlayPage: FC<PlayPageProps> = ({
   const [globeModuleLoaded, setGlobeModuleLoaded] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
   const globeReadyRef = useRef(false);
+  const perfStartRef = useRef<number | null>(null);
+  const [perfTimings, setPerfTimings] = useState<PerformanceTimings>({
+    challengeResolvedMs: null,
+    dataReadyMs: null,
+    geometryReadyMs: null,
+    globeModuleReadyMs: null,
+    interactiveMs: null,
+  });
+  const [fpsSample, setFpsSample] = useState<PerformanceSample | null>(null);
   const dataLoaded = geoJsonStage === 'ready';
+
+  const recordPerfTiming = useCallback(
+    (key: keyof PerformanceTimings) => {
+      if (!perfEnabled || perfStartRef.current === null) {
+        return;
+      }
+
+      setPerfTimings((current) => {
+        if (current[key] !== null) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [key]: performance.now() - perfStartRef.current!,
+        };
+      });
+    },
+    [perfEnabled],
+  );
+
+  useEffect(() => {
+    if (!perfEnabled) {
+      return;
+    }
+
+    perfStartRef.current = performance.now();
+    setPerfTimings({
+      challengeResolvedMs: challengeParam ? null : 0,
+      dataReadyMs: null,
+      geometryReadyMs: null,
+      globeModuleReadyMs: null,
+      interactiveMs: null,
+    });
+    setFpsSample(null);
+  }, [challengeParam, perfEnabled]);
 
   useEffect(() => {
     let active = true;
@@ -141,6 +191,25 @@ const PlayPage: FC<PlayPageProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!friendConfigLoading) {
+      recordPerfTiming('challengeResolvedMs');
+    }
+  }, [friendConfigLoading, recordPerfTiming]);
+
+  useEffect(() => {
+    if (geoJsonStage === 'ready') {
+      recordPerfTiming('dataReadyMs');
+      recordPerfTiming('geometryReadyMs');
+    }
+  }, [geoJsonStage, recordPerfTiming]);
+
+  useEffect(() => {
+    if (globeModuleLoaded) {
+      recordPerfTiming('globeModuleReadyMs');
+    }
+  }, [globeModuleLoaded, recordPerfTiming]);
+
   const handleGlobeReady = useCallback(() => {
     if (!globeReadyRef.current) {
       globeReadyRef.current = true;
@@ -148,10 +217,48 @@ const PlayPage: FC<PlayPageProps> = ({
     }
   }, []);
 
-  if (challengeParam && !friendConfig && !friendConfigLoading) {
-    const onlineFeaturesUnavailable =
-      friendChallengeError === SUPABASE_UNAVAILABLE_MESSAGE;
+  useEffect(() => {
+    if (globeReady) {
+      recordPerfTiming('interactiveMs');
+    }
+  }, [globeReady, recordPerfTiming]);
 
+  useEffect(() => {
+    if (!perfEnabled || !globeReady) {
+      return;
+    }
+
+    let frameCount = 0;
+    let rafId = 0;
+    const sampleStart = performance.now();
+
+    const tick = (now: number) => {
+      frameCount += 1;
+
+      if (now - sampleStart >= 2000) {
+        const durationMs = now - sampleStart;
+        setFpsSample({
+          avgFps: (frameCount * 1000) / durationMs,
+          durationMs,
+          frames: frameCount,
+        });
+        return;
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [globeReady, perfEnabled]);
+
+  const onlineFeaturesUnavailable =
+    friendChallengeError === SUPABASE_UNAVAILABLE_MESSAGE;
+
+  if (challengeParam && !friendConfig && !friendConfigLoading) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">
@@ -224,6 +331,15 @@ const PlayPage: FC<PlayPageProps> = ({
         <LoadingOverlay
           label={loadingState.label}
           progress={loadingState.progress}
+        />
+      )}
+      {perfEnabled && (
+        <PerformanceDebugPanel
+          experienceLabel="full"
+          geometryTierLabel="full"
+          hasChallenge={!!challengeParam}
+          timings={perfTimings}
+          fpsSample={fpsSample}
         />
       )}
     </>
