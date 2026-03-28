@@ -291,7 +291,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       const capMaterial = conicMaterials[conicMaterials.length - 1];
 
       if (capMaterial) {
-        capMaterial.depthWrite = true;
+        capMaterial.depthWrite = landMask;
+        capMaterial.side = landMask ? 2 : 0;
         capMaterial.polygonOffset = true;
         capMaterial.polygonOffsetFactor = landMask ? -1 : -2;
         capMaterial.polygonOffsetUnits = landMask ? -1 : -2;
@@ -361,7 +362,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   );
 
   const getStrokeColor = useCallback(
-    (d: any) => (isLandMaskFeature(d) ? 'rgba(0, 0, 0, 0)' : 'rgba(148, 163, 184, 0.2)'),
+    (d: any) => (isLandMaskFeature(d) ? 'rgba(0, 0, 0, 0)' : 'rgba(148, 163, 184, 0.32)'),
     []
   );
   const getCapCurvatureResolution = useCallback((d: any) => {
