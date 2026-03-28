@@ -42,6 +42,8 @@ const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
   'Sri Lanka',
   'Somalia',
 ]);
+const FOUND_POLYGON_ALTITUDE = 0.008;
+const FOUND_POLYGON_SIDE_COLOR = 'rgba(71, 85, 105, 0.92)';
 
 interface GlobeProps {
   regionsFound: string[];
@@ -318,7 +320,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     (d: any) => {
       if (isLandMaskFeature(d)) return '';
       const name = d.properties.name_long;
-      if (regionsFoundSet.has(name)) return 'rgba(16, 185, 129, 0.6)';
+      if (regionsFoundSet.has(name)) return FOUND_POLYGON_SIDE_COLOR;
       return '';
     },
     [regionsFoundSet]
@@ -328,7 +330,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     (d: any) => {
       if (isLandMaskFeature(d)) return 0.0006;
       const name = d.properties.name_long;
-      if (regionsFoundSet.has(name)) return 0.02;
+      if (regionsFoundSet.has(name)) return FOUND_POLYGON_ALTITUDE;
       if (ULTRA_PRECISION_CAP_COUNTRIES.has(name) || HIGH_PRECISION_CAP_COUNTRIES.has(name)) {
         return 0.0025;
       }
