@@ -263,12 +263,21 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       const capMaterial = conicMaterials[conicMaterials.length - 1];
 
       if (capMaterial) {
-        capMaterial.depthWrite = landMask;
-        capMaterial.side = landMask ? 2 : 0;
-        capMaterial.polygonOffset = true;
-        capMaterial.polygonOffsetFactor = landMask ? -1 : -2;
-        capMaterial.polygonOffsetUnits = landMask ? -1 : -2;
-        capMaterial.needsUpdate = true;
+        if (isCoarsePointer) {
+          capMaterial.depthWrite = false;
+          capMaterial.side = 2;
+          capMaterial.polygonOffset = true;
+          capMaterial.polygonOffsetFactor = -1;
+          capMaterial.polygonOffsetUnits = -1;
+          capMaterial.needsUpdate = true;
+        } else {
+          capMaterial.depthWrite = landMask;
+          capMaterial.side = landMask ? 2 : 0;
+          capMaterial.polygonOffset = true;
+          capMaterial.polygonOffsetFactor = landMask ? -1 : -2;
+          capMaterial.polygonOffsetUnits = landMask ? -1 : -2;
+          capMaterial.needsUpdate = true;
+        }
       }
 
       if (strokeObj?.material) {
@@ -276,7 +285,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         strokeObj.material.needsUpdate = true;
       }
     });
-  }, []);
+  }, [isCoarsePointer]);
 
   useEffect(() => {
     let frameId = requestAnimationFrame(() => {
