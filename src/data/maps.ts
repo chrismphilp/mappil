@@ -1,7 +1,35 @@
 import { Difficulty, ContinentFilter } from '../types/game.types';
 
-let geoJsonData: any = null;
+let desktopGeoJsonData: any = null;
+let mobileGeoJsonData: any = null;
 let landMaskData: any = null;
+
+type GeoJsonVariant = 'desktop' | 'mobile';
+
+function getPreferredGeoJsonVariant(): GeoJsonVariant {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'desktop';
+  }
+
+  return window.matchMedia('(pointer: coarse)').matches ? 'mobile' : 'desktop';
+}
+
+function getGeoJsonUrl(variant: GeoJsonVariant): string {
+  return variant === 'mobile' ? '/data/world.mobile.geo.json' : '/data/world.optimized.geo.json';
+}
+
+function getCachedGeoJsonData(variant: GeoJsonVariant): any {
+  return variant === 'mobile' ? mobileGeoJsonData : desktopGeoJsonData;
+}
+
+function setCachedGeoJsonData(variant: GeoJsonVariant, data: any) {
+  if (variant === 'mobile') {
+    mobileGeoJsonData = data;
+    return;
+  }
+
+  desktopGeoJsonData = data;
+}
 
 export type GeoJsonLoadStage = 'loading' | 'parsing' | 'ready';
 
@@ -13,29 +41,38 @@ export interface GeoJsonLoadState {
 export async function loadGeoJson(
   onStateChange?: (state: GeoJsonLoadState) => void,
 ): Promise<any> {
-  if (geoJsonData && landMaskData) {
+  const variant = getPreferredGeoJsonVariant();
+  const cachedGeoJsonData = getCachedGeoJsonData(variant);
+  const needsLandMask = variant === 'desktop';
+
+  if (cachedGeoJsonData && (!needsLandMask || landMaskData)) {
     onStateChange?.({ stage: 'ready', fraction: 1 });
-    return geoJsonData;
+    return cachedGeoJsonData;
   }
 
   onStateChange?.({ stage: 'loading', fraction: 0 });
-  const landMaskPromise = landMaskData
-    ? Promise.resolve(landMaskData)
-    : fetch('/data/world.landmask.geo.json').then(async (response) => {
-        landMaskData = await response.json();
-        return landMaskData;
-      });
+  const landMaskPromise = needsLandMask
+    ? landMaskData
+      ? Promise.resolve(landMaskData)
+      : fetch('/data/world.landmask.geo.json').then(async (response) => {
+          landMaskData = await response.json();
+          return landMaskData;
+        })
+    : Promise.resolve(null);
 
-  const response = await fetch('/data/world.optimized.geo.json');
+  const response = await fetch(getGeoJsonUrl(variant));
   const contentLength = response.headers.get('Content-Length');
 
   if (!contentLength || !response.body) {
     const text = await response.text();
     onStateChange?.({ stage: 'parsing' });
-    geoJsonData = JSON.parse(text);
-    await landMaskPromise;
+    const parsedData = JSON.parse(text);
+    setCachedGeoJsonData(variant, parsedData);
+    if (needsLandMask) {
+      await landMaskPromise;
+    }
     onStateChange?.({ stage: 'ready', fraction: 1 });
-    return geoJsonData;
+    return parsedData;
   }
 
   const total = parseInt(contentLength, 10);
@@ -59,14 +96,23 @@ export async function loadGeoJson(
   }
 
   onStateChange?.({ stage: 'parsing' });
-  geoJsonData = JSON.parse(new TextDecoder().decode(merged));
-  await landMaskPromise;
+  const parsedData = JSON.parse(new TextDecoder().decode(merged));
+  setCachedGeoJsonData(variant, parsedData);
+  if (needsLandMask) {
+    await landMaskPromise;
+  }
   onStateChange?.({ stage: 'ready', fraction: 1 });
-  return geoJsonData;
+  return parsedData;
 }
 
 export function getGeoJsonData(): any {
-  return geoJsonData;
+  const variant = getPreferredGeoJsonVariant();
+
+  if (variant === 'mobile') {
+    return mobileGeoJsonData ?? desktopGeoJsonData;
+  }
+
+  return desktopGeoJsonData ?? mobileGeoJsonData;
 }
 
 export function getLandMaskData(): any {
