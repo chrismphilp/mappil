@@ -1,6 +1,6 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import { getGeoJsonData } from '../../data/maps';
+import { getGeoJsonData, getLandMaskData } from '../../data/maps';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',
@@ -14,6 +14,7 @@ const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Djibouti',
   'Egypt',
   'Eritrea',
+  'India',
   'Niger',
   'Nigeria',
   'Norway',
@@ -119,12 +120,21 @@ function isPolygonPointerTarget(obj: any): boolean {
   return false;
 }
 
+function isLandMaskFeature(feature: any): boolean {
+  return Boolean(feature?.properties?.__landMask);
+}
+
 const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
 
   const geoJsonData = getGeoJsonData();
+  const landMaskData = getLandMaskData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
+  const globePolygons = useMemo(
+    () => [...(landMaskData?.features ?? []), ...(geoJsonData?.features ?? [])],
+    [geoJsonData, landMaskData]
+  );
   const updateCameraClipping = useCallback(() => {
     const globe = globeRef.current;
     const camera = globe?.camera?.();
@@ -215,7 +225,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
 
   const handlePolygonHover = useCallback((polygon: any) => {
-    hoveredPolygonRef.current = polygon;
+    hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -295,6 +305,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getCapColor = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return 'rgba(71, 85, 105, 0.92)';
       const name = d.properties.name_long;
       if (flyToRegion && name === flyToRegion) return 'rgba(251, 191, 36, 0.85)';
       if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
@@ -305,6 +316,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getSideColor = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return '';
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 'rgba(16, 185, 129, 0.6)';
       return '';
@@ -314,6 +326,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getAltitude = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return 0;
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 0.02;
       if (ULTRA_PRECISION_CAP_COUNTRIES.has(name) || HIGH_PRECISION_CAP_COUNTRIES.has(name)) {
@@ -327,6 +340,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   // Only show label for already-found countries
   const getLabel = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return '';
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) {
         return `<span style="color: #34d399; font-family: Inter, sans-serif; font-size: 13px;">${name} ✓</span>`;
@@ -336,8 +350,12 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     [regionsFoundSet]
   );
 
-  const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
+  const getStrokeColor = useCallback(
+    (d: any) => (isLandMaskFeature(d) ? 'rgba(0, 0, 0, 0)' : 'rgba(148, 163, 184, 0.2)'),
+    []
+  );
   const getCapCurvatureResolution = useCallback((d: any) => {
+    if (isLandMaskFeature(d)) return 6;
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 3;
     if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 4;
@@ -372,7 +390,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         atmosphereAltitude={0.2}
         pointerEventsFilter={isPolygonPointerTarget}
         onGlobeReady={handleGlobeReady}
-        polygonsData={geoJsonData?.features}
+        polygonsData={globePolygons}
         polygonCapColor={getCapColor}
         polygonSideColor={getSideColor}
         polygonStrokeColor={getStrokeColor}
