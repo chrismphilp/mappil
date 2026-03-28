@@ -3,6 +3,7 @@ export const GLOBE_THEME = {
   oceanHighlight: '#0c1b33',
   atmosphereColor: '#38bdf8',
   atmosphereAltitude: 0.14,
+  countryLandMaskCap: 'rgb(100, 116, 139)',
   countryDefaultCap: 'rgba(100, 116, 139, 0.72)',
   countryDefaultStroke: 'rgba(148, 163, 184, 0.18)',
   countryFoundCap: 'rgba(52, 211, 153, 0.9)',

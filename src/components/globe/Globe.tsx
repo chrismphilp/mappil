@@ -1,6 +1,7 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
-import { getGeoJsonData } from '../../data/maps';
+import { getGeoJsonData, getLandMaskData } from '../../data/maps';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import {
   createOceanTextureDataUrl,
   GLOBE_THEME,
@@ -109,12 +110,36 @@ function getTargetPixelRatio() {
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
 
+function isPolygonPointerTarget(obj: any): boolean {
+  let current = obj;
+
+  while (current) {
+    if (current.__globeObjType === 'polygon') return true;
+    current = current.parent;
+  }
+
+  return false;
+}
+
+function isLandMaskFeature(feature: any): boolean {
+  return Boolean(feature?.properties?.__landMask);
+}
+
 const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
+  const { isCoarsePointer } = useIsMobileViewport();
 
   const geoJsonData = getGeoJsonData();
+  const landMaskData = getLandMaskData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
+  const globePolygons = useMemo(
+    () =>
+      isCoarsePointer
+        ? [...(geoJsonData?.features ?? [])]
+        : [...(landMaskData?.features ?? []), ...(geoJsonData?.features ?? [])],
+    [geoJsonData, isCoarsePointer, landMaskData]
+  );
   const updateCameraClipping = useCallback(() => {
     const globe = globeRef.current;
     const camera = globe?.camera?.();
@@ -193,16 +218,48 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const hoveredPolygonRef = useRef<any>(null);
   const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
+  const touchGestureRef = useRef<{ activePointerIds: Set<number>; suppressClick: boolean }>({
+    activePointerIds: new Set(),
+    suppressClick: false,
+  });
 
   const handlePolygonHover = useCallback((polygon: any) => {
-    hoveredPolygonRef.current = polygon;
+    hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer) return;
+
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.add(e.pointerId);
+
+      if (touchGesture.activePointerIds.size > 1) {
+        touchGesture.suppressClick = true;
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
     pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
-  }, []);
+  }, [isCoarsePointer]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer) return;
+
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.delete(e.pointerId);
+
+      if (touchGesture.suppressClick) {
+        if (touchGesture.activePointerIds.size === 0) {
+          touchGesture.suppressClick = false;
+        }
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
     // If OrbitControls or something swallowed pointerdown, default to current event
     const downTime = pointerDownPos.current.time || Date.now();
     const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
@@ -229,7 +286,23 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         }, 50);
       }
     }
-  }, [onRegionClick]);
+  }, [isCoarsePointer, onRegionClick]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer || e.pointerType !== 'touch') return;
+
+    const touchGesture = touchGestureRef.current;
+    touchGesture.activePointerIds.delete(e.pointerId);
+    if (touchGesture.activePointerIds.size === 0) {
+      touchGesture.suppressClick = false;
+    }
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+  }, [isCoarsePointer]);
+
+  const handlePolygonClick = useCallback((polygon: any) => {
+    if (isCoarsePointer || isLandMaskFeature(polygon)) return;
+    onRegionClick(polygon.properties.name_long);
+  }, [isCoarsePointer, onRegionClick]);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -237,9 +310,18 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
     scene.traverse((obj: any) => {
       if (obj?.__globeObjType !== 'polygon') return;
+      const feature = obj.__data?.data;
+      const landMask = isLandMaskFeature(feature);
+      obj.renderOrder = landMask ? 0 : 1;
 
       const conicObj = obj.children?.[0];
       const strokeObj = obj.children?.[1];
+      if (conicObj) {
+        conicObj.renderOrder = obj.renderOrder;
+      }
+      if (strokeObj) {
+        strokeObj.renderOrder = 2;
+      }
       const conicMaterials = Array.isArray(conicObj?.material)
         ? conicObj.material
         : conicObj?.material
@@ -248,12 +330,21 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       const capMaterial = conicMaterials[conicMaterials.length - 1];
 
       if (capMaterial) {
-        capMaterial.depthWrite = false;
-        capMaterial.side = 2;
-        capMaterial.polygonOffset = true;
-        capMaterial.polygonOffsetFactor = -1;
-        capMaterial.polygonOffsetUnits = -1;
-        capMaterial.needsUpdate = true;
+        if (isCoarsePointer) {
+          capMaterial.depthWrite = false;
+          capMaterial.side = 2;
+          capMaterial.polygonOffset = true;
+          capMaterial.polygonOffsetFactor = -1;
+          capMaterial.polygonOffsetUnits = -1;
+          capMaterial.needsUpdate = true;
+        } else {
+          capMaterial.depthWrite = landMask;
+          capMaterial.side = landMask ? 2 : 0;
+          capMaterial.polygonOffset = true;
+          capMaterial.polygonOffsetFactor = landMask ? -1 : -2;
+          capMaterial.polygonOffsetUnits = landMask ? -1 : -2;
+          capMaterial.needsUpdate = true;
+        }
       }
 
       if (strokeObj?.material) {
@@ -261,7 +352,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         strokeObj.material.needsUpdate = true;
       }
     });
-  }, []);
+  }, [isCoarsePointer]);
 
   useEffect(() => {
     let frameId = requestAnimationFrame(() => {
@@ -271,10 +362,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     return () => {
       cancelAnimationFrame(frameId);
     };
-  }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
+  }, [patchPolygonMaterials, geoJsonData, landMaskData, regionsFound, flyToRegion]);
 
   const getCapColor = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return GLOBE_THEME.countryLandMaskCap;
       const name = d.properties.name_long;
       return getPolygonCapColor({
         isFlyTo: flyToRegion === name,
@@ -286,6 +378,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getSideColor = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return GLOBE_THEME.transparent;
       const name = d.properties.name_long;
       return getPolygonSideColor({ isFound: regionsFoundSet.has(name) });
     },
@@ -294,6 +387,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getAltitude = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return 0.0006;
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 0.02;
       if (ULTRA_PRECISION_CAP_COUNTRIES.has(name) || HIGH_PRECISION_CAP_COUNTRIES.has(name)) {
@@ -307,14 +401,19 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   // Only show label for already-found countries
   const getLabel = useCallback(
     (d: any) => {
+      if (isLandMaskFeature(d)) return '';
       const name = d.properties.name_long;
       return getFoundCountryLabelHtml(name, regionsFoundSet.has(name));
     },
     [regionsFoundSet]
   );
 
-  const getStrokeColor = useCallback(() => getPolygonStrokeColor(), []);
+  const getStrokeColor = useCallback(
+    (d: any) => (isLandMaskFeature(d) ? GLOBE_THEME.transparent : getPolygonStrokeColor()),
+    []
+  );
   const getCapCurvatureResolution = useCallback((d: any) => {
+    if (isLandMaskFeature(d)) return 1;
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 1;
     if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 2;
@@ -333,6 +432,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     <div
       style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
       onPointerDownCapture={handlePointerDown}
+      onPointerCancelCapture={handlePointerCancel}
       onPointerUpCapture={handlePointerUp}
     >
       <GlobeGL
@@ -347,8 +447,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         showAtmosphere={true}
         atmosphereColor={GLOBE_THEME.atmosphereColor}
         atmosphereAltitude={GLOBE_THEME.atmosphereAltitude}
+        pointerEventsFilter={isPolygonPointerTarget}
         onGlobeReady={handleGlobeReady}
-        polygonsData={geoJsonData?.features}
+        polygonsData={globePolygons}
         polygonCapColor={getCapColor}
         polygonSideColor={getSideColor}
         polygonStrokeColor={getStrokeColor}
@@ -356,6 +457,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         polygonCapCurvatureResolution={getCapCurvatureResolution}
         polygonLabel={getLabel}
         onPolygonHover={handlePolygonHover}
+        onPolygonClick={handlePolygonClick}
         onZoom={handleZoom}
         polygonsTransitionDuration={0}
       />

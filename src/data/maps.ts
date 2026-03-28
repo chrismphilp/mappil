@@ -1,6 +1,15 @@
 import { Difficulty, ContinentFilter } from '../types/game.types';
 
 let geoJsonData: any = null;
+let landMaskData: any = null;
+
+function shouldLoadLandMask() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return true;
+  }
+
+  return !window.matchMedia('(pointer: coarse)').matches;
+}
 
 export type GeoJsonLoadStage = 'loading' | 'parsing' | 'ready';
 
@@ -12,12 +21,22 @@ export interface GeoJsonLoadState {
 export async function loadGeoJson(
   onStateChange?: (state: GeoJsonLoadState) => void,
 ): Promise<any> {
-  if (geoJsonData) {
+  const needsLandMask = shouldLoadLandMask();
+
+  if (geoJsonData && (!needsLandMask || landMaskData)) {
     onStateChange?.({ stage: 'ready', fraction: 1 });
     return geoJsonData;
   }
 
   onStateChange?.({ stage: 'loading', fraction: 0 });
+  const landMaskPromise = needsLandMask
+    ? landMaskData
+      ? Promise.resolve(landMaskData)
+      : fetch('/data/world.landmask.geo.json').then(async (response) => {
+          landMaskData = await response.json();
+          return landMaskData;
+        })
+    : Promise.resolve(null);
 
   const response = await fetch('/data/world.optimized.geo.json');
   const contentLength = response.headers.get('Content-Length');
@@ -26,6 +45,7 @@ export async function loadGeoJson(
     const text = await response.text();
     onStateChange?.({ stage: 'parsing' });
     geoJsonData = JSON.parse(text);
+    await landMaskPromise;
     onStateChange?.({ stage: 'ready', fraction: 1 });
     return geoJsonData;
   }
@@ -52,12 +72,17 @@ export async function loadGeoJson(
 
   onStateChange?.({ stage: 'parsing' });
   geoJsonData = JSON.parse(new TextDecoder().decode(merged));
+  await landMaskPromise;
   onStateChange?.({ stage: 'ready', fraction: 1 });
   return geoJsonData;
 }
 
 export function getGeoJsonData(): any {
   return geoJsonData;
+}
+
+export function getLandMaskData(): any {
+  return landMaskData;
 }
 
 const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
