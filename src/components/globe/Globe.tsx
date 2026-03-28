@@ -103,17 +103,6 @@ function getTargetPixelRatio() {
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
 
-function isPolygonPointerTarget(obj: any): boolean {
-  let current = obj;
-
-  while (current) {
-    if (current.__globeObjType === 'polygon') return true;
-    current = current.parent;
-  }
-
-  return false;
-}
-
 const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
@@ -334,9 +323,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
   const getCapCurvatureResolution = useCallback((d: any) => {
     const name = d.properties.name_long;
-    if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 3;
-    if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 4;
-    return 6;
+    if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 1;
+    if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 2;
+    return 5;
   }, []);
   const handleGlobeReady = useCallback(() => {
     globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
@@ -361,11 +350,10 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={6}
+        globeCurvatureResolution={4}
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
-        pointerEventsFilter={isPolygonPointerTarget}
         onGlobeReady={handleGlobeReady}
         polygonsData={geoJsonData?.features}
         polygonCapColor={getCapColor}
