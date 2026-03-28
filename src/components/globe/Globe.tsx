@@ -46,6 +46,7 @@ const DEFAULT_COUNTRY_CAP_COLOR = 'rgb(71, 85, 105)';
 const FOUND_COUNTRY_CAP_COLOR = 'rgb(52, 211, 153)';
 const FLY_TO_COUNTRY_CAP_COLOR = 'rgb(251, 191, 36)';
 const FOUND_POLYGON_ALTITUDE = 0.008;
+const CLICK_CAMERA_MOVE_THRESHOLD = 2;
 
 interface GlobeProps {
   regionsFound: string[];
@@ -227,8 +228,17 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const hoveredPolygonRef = useRef<any>(null);
   const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
-  const touchGestureRef = useRef<{ activePointerIds: Set<number>; suppressClick: boolean }>({
-    activePointerIds: new Set(),
+  const gestureStateRef = useRef<{
+    cameraX: number;
+    cameraY: number;
+    cameraZ: number;
+    hasCameraSnapshot: boolean;
+    suppressClick: boolean;
+  }>({
+    cameraX: 0,
+    cameraY: 0,
+    cameraZ: 0,
+    hasCameraSnapshot: false,
     suppressClick: false,
   });
 
@@ -236,33 +246,53 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
   }, []);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') {
-      const touchGesture = touchGestureRef.current;
-      touchGesture.activePointerIds.add(e.pointerId);
-
-      if (touchGesture.activePointerIds.size > 1) {
-        touchGesture.suppressClick = true;
-        pointerDownPos.current = { x: 0, y: 0, time: 0 };
-        return;
-      }
+  const snapshotPointerCamera = useCallback(() => {
+    const camera = globeRef.current?.camera?.();
+    if (!camera) {
+      gestureStateRef.current.hasCameraSnapshot = false;
+      return;
     }
 
-    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    gestureStateRef.current.cameraX = camera.position.x;
+    gestureStateRef.current.cameraY = camera.position.y;
+    gestureStateRef.current.cameraZ = camera.position.z;
+    gestureStateRef.current.hasCameraSnapshot = true;
   }, []);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') {
-      const touchGesture = touchGestureRef.current;
-      touchGesture.activePointerIds.delete(e.pointerId);
+  const updateGestureSuppressionFromCamera = useCallback(() => {
+    const gestureState = gestureStateRef.current;
+    if (!gestureState.hasCameraSnapshot) return;
 
-      if (touchGesture.suppressClick) {
-        if (touchGesture.activePointerIds.size === 0) {
-          touchGesture.suppressClick = false;
-        }
-        pointerDownPos.current = { x: 0, y: 0, time: 0 };
-        return;
-      }
+    const camera = globeRef.current?.camera?.();
+    if (!camera) return;
+
+    const dx = camera.position.x - gestureState.cameraX;
+    const dy = camera.position.y - gestureState.cameraY;
+    const dz = camera.position.z - gestureState.cameraZ;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (distance > CLICK_CAMERA_MOVE_THRESHOLD) {
+      gestureState.suppressClick = true;
+    }
+  }, []);
+
+  const resetGestureState = useCallback(() => {
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+    gestureStateRef.current.hasCameraSnapshot = false;
+    gestureStateRef.current.suppressClick = false;
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    gestureStateRef.current.suppressClick = false;
+    snapshotPointerCamera();
+    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+  }, [snapshotPointerCamera]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    updateGestureSuppressionFromCamera();
+    if (gestureStateRef.current.suppressClick) {
+      resetGestureState();
+      return;
     }
 
     // If OrbitControls or something swallowed pointerdown, default to current event
@@ -276,7 +306,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     const duration = Date.now() - downTime;
 
     // Reset pointer down state
-    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+    resetGestureState();
 
     // Relaxed tolerance for jittery touches/clicks (distance < 20px, duration < 600ms)
     if (distance < 20 && duration < 600) {
@@ -291,22 +321,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         }, 50);
       }
     }
+  }, [onRegionClick, resetGestureState, updateGestureSuppressionFromCamera]);
 
-    if (e.pointerType === 'touch' && touchGestureRef.current.activePointerIds.size === 0) {
-      touchGestureRef.current.suppressClick = false;
-    }
-  }, [onRegionClick]);
-
-  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType !== 'touch') return;
-
-    const touchGesture = touchGestureRef.current;
-    touchGesture.activePointerIds.delete(e.pointerId);
-    if (touchGesture.activePointerIds.size === 0) {
-      touchGesture.suppressClick = false;
-    }
-    pointerDownPos.current = { x: 0, y: 0, time: 0 };
-  }, []);
+  const handlePointerCancel = useCallback(() => {
+    resetGestureState();
+  }, [resetGestureState]);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -358,6 +377,22 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       cancelAnimationFrame(frameId);
     };
   }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
+
+  useEffect(() => {
+    const controls = globeRef.current?.controls?.();
+    if (!controls) return;
+
+    const handleControlsChange = () => {
+      if (!pointerDownPos.current.time) return;
+      updateGestureSuppressionFromCamera();
+    };
+
+    controls.addEventListener('change', handleControlsChange);
+
+    return () => {
+      controls.removeEventListener('change', handleControlsChange);
+    };
+  }, [updateGestureSuppressionFromCamera]);
 
   const getCapColor = useCallback(
     (d: any) => {
