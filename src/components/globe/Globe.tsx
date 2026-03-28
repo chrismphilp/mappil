@@ -42,8 +42,10 @@ const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
   'Sri Lanka',
   'Somalia',
 ]);
+const DEFAULT_COUNTRY_CAP_COLOR = 'rgb(71, 85, 105)';
+const FOUND_COUNTRY_CAP_COLOR = 'rgb(52, 211, 153)';
+const FLY_TO_COUNTRY_CAP_COLOR = 'rgb(251, 191, 36)';
 const FOUND_POLYGON_ALTITUDE = 0.008;
-const FOUND_POLYGON_SIDE_COLOR = 'rgba(71, 85, 105, 0.92)';
 
 interface GlobeProps {
   regionsFound: string[];
@@ -269,9 +271,18 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
     scene.traverse((obj: any) => {
       if (obj?.__globeObjType !== 'polygon') return;
+      const feature = obj.__data?.data;
+      const landMask = isLandMaskFeature(feature);
+      obj.renderOrder = landMask ? 0 : 1;
 
       const conicObj = obj.children?.[0];
       const strokeObj = obj.children?.[1];
+      if (conicObj) {
+        conicObj.renderOrder = obj.renderOrder;
+      }
+      if (strokeObj) {
+        strokeObj.renderOrder = 2;
+      }
       const conicMaterials = Array.isArray(conicObj?.material)
         ? conicObj.material
         : conicObj?.material
@@ -280,11 +291,10 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       const capMaterial = conicMaterials[conicMaterials.length - 1];
 
       if (capMaterial) {
-        capMaterial.depthWrite = false;
-        capMaterial.side = 2;
+        capMaterial.depthWrite = true;
         capMaterial.polygonOffset = true;
-        capMaterial.polygonOffsetFactor = -1;
-        capMaterial.polygonOffsetUnits = -1;
+        capMaterial.polygonOffsetFactor = landMask ? -1 : -2;
+        capMaterial.polygonOffsetUnits = landMask ? -1 : -2;
         capMaterial.needsUpdate = true;
       }
 
@@ -307,11 +317,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getCapColor = useCallback(
     (d: any) => {
-      if (isLandMaskFeature(d)) return 'rgba(71, 85, 105, 0.92)';
+      if (isLandMaskFeature(d)) return DEFAULT_COUNTRY_CAP_COLOR;
       const name = d.properties.name_long;
-      if (flyToRegion && name === flyToRegion) return 'rgba(251, 191, 36, 0.85)';
-      if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
-      return 'rgba(71, 85, 105, 0.6)';
+      if (flyToRegion && name === flyToRegion) return FLY_TO_COUNTRY_CAP_COLOR;
+      if (regionsFoundSet.has(name)) return FOUND_COUNTRY_CAP_COLOR;
+      return DEFAULT_COUNTRY_CAP_COLOR;
     },
     [regionsFoundSet, flyToRegion]
   );
@@ -319,11 +329,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getSideColor = useCallback(
     (d: any) => {
       if (isLandMaskFeature(d)) return '';
-      const name = d.properties.name_long;
-      if (regionsFoundSet.has(name)) return FOUND_POLYGON_SIDE_COLOR;
       return '';
     },
-    [regionsFoundSet]
+    []
   );
 
   const getAltitude = useCallback(
