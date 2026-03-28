@@ -38,6 +38,28 @@ const REGION_CODE_ALIASES: Record<string, string> = {
   'wallis and futuna islands': 'WF',
 };
 
+// Intl.DisplayNames includes several obsolete or exceptional region codes whose
+// display names collide with modern countries. Ignore them so country names map
+// to the active code with the emoji flag users expect.
+const EXCLUDED_REGION_CODES = new Set([
+  'AN',
+  'BU',
+  'CS',
+  'DD',
+  'DY',
+  'FX',
+  'HV',
+  'NH',
+  'RH',
+  'SU',
+  'TP',
+  'UK',
+  'VD',
+  'YD',
+  'YU',
+  'ZR',
+]);
+
 let browserRegionNameToCode: Map<string, string> | null = null;
 
 function normalizeRegionName(value: string): string {
@@ -66,13 +88,22 @@ function getBrowserRegionNameToCode(): Map<string, string> {
   for (let first = 65; first <= 90; first += 1) {
     for (let second = 65; second <= 90; second += 1) {
       const code = String.fromCharCode(first, second);
+
+      if (EXCLUDED_REGION_CODES.has(code)) {
+        continue;
+      }
+
       const regionName = displayNames.of(code);
 
       if (!regionName || regionName === code) {
         continue;
       }
 
-      browserRegionNameToCode.set(normalizeRegionName(regionName), code);
+      const normalizedRegionName = normalizeRegionName(regionName);
+
+      if (!browserRegionNameToCode.has(normalizedRegionName)) {
+        browserRegionNameToCode.set(normalizedRegionName, code);
+      }
     }
   }
 
