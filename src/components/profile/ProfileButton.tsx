@@ -13,14 +13,14 @@ const ProfileButton: FC<ProfileButtonProps> = ({ onClick, compact = false }) => 
     onClick={onClick}
     className={`flex items-center justify-center rounded-full transition-colors ${
       compact
-        ? 'h-11 w-11 border border-transparent bg-white/0 text-slate-300 hover:bg-white/8 hover:text-white'
+        ? 'h-10 w-10 border border-transparent bg-white/0 text-slate-300 hover:bg-white/8 hover:text-white'
         : 'h-12 w-12 border border-white/10 bg-slate-900/70 text-slate-300 shadow-xl backdrop-blur-xl hover:text-white'
     }`}
     aria-label="Profile"
   >
     <svg
-      width={compact ? '20' : '22'}
-      height={compact ? '20' : '22'}
+      width={compact ? '18' : '22'}
+      height={compact ? '18' : '22'}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

@@ -170,7 +170,7 @@ const GameContent: FC<GameContentProps> = ({
         <div
           className={`fixed z-30 flex items-center ${
             isMobile
-              ? 'gap-1.5 rounded-full border border-white/10 bg-slate-950/55 p-1.5 shadow-2xl backdrop-blur-xl'
+              ? 'gap-1 rounded-full border border-white/10 bg-slate-950/55 p-1 shadow-2xl backdrop-blur-xl'
               : 'gap-3'
           }`}
           style={{
