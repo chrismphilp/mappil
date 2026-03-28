@@ -1,4 +1,6 @@
 import { getSupabase } from './supabase';
+import { invokeSupabaseFunction } from './supabaseFunctions';
+import { getSafeDisplayUsername } from './usernameModeration';
 
 export const LEADERBOARD_LIMIT = 20;
 const RAW_FETCH_LIMIT = 500;
@@ -8,6 +10,8 @@ export interface ScoreEntry {
   created_at: string;
   player_id?: string | null;
   username: string;
+  display_username?: string | null;
+  username_redacted?: boolean | null;
   score: number;
   errors: number;
   best_streak: number;
@@ -53,6 +57,10 @@ export interface SubmitScoreParams {
   is_daily_challenge?: boolean;
 }
 
+interface SubmitScoreResponse {
+  ok: true;
+}
+
 function sortEntries(left: ScoreEntry, right: ScoreEntry): number {
   return (
     right.score - left.score ||
@@ -91,9 +99,19 @@ function buildLeaderboardGap(
 }
 
 export async function submitScore(params: SubmitScoreParams): Promise<void> {
-  const supabase = getSupabase();
-  const { error } = await supabase.from('scores').insert(params);
-  if (error) throw new Error(error.message);
+  await invokeSupabaseFunction<SubmitScoreResponse, SubmitScoreParams>(
+    'submit-score',
+    params,
+    'Failed to submit score.',
+  );
+}
+
+export function getScoreEntryDisplayName(entry: ScoreEntry): string {
+  return getSafeDisplayUsername({
+    displayUsername: entry.display_username,
+    rawUsername: entry.username,
+    isRedacted: entry.username_redacted,
+  });
 }
 
 export async function fetchLeaderboard(
@@ -109,6 +127,8 @@ export async function fetchLeaderboard(
       created_at,
       player_id,
       username,
+      display_username,
+      username_redacted,
       score,
       errors,
       best_streak,

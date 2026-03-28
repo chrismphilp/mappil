@@ -9,6 +9,11 @@ import {
   RunRecord,
 } from '../types/profile.types';
 import { buildRulesetIdentity, buildRulesetKey } from './ruleset';
+import {
+  getUsernameValidationMessage,
+  sanitizeStoredUsername,
+  validateUsername,
+} from './usernameModeration';
 
 export const PLAYER_ID_STORAGE_KEY = 'mappil_player_id';
 export const USERNAME_STORAGE_KEY = 'mappil_username';
@@ -64,11 +69,12 @@ function createSummary(): PlayerSummary {
 
 function createDefaultProfile(playerId: string, username = ''): PlayerProfile {
   const now = new Date().toISOString();
+  const safeUsername = sanitizeStoredUsername(username);
 
   return {
     version: CURRENT_PROFILE_VERSION,
     playerId,
-    username,
+    username: safeUsername,
     createdAt: now,
     updatedAt: now,
     summary: createSummary(),
@@ -79,10 +85,19 @@ function createDefaultProfile(playerId: string, username = ''): PlayerProfile {
 }
 
 function persistProfile(profile: PlayerProfile): PlayerProfile {
-  localStorage.setItem(PLAYER_ID_STORAGE_KEY, profile.playerId);
-  localStorage.setItem(USERNAME_STORAGE_KEY, profile.username);
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  return profile;
+  const safeUsername = sanitizeStoredUsername(profile.username);
+  const nextProfile =
+    safeUsername === profile.username
+      ? profile
+      : {
+          ...profile,
+          username: safeUsername,
+        };
+
+  localStorage.setItem(PLAYER_ID_STORAGE_KEY, nextProfile.playerId);
+  localStorage.setItem(USERNAME_STORAGE_KEY, nextProfile.username);
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+  return nextProfile;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -297,8 +312,9 @@ function sanitizeProfile(
     typeof profile.playerId === 'string' && profile.playerId.length > 0
       ? profile.playerId
       : fallbackPlayerId;
-  const username =
-    typeof profile.username === 'string' ? profile.username : fallbackUsername;
+  const username = sanitizeStoredUsername(
+    typeof profile.username === 'string' ? profile.username : fallbackUsername,
+  );
 
   const recentRuns = Array.isArray(profile.recentRuns)
     ? profile.recentRuns
@@ -355,7 +371,7 @@ export function getOrCreatePlayerId(): string {
 
 export function loadPlayerProfile(): PlayerProfile {
   const playerId = getOrCreatePlayerId();
-  const username = localStorage.getItem(USERNAME_STORAGE_KEY) ?? '';
+  const username = sanitizeStoredUsername(localStorage.getItem(USERNAME_STORAGE_KEY) ?? '');
   const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
 
   if (!storedProfile) {
@@ -370,11 +386,16 @@ export function loadPlayerProfile(): PlayerProfile {
 }
 
 export function updatePlayerUsername(username: string): PlayerProfile {
-  const trimmed = username.trim();
+  const validation = validateUsername(username, { allowEmpty: true });
+
+  if (!validation.ok) {
+    throw new Error(getUsernameValidationMessage(validation.code));
+  }
+
   const profile = loadPlayerProfile();
   const nextProfile: PlayerProfile = {
     ...profile,
-    username: trimmed,
+    username: validation.normalized,
     updatedAt: new Date().toISOString(),
   };
 

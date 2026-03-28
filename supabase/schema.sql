@@ -4,6 +4,8 @@ CREATE TABLE scores (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     player_id TEXT,
     username TEXT NOT NULL,
+    display_username TEXT,
+    username_redacted BOOLEAN NOT NULL DEFAULT FALSE,
     score INTEGER NOT NULL,
     errors INTEGER NOT NULL,
     best_streak INTEGER NOT NULL,
@@ -23,12 +25,6 @@ CREATE TABLE scores (
 
 -- Set up Row Level Security (RLS)
 ALTER TABLE scores ENABLE ROW LEVEL SECURITY;
-
--- Allow anonymous inserts (so players can submit scores without an account)
-CREATE POLICY "Allow anonymous inserts" ON scores
-    FOR INSERT 
-    TO public
-    WITH CHECK (true);
 
 -- Allow anonymous reads (so anyone can view the leaderboard)
 CREATE POLICY "Allow anonymous reads" ON scores
@@ -51,6 +47,8 @@ CREATE TABLE friend_challenges (
     id TEXT PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     created_by_username TEXT NOT NULL,
+    created_by_display_username TEXT,
+    username_redacted BOOLEAN NOT NULL DEFAULT FALSE,
     seed TEXT NOT NULL,
     difficulty TEXT NOT NULL,
     continent TEXT NOT NULL,
@@ -60,14 +58,31 @@ CREATE TABLE friend_challenges (
 -- Set up Row Level Security (RLS)
 ALTER TABLE friend_challenges ENABLE ROW LEVEL SECURITY;
 
--- Allow anonymous inserts (so players can submit challenges without an account)
-CREATE POLICY "Allow anonymous inserts" ON friend_challenges
-    FOR INSERT 
-    TO public
-    WITH CHECK (true);
-
 -- Allow anonymous reads
 CREATE POLICY "Allow anonymous reads" ON friend_challenges
     FOR SELECT
     TO public
     USING (true);
+
+-- Create blocked username moderation rules
+CREATE TABLE blocked_usernames (
+    term TEXT PRIMARY KEY,
+    match_type TEXT NOT NULL CHECK (match_type IN ('exact', 'substring')),
+    severity TEXT NOT NULL DEFAULT 'block',
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE blocked_usernames ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO blocked_usernames (term, match_type, severity, notes) VALUES
+    ('fuck', 'substring', 'block', 'Core profanity'),
+    ('shit', 'substring', 'block', 'Core profanity'),
+    ('bitch', 'substring', 'block', 'Core profanity'),
+    ('nigger', 'substring', 'block', 'Severe racial slur'),
+    ('nigga', 'substring', 'block', 'Severe racial slur'),
+    ('faggot', 'substring', 'block', 'Severe homophobic slur'),
+    ('whore', 'substring', 'block', 'Sexual insult'),
+    ('slut', 'substring', 'block', 'Sexual insult'),
+    ('retard', 'substring', 'block', 'Ableist insult');

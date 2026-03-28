@@ -9,6 +9,7 @@
     "dev": "next dev",
     "start": "next dev",
     "build": "next build",
+    "backfill:safe-usernames": "tsx scripts/backfillSafeUsernames.ts",
     "test": "tsx --test src/**/*.test.ts",
     "typecheck": "tsc --noEmit --incremental false",
     "optimize:geojson": "node scripts/simplify-world-geojson.js"

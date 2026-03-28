@@ -1,4 +1,8 @@
-import { LeaderboardGap, ScoreEntry } from '../../lib/leaderboard';
+import {
+  getScoreEntryDisplayName,
+  LeaderboardGap,
+  ScoreEntry,
+} from '../../lib/leaderboard';
 import {
   ChallengeType,
   ContinentFilter,
@@ -137,23 +141,25 @@ export function getPlayerGapMessage(gap: LeaderboardGap | null): string | null {
     return null;
   }
 
+  const aboveName = getScoreEntryDisplayName(gap.aboveEntry);
+
   if (gap.scoreDelta > 0) {
-    return `${gap.scoreDelta} more point${gap.scoreDelta === 1 ? '' : 's'} passes ${gap.aboveEntry.username}.`;
+    return `${gap.scoreDelta} more point${gap.scoreDelta === 1 ? '' : 's'} passes ${aboveName}.`;
   }
 
   if (gap.errorsDelta > 0) {
-    return `Tie on score. ${gap.errorsDelta} fewer error${gap.errorsDelta === 1 ? '' : 's'} passes ${gap.aboveEntry.username}.`;
+    return `Tie on score. ${gap.errorsDelta} fewer error${gap.errorsDelta === 1 ? '' : 's'} passes ${aboveName}.`;
   }
 
   if (gap.durationDelta > 0) {
-    return `Tie on score and errors. ${gap.durationDelta}s faster passes ${gap.aboveEntry.username}.`;
+    return `Tie on score and errors. ${gap.durationDelta}s faster passes ${aboveName}.`;
   }
 
   if (gap.streakDelta > 0) {
-    return `${gap.streakDelta} more streak passes ${gap.aboveEntry.username} on the final tiebreak.`;
+    return `${gap.streakDelta} more streak passes ${aboveName} on the final tiebreak.`;
   }
 
-  return `You are right behind ${gap.aboveEntry.username}.`;
+  return `You are right behind ${aboveName}.`;
 }
 
 export function getEntryBadges(entry: ScoreEntry): string[] {

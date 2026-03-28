@@ -12,6 +12,7 @@ import {
   USERNAME_STORAGE_KEY,
   loadPlayerProfile,
   recordCompletedRun,
+  updatePlayerUsername,
 } from './playerProfileStorage';
 
 class MemoryStorage implements Storage {
@@ -182,6 +183,36 @@ describe('playerProfileStorage', () => {
     assert.equal(profile.playerId, 'stable-player');
     assert.equal(profile.version, 1);
     assert.equal(profile.summary.totalRuns, 0);
+  });
+
+  it('clears legacy stored usernames that now fail moderation', () => {
+    localStorage.setItem(PLAYER_ID_STORAGE_KEY, 'legacy-player');
+    localStorage.setItem(USERNAME_STORAGE_KEY, 'f_u_c_k');
+    localStorage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        playerId: 'legacy-player',
+        username: 'f_u_c_k',
+        createdAt: '2026-03-19T12:00:00.000Z',
+        updatedAt: '2026-03-20T12:00:00.000Z',
+        summary: {},
+        personalBests: {},
+        recentRuns: [],
+        recordedRunIds: [],
+      }),
+    );
+
+    const profile = loadPlayerProfile();
+
+    assert.equal(profile.username, '');
+    assert.equal(localStorage.getItem(USERNAME_STORAGE_KEY), '');
+  });
+
+  it('rejects invalid username updates before persisting them', () => {
+    assert.throws(
+      () => updatePlayerUsername('f_u_c_k'),
+      /Choose a different username/,
+    );
   });
 
   it('records runs idempotently by run id', () => {

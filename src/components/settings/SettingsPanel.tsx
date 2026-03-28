@@ -3,6 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { createFriendChallenge } from '../../lib/friendChallenge';
 import { describeRuleset } from '../../lib/ruleset';
 import { shareChallengeLink } from '../../lib/share';
+import {
+  getUsernameValidationMessage,
+  validateUsername,
+} from '../../lib/usernameModeration';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { ContinentFilter, Difficulty, GameMode, ShareState } from '../../types/game.types';
@@ -55,11 +59,14 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
   const { profile, refreshProfile, updateUsername, clearProfile } = usePlayerProfile();
   const [shareState, setShareState] = useState<ShareState>(ShareState.IDLE);
   const [usernameInput, setUsernameInput] = useState(profile.username);
+  const [panelNotice, setPanelNotice] = useState<{ tone: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
     if (open) {
       const nextProfile = refreshProfile();
       setUsernameInput(nextProfile.username);
+      setPanelNotice(null);
+      setShareState(ShareState.IDLE);
     }
   }, [open, refreshProfile]);
 
@@ -88,19 +95,56 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
     return profile.personalBests[profile.summary.favoriteRulesetKey] ?? null;
   }, [profile.personalBests, profile.summary.favoriteRulesetKey]);
 
-  const handleCreateChallenge = async () => {
-    const trimmed = usernameInput.trim();
+  const localUsernameValidation = useMemo(
+    () => validateUsername(usernameInput, { allowEmpty: true }),
+    [usernameInput],
+  );
+  const publicUsernameValidation = useMemo(
+    () => validateUsername(usernameInput),
+    [usernameInput],
+  );
+  const usernameHelper = useMemo(() => {
+    if (usernameInput.trim().length === 0) {
+      return {
+        tone: 'neutral' as const,
+        text: 'Blank is fine locally. You will need a username for leaderboards and friend challenges.',
+      };
+    }
 
-    if (trimmed.length < 3 || trimmed.length > 20) {
-      alert('Set a username between 3 and 20 characters before creating a challenge.');
+    if (!localUsernameValidation.ok) {
+      return {
+        tone: 'error' as const,
+        text: getUsernameValidationMessage(localUsernameValidation.code),
+      };
+    }
+
+    return {
+      tone: 'success' as const,
+      text: 'Ready for leaderboards, daily runs, and friend challenges.',
+    };
+  }, [localUsernameValidation, usernameInput]);
+
+  const handleCreateChallenge = async () => {
+    if (!publicUsernameValidation.ok) {
+      setPanelNotice({
+        tone: 'error',
+        text: getUsernameValidationMessage(publicUsernameValidation.code),
+      });
       return;
     }
 
-    updateUsername(trimmed);
+    const nextProfile = updateUsername(publicUsernameValidation.normalized);
+    setUsernameInput(nextProfile.username);
     setShareState(ShareState.SHARING);
+    setPanelNotice(null);
 
     try {
-      const shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
+      const shareId = await createFriendChallenge(
+        publicUsernameValidation.normalized,
+        difficulty,
+        continent,
+        gameMode,
+      );
       const url = `${window.location.origin}/play?challenge=${encodeURIComponent(shareId)}`;
       const title = 'Mappil Friend Challenge';
       const text = `I set up a ${continent} ${gameMode} ${difficulty} challenge on Mappil. Can you beat my run?`;
@@ -115,19 +159,32 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
     } catch (error) {
       console.error(error);
       setShareState(ShareState.ERROR);
-      alert(error instanceof Error ? error.message : 'Failed to create challenge link.');
+      setPanelNotice({
+        tone: 'error',
+        text: error instanceof Error ? error.message : 'Failed to create challenge link.',
+      });
       setTimeout(() => setShareState(ShareState.IDLE), 3000);
     }
   };
 
   const handleSaveUsername = () => {
-    const trimmed = usernameInput.trim();
-    if (trimmed.length > 0 && (trimmed.length < 3 || trimmed.length > 20)) {
-      alert('Username must be 3-20 characters.');
+    if (!localUsernameValidation.ok) {
+      setPanelNotice({
+        tone: 'error',
+        text: getUsernameValidationMessage(localUsernameValidation.code),
+      });
       return;
     }
 
-    updateUsername(trimmed);
+    const nextProfile = updateUsername(localUsernameValidation.normalized);
+    setUsernameInput(nextProfile.username);
+    setPanelNotice({
+      tone: 'success',
+      text:
+        nextProfile.username.length > 0
+          ? 'Username saved on this device.'
+          : 'Local username cleared. You will need one before posting publicly.',
+    });
   };
 
   return (
@@ -181,21 +238,42 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 <div className="flex gap-2">
                   <input
                     value={usernameInput}
-                    onChange={(event) => setUsernameInput(event.target.value)}
+                    onChange={(event) => {
+                      setUsernameInput(event.target.value);
+                      setPanelNotice(null);
+                    }}
                     placeholder="Set username"
                     maxLength={20}
                     className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                   />
                   <button
                     onClick={handleSaveUsername}
-                    className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-colors"
+                    disabled={!localUsernameValidation.ok}
+                    className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Save
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Saved locally for leaderboards, daily runs, and friend challenges.
+                <p
+                  className={`mt-2 text-xs ${
+                    usernameHelper.tone === 'error'
+                      ? 'text-rose-300'
+                      : usernameHelper.tone === 'success'
+                        ? 'text-emerald-300'
+                        : 'text-slate-500'
+                  }`}
+                >
+                  {usernameHelper.text}
                 </p>
+                {panelNotice && (
+                  <p
+                    className={`mt-2 text-xs ${
+                      panelNotice.tone === 'error' ? 'text-rose-300' : 'text-cyan-300'
+                    }`}
+                  >
+                    {panelNotice.text}
+                  </p>
+                )}
               </div>
 
             <div className="flex flex-col gap-2">
@@ -208,12 +286,12 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
 
               <button
                 onClick={handleCreateChallenge}
-                disabled={shareState === ShareState.SHARING}
+                disabled={shareState === ShareState.SHARING || !publicUsernameValidation.ok}
                 className={`w-full py-3 rounded-xl border font-bold text-center transition-colors shadow-lg ${
                   shareState === ShareState.SHARED
                     ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                     : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-400'
-                }`}
+                } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {shareState === ShareState.SHARING
                   ? 'Generating...'

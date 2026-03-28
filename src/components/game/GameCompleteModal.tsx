@@ -10,6 +10,10 @@ import {
 } from '../../lib/ruleset';
 import { getRunGrade, getScoreBreakdownLines } from '../../lib/scoring';
 import { shareChallengeLink } from '../../lib/share';
+import {
+  getUsernameValidationMessage,
+  validateUsername,
+} from '../../lib/usernameModeration';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import {
@@ -481,6 +485,27 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
     [score, maxPossibleScore, errors, skippedCount],
   );
   const scoreLines = useMemo(() => getScoreBreakdownLines(scoreBreakdown), [scoreBreakdown]);
+  const publicUsernameValidation = useMemo(() => validateUsername(username), [username]);
+  const usernameHelper = useMemo(() => {
+    if (username.trim().length === 0) {
+      return {
+        tone: 'neutral' as const,
+        text: 'Set a username to submit scores or share a friend challenge.',
+      };
+    }
+
+    if (!publicUsernameValidation.ok) {
+      return {
+        tone: 'error' as const,
+        text: getUsernameValidationMessage(publicUsernameValidation.code),
+      };
+    }
+
+    return {
+      tone: 'success' as const,
+      text: 'Ready for leaderboard submit and challenge sharing.',
+    };
+  }, [publicUsernameValidation, username]);
 
   useEffect(() => {
     if (!open) return;
@@ -687,21 +712,19 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   );
 
   const handleSubmit = async () => {
-    const trimmed = username.trim();
-
-    if (trimmed.length < 3 || trimmed.length > 20) {
-      setErrorMsg('Username must be 3-20 characters.');
+    if (!publicUsernameValidation.ok) {
       return;
     }
 
-    updateUsername(trimmed);
+    const nextProfile = updateUsername(publicUsernameValidation.normalized);
+    setUsername(nextProfile.username);
     setSubmitState(SubmitState.SUBMITTING);
     setErrorMsg('');
 
     try {
       await submitScore({
         player_id: profile.playerId,
-        username: trimmed,
+        username: publicUsernameValidation.normalized,
         score,
         errors,
         best_streak: bestStreak,
@@ -724,14 +747,12 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
   };
 
   const handleShareChallenge = async () => {
-    const trimmed = username.trim();
-
-    if (trimmed.length < 3 || trimmed.length > 20) {
-      setErrorMsg('Please set a username (3-20 chars) before sharing a challenge.');
+    if (!publicUsernameValidation.ok) {
       return;
     }
 
-    updateUsername(trimmed);
+    const nextProfile = updateUsername(publicUsernameValidation.normalized);
+    setUsername(nextProfile.username);
     setChallengeShareState(ShareState.SHARING);
     setErrorMsg('');
 
@@ -739,7 +760,12 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
       let shareId = challengeId;
 
       if (challengeType !== ChallengeType.FRIEND) {
-        shareId = await createFriendChallenge(trimmed, difficulty, continent, gameMode);
+        shareId = await createFriendChallenge(
+          publicUsernameValidation.normalized,
+          difficulty,
+          continent,
+          gameMode,
+        );
       }
 
       if (!shareId) throw new Error('Failed to create a challenge link.');
@@ -995,19 +1021,33 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                   <input
                     type="text"
                     value={username}
-                    onChange={(event) => setUsername(event.target.value)}
+                    onChange={(event) => {
+                      setUsername(event.target.value);
+                      setErrorMsg('');
+                    }}
                     placeholder="Enter username"
                     maxLength={20}
                     className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                   />
                   <button
                     type="submit"
-                    disabled={submitState === SubmitState.SUBMITTING}
+                    disabled={submitState === SubmitState.SUBMITTING || !publicUsernameValidation.ok}
                     className="shrink-0 px-4 py-3 rounded-xl bg-cyan-500/20 text-cyan-300 font-semibold hover:bg-cyan-500/30 disabled:opacity-50 transition-colors"
                   >
                     {submitState === SubmitState.SUBMITTING ? 'Submitting...' : 'Submit'}
                   </button>
                 </div>
+                <p
+                  className={`mt-2 text-xs ${
+                    usernameHelper.tone === 'error'
+                      ? 'text-rose-300'
+                      : usernameHelper.tone === 'success'
+                        ? 'text-emerald-300'
+                        : 'text-slate-500'
+                  }`}
+                >
+                  {usernameHelper.text}
+                </p>
               </form>
             )}
 
@@ -1070,12 +1110,12 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 <button
                   type="button"
                   onClick={handleShareChallenge}
-                  disabled={challengeShareState === ShareState.SHARING}
+                  disabled={challengeShareState === ShareState.SHARING || !publicUsernameValidation.ok}
                   className={`w-full py-3 rounded-xl border font-semibold transition-colors ${
                     challengeShareState === ShareState.SHARED
                       ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
                       : 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30 text-purple-300'
-                  }`}
+                  } disabled:opacity-50`}
                 >
                   {getChallengeShareLabel({
                     challengeType,

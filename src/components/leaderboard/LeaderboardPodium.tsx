@@ -1,4 +1,4 @@
-import { ScoreEntry } from '../../lib/leaderboard';
+import { getScoreEntryDisplayName, ScoreEntry } from '../../lib/leaderboard';
 import {
   formatDuration,
   LeaderboardTone,
@@ -75,6 +75,7 @@ function PodiumCard({
 }) {
   const metal = getPodiumMetal(entry.rank ?? 0);
   const toneClasses = getToneClasses(tone);
+  const displayName = getScoreEntryDisplayName(entry);
 
   return (
     <div
@@ -98,7 +99,7 @@ function PodiumCard({
       </div>
 
       <div className="mt-4">
-        <div className="truncate text-lg font-bold text-white">{entry.username}</div>
+        <div className="truncate text-lg font-bold text-white">{displayName}</div>
         <div className={`mt-2 text-4xl font-black leading-none ${metal.score}`}>
           {entry.score}
         </div>

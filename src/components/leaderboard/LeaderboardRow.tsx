@@ -1,4 +1,4 @@
-import { ScoreEntry } from '../../lib/leaderboard';
+import { getScoreEntryDisplayName, ScoreEntry } from '../../lib/leaderboard';
 import {
   formatDuration,
   getEntryBadges,
@@ -66,6 +66,7 @@ const LeaderboardRow = ({
   const toneClasses = getToneClasses(tone);
   const tier = getRankTier(entry.rank ?? 999);
   const badges = getEntryBadges(entry);
+  const displayName = getScoreEntryDisplayName(entry);
 
   return (
     <div
@@ -89,7 +90,7 @@ const LeaderboardRow = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div className="truncate text-base font-bold text-white">
-              {entry.username}
+              {displayName}
             </div>
             {entry.isCurrentPlayer && (
               <span
