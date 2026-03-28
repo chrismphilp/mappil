@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase';
 import { invokeSupabaseFunction } from './supabaseFunctions';
+import { isMissingSupabaseColumnError } from './supabaseSchemaCompat';
 import { getSafeDisplayUsername } from './usernameModeration';
 
 export const LEADERBOARD_LIMIT = 20;
@@ -61,6 +62,42 @@ interface SubmitScoreResponse {
   ok: true;
 }
 
+const SCORE_MODERATED_COLUMNS = ['display_username', 'username_redacted'] as const;
+
+const LEADERBOARD_SELECT = `
+      id,
+      created_at,
+      player_id,
+      username,
+      display_username,
+      username_redacted,
+      score,
+      errors,
+      best_streak,
+      total_regions,
+      duration_secs,
+      challenge_id,
+      challenge_source,
+      is_daily_challenge
+    `;
+
+const LEGACY_LEADERBOARD_SELECT = `
+      id,
+      created_at,
+      player_id,
+      username,
+      score,
+      errors,
+      best_streak,
+      total_regions,
+      duration_secs,
+      challenge_id,
+      challenge_source,
+      is_daily_challenge
+    `;
+
+type LegacyScoreEntry = Omit<ScoreEntry, 'display_username' | 'username_redacted'>;
+
 function sortEntries(left: ScoreEntry, right: ScoreEntry): number {
   return (
     right.score - left.score ||
@@ -114,6 +151,20 @@ export function getScoreEntryDisplayName(entry: ScoreEntry): string {
   });
 }
 
+function normalizeScoreEntry(entry: ScoreEntry | LegacyScoreEntry): ScoreEntry {
+  return {
+    ...entry,
+    display_username:
+      'display_username' in entry
+        ? (entry.display_username ?? entry.username)
+        : entry.username,
+    username_redacted:
+      'username_redacted' in entry
+        ? (entry.username_redacted ?? false)
+        : false,
+  };
+}
+
 export async function fetchLeaderboard(
   difficulty?: string,
   continent?: string,
@@ -122,50 +173,51 @@ export async function fetchLeaderboard(
   currentPlayerId?: string,
 ): Promise<LeaderboardResult> {
   const supabase = getSupabase();
-  let query = supabase.from('scores').select(`
-      id,
-      created_at,
-      player_id,
-      username,
-      display_username,
-      username_redacted,
-      score,
-      errors,
-      best_streak,
-      total_regions,
-      duration_secs,
-      challenge_id,
-      challenge_source,
-      is_daily_challenge
-    `);
+  const buildQuery = (selectColumns: string) => {
+    let query = supabase.from('scores').select(selectColumns);
 
-  if (challengeId) {
-    query = query.eq('challenge_id', challengeId);
-  } else {
-    query = query.or('challenge_source.eq.free_play,and(challenge_source.is.null,challenge_id.is.null)');
-    if (difficulty) {
-      query = query.eq('difficulty', difficulty);
+    if (challengeId) {
+      query = query.eq('challenge_id', challengeId);
+    } else {
+      query = query.or(
+        'challenge_source.eq.free_play,and(challenge_source.is.null,challenge_id.is.null)',
+      );
+      if (difficulty) {
+        query = query.eq('difficulty', difficulty);
+      }
+      if (continent) {
+        query = query.eq('continent', continent);
+      }
+      if (gameMode) {
+        query = query.eq('game_mode', gameMode);
+      }
     }
-    if (continent) {
-      query = query.eq('continent', continent);
-    }
-    if (gameMode) {
-      query = query.eq('game_mode', gameMode);
-    }
+
+    return query
+      .order('score', { ascending: false })
+      .order('errors', { ascending: true })
+      .order('duration_secs', { ascending: true })
+      .order('best_streak', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(RAW_FETCH_LIMIT);
+  };
+
+  const primaryResult = await buildQuery(LEADERBOARD_SELECT);
+  let scoreRows: (ScoreEntry | LegacyScoreEntry)[] = (primaryResult.data ??
+    []) as unknown as ScoreEntry[];
+  let error = primaryResult.error;
+
+  if (error && isMissingSupabaseColumnError(error, SCORE_MODERATED_COLUMNS)) {
+    const fallbackResult = await buildQuery(LEGACY_LEADERBOARD_SELECT);
+    scoreRows = (fallbackResult.data ?? []) as unknown as LegacyScoreEntry[];
+    error = fallbackResult.error;
   }
 
-  query = query
-    .order('score', { ascending: false })
-    .order('errors', { ascending: true })
-    .order('duration_secs', { ascending: true })
-    .order('best_streak', { ascending: false })
-    .order('created_at', { ascending: true })
-    .limit(RAW_FETCH_LIMIT);
+  if (error) {
+    throw new Error(error.message);
+  }
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const rankedEntries = collapseBestAttempts((data ?? []) as ScoreEntry[]).map((entry, index) => ({
+  const rankedEntries = collapseBestAttempts(scoreRows.map(normalizeScoreEntry)).map((entry, index) => ({
     ...entry,
     rank: index + 1,
     isCurrentPlayer: currentPlayerId ? entry.player_id === currentPlayerId : false,

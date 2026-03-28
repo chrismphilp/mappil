@@ -1,5 +1,6 @@
 import { getAdminClient, loadBlockedUsernameRules } from '../_shared/adminClient.ts';
 import { HttpError, handleOptions, jsonError, jsonResponse } from '../_shared/http.ts';
+import { insertWithOptionalColumns } from '../_shared/schemaCompat.ts';
 import {
   getUsernameValidationMessage,
   validateUsername,
@@ -87,11 +88,9 @@ Deno.serve(async (request) => {
       );
     }
 
-    const { error } = await supabase.from('scores').insert({
+    const basePayload = {
       player_id: readOptionalString(body, 'player_id'),
       username: usernameValidation.normalized,
-      display_username: usernameValidation.normalized,
-      username_redacted: false,
       score: readRequiredInteger(body, 'score'),
       errors: readRequiredInteger(body, 'errors'),
       best_streak: readRequiredInteger(body, 'best_streak'),
@@ -105,7 +104,18 @@ Deno.serve(async (request) => {
       ruleset_key: readRequiredString(body, 'ruleset_key'),
       seed: readOptionalString(body, 'seed'),
       is_daily_challenge: readOptionalBoolean(body, 'is_daily_challenge') ?? false,
-    });
+    };
+    const { error } = await insertWithOptionalColumns(
+      supabase,
+      'scores',
+      {
+        ...basePayload,
+        display_username: usernameValidation.normalized,
+        username_redacted: false,
+      },
+      basePayload,
+      ['display_username', 'username_redacted'],
+    );
 
     if (error) {
       console.error(error);

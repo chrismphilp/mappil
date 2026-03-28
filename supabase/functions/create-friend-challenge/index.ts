@@ -1,5 +1,6 @@
 import { getAdminClient, loadBlockedUsernameRules } from '../_shared/adminClient.ts';
 import { HttpError, handleOptions, jsonError, jsonResponse } from '../_shared/http.ts';
+import { insertWithOptionalColumns } from '../_shared/schemaCompat.ts';
 import {
   getUsernameValidationMessage,
   validateUsername,
@@ -60,16 +61,25 @@ Deno.serve(async (request) => {
 
     const challengeId = `friend:${generateShortId()}`;
     const seed = generateShortId();
-    const { error } = await supabase.from('friend_challenges').insert({
+    const basePayload = {
       id: challengeId,
       created_by_username: usernameValidation.normalized,
-      created_by_display_username: usernameValidation.normalized,
-      username_redacted: false,
       seed,
       difficulty: readRequiredString(body, 'difficulty'),
       continent: readRequiredString(body, 'continent'),
       game_mode: readRequiredString(body, 'game_mode'),
-    });
+    };
+    const { error } = await insertWithOptionalColumns(
+      supabase,
+      'friend_challenges',
+      {
+        ...basePayload,
+        created_by_display_username: usernameValidation.normalized,
+        username_redacted: false,
+      },
+      basePayload,
+      ['created_by_display_username', 'username_redacted'],
+    );
 
     if (error) {
       console.error(error);

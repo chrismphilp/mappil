@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase';
 import { invokeSupabaseFunction } from './supabaseFunctions';
+import { isMissingSupabaseColumnError } from './supabaseSchemaCompat';
 import { getSafeDisplayUsername } from './usernameModeration';
 import { ContinentFilter, Difficulty, GameMode } from '../types/game.types';
 
@@ -17,6 +18,54 @@ export interface FriendChallenge {
 
 interface CreateFriendChallengeResponse {
   id: string;
+}
+
+const FRIEND_CHALLENGE_MODERATED_COLUMNS = [
+  'created_by_display_username',
+  'username_redacted',
+] as const;
+
+const FRIEND_CHALLENGE_SELECT = `
+      id,
+      created_at,
+      created_by_username,
+      created_by_display_username,
+      username_redacted,
+      seed,
+      difficulty,
+      continent,
+      game_mode
+    `;
+
+const LEGACY_FRIEND_CHALLENGE_SELECT = `
+      id,
+      created_at,
+      created_by_username,
+      seed,
+      difficulty,
+      continent,
+      game_mode
+    `;
+
+type LegacyFriendChallengeRow = Omit<
+  FriendChallenge,
+  'created_by_display_username' | 'username_redacted'
+>;
+
+function normalizeFriendChallenge(
+  challenge: FriendChallenge | LegacyFriendChallengeRow,
+): FriendChallenge {
+  return {
+    ...challenge,
+    created_by_display_username:
+      'created_by_display_username' in challenge
+        ? (challenge.created_by_display_username ?? challenge.created_by_username)
+        : challenge.created_by_username,
+    username_redacted:
+      'username_redacted' in challenge
+        ? (challenge.username_redacted ?? false)
+        : false,
+  };
 }
 
 export async function createFriendChallenge(
@@ -49,27 +98,38 @@ export async function createFriendChallenge(
 
 export async function getFriendChallenge(id: string): Promise<FriendChallenge | null> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  const primaryResult = await supabase
     .from('friend_challenges')
-    .select(`
-      id,
-      created_at,
-      created_by_username,
-      created_by_display_username,
-      username_redacted,
-      seed,
-      difficulty,
-      continent,
-      game_mode
-    `)
+    .select(FRIEND_CHALLENGE_SELECT)
     .eq('id', id)
     .single();
 
-  if (error || !data) {
+  if (!primaryResult.error && primaryResult.data) {
+    return normalizeFriendChallenge(primaryResult.data as FriendChallenge);
+  }
+
+  if (
+    !isMissingSupabaseColumnError(
+      primaryResult.error,
+      FRIEND_CHALLENGE_MODERATED_COLUMNS,
+    )
+  ) {
     return null;
   }
 
-  return data as FriendChallenge;
+  const fallbackResult = await supabase
+    .from('friend_challenges')
+    .select(LEGACY_FRIEND_CHALLENGE_SELECT)
+    .eq('id', id)
+    .single();
+
+  if (fallbackResult.error || !fallbackResult.data) {
+    return null;
+  }
+
+  return normalizeFriendChallenge(
+    fallbackResult.data as LegacyFriendChallengeRow,
+  );
 }
 
 export function getFriendChallengeDisplayName(challenge: FriendChallenge): string {
