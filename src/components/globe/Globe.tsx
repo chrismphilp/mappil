@@ -1,6 +1,7 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
 import { getGeoJsonData, getLandMaskData } from '../../data/maps';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',
@@ -108,7 +109,7 @@ function getTargetPixelRatio() {
   const hasCoarsePointer =
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(pointer: coarse)').matches;
-  const maxPixelRatio = window.innerWidth < 768 || hasCoarsePointer ? 1 : 1.5;
+  const maxPixelRatio = hasCoarsePointer ? 0.85 : window.innerWidth < 768 ? 1 : 1.5;
 
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
@@ -131,6 +132,7 @@ function isLandMaskFeature(feature: any): boolean {
 const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onReady }) => {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
+  const { isCoarsePointer } = useIsMobileViewport();
 
   const geoJsonData = getGeoJsonData();
   const landMaskData = getLandMaskData();
@@ -327,16 +329,29 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   );
 
   const getStrokeColor = useCallback(
-    (d: any) => (isLandMaskFeature(d) ? 'rgba(0, 0, 0, 0)' : 'rgba(148, 163, 184, 0.32)'),
-    []
+    (d: any) =>
+      isLandMaskFeature(d)
+        ? 'rgba(0, 0, 0, 0)'
+        : isCoarsePointer
+          ? 'rgba(148, 163, 184, 0.24)'
+          : 'rgba(148, 163, 184, 0.32)',
+    [isCoarsePointer]
   );
   const getCapCurvatureResolution = useCallback((d: any) => {
+    if (isCoarsePointer) {
+      if (isLandMaskFeature(d)) return 2;
+      const name = d.properties.name_long;
+      if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 3;
+      if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 4;
+      return 6;
+    }
+
     if (isLandMaskFeature(d)) return 1;
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 2;
     if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 3;
     return 5;
-  }, []);
+  }, [isCoarsePointer]);
   const handleGlobeReady = useCallback(() => {
     globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
     updateCameraClipping();
@@ -356,8 +371,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={6}
-        showAtmosphere={true}
+        globeCurvatureResolution={isCoarsePointer ? 8 : 6}
+        showAtmosphere={!isCoarsePointer}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
         pointerEventsFilter={isPolygonPointerTarget}
