@@ -39,7 +39,7 @@ function shuffleArray(arr: string[], rng?: SeededRandom): string[] {
   return copy;
 }
 
-interface RunConfig {
+export interface RunConfig {
   difficulty: Difficulty;
   continent: ContinentFilter;
   gameMode: GameMode;
@@ -49,7 +49,7 @@ interface RunConfig {
   isDailyChallenge?: boolean;
 }
 
-function buildInitialState(config: RunConfig): GameState {
+export function buildInitialState(config: RunConfig): GameState {
   let regions = getFilteredRegions(config.difficulty, config.continent);
   const rng = config.seed ? new SeededRandom(config.seed) : undefined;
 
@@ -90,8 +90,10 @@ function buildInitialState(config: RunConfig): GameState {
     streak: 0,
     bestStreak: 0,
     gameOver: false,
+    completionPhase: 'active',
     feedback: null,
     startTime: null,
+    endTime: null,
   };
 }
 
@@ -112,14 +114,29 @@ function createFeedback(input: Partial<FeedbackState> & Pick<FeedbackState, 'out
   };
 }
 
+function markRunOver(state: GameState): GameState {
+  if (state.completionPhase === 'showing_final_feedback' || state.completionPhase === 'complete') {
+    return state;
+  }
+
+  return {
+    ...state,
+    gameOver: true,
+    completionPhase: 'showing_final_feedback',
+    endTime: state.endTime ?? Date.now(),
+  };
+}
+
 function finalizeRun(state: GameState): GameState {
-  if (!state.gameOver || !state.feedback) return state;
+  const completedState = markRunOver(state);
 
-  let nextState = state;
-  let scoreDelta = state.feedback.scoreDelta;
-  const feedback = state.feedback;
+  if (!completedState.feedback) return completedState;
 
-  if (state.skippedCount === 0) {
+  let nextState = completedState;
+  let scoreDelta = completedState.feedback.scoreDelta;
+  const feedback = completedState.feedback;
+
+  if (completedState.skippedCount === 0) {
     nextState = {
       ...nextState,
       bonusScore: nextState.bonusScore + SCORING_RULES.noSkipFinishBonus,
@@ -132,7 +149,7 @@ function finalizeRun(state: GameState): GameState {
     scoreDelta += SCORING_RULES.noSkipFinishBonus;
   }
 
-  if (state.errors === 0 && state.skippedCount === 0) {
+  if (completedState.errors === 0 && completedState.skippedCount === 0) {
     nextState = {
       ...nextState,
       bonusScore: nextState.bonusScore + SCORING_RULES.flawlessFinishBonus,
@@ -262,12 +279,11 @@ function skipCurrentRegion(state: GameState): GameState {
   };
 
   if (remaining.length === 0) {
-    return {
+    return markRunOver({
       ...baseState,
       regionsToFind: [],
       regionToFind: undefined,
-      gameOver: true,
-    };
+    });
   }
 
   return {
@@ -277,7 +293,7 @@ function skipCurrentRegion(state: GameState): GameState {
   };
 }
 
-function reducer(state: GameState, action: GameAction): GameState {
+export function gameStateReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case ActionType.SELECT_REGION: {
       if (state.gameOver || !state.regionToFind) return state;
@@ -302,6 +318,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         return remaining.length === 0
           ? finalizeRun({
               ...nextState,
+              gameOver: true,
               regionToFind: undefined,
               regionsToFind: [],
             })
@@ -369,6 +386,14 @@ function reducer(state: GameState, action: GameAction): GameState {
       });
 
     case ActionType.CLEAR_FEEDBACK:
+      if (state.gameOver && state.completionPhase === 'showing_final_feedback') {
+        return {
+          ...state,
+          feedback: null,
+          completionPhase: 'complete',
+        };
+      }
+
       return { ...state, feedback: null };
 
     default:
@@ -385,7 +410,7 @@ export function useGameState(
   seed?: string,
   isDailyChallenge?: boolean,
 ) {
-  const [state, dispatch] = useReducer(reducer, null, () =>
+  const [state, dispatch] = useReducer(gameStateReducer, null, () =>
     buildInitialState({
       difficulty: initialDifficulty,
       continent: initialContinent,
@@ -452,8 +477,8 @@ export function useGameState(
     state.regionsFound.length + state.regionsToFind.length + (state.regionToFind ? 1 : 0);
   const progress = totalRegions > 0 ? state.regionsFound.length / totalRegions : 0;
   const durationSecs =
-    state.startTime !== null && state.gameOver
-      ? Math.floor((Date.now() - state.startTime) / 1000)
+    state.startTime !== null && state.endTime !== null
+      ? Math.floor((state.endTime - state.startTime) / 1000)
       : 0;
 
   return {

@@ -61,6 +61,7 @@ export interface ScoreBreakdownLine {
 }
 
 export type FeedbackOutcome = 'correct' | 'wrong' | 'skip';
+export type CompletionPhase = 'active' | 'showing_final_feedback' | 'complete';
 
 export interface FeedbackState {
   outcome: FeedbackOutcome;
@@ -100,8 +101,10 @@ export interface GameState {
   streak: number;
   bestStreak: number;
   gameOver: boolean;
+  completionPhase: CompletionPhase;
   feedback: FeedbackState | null;
   startTime: number | null;
+  endTime: number | null;
 }
 
 export enum ActionType {

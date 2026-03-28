@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, lazy, Suspense, useCallback, useState } from 'react';
+import { FC, lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useGameState } from '../../hooks/game/useGameState';
 import { ChallengeType, ContinentFilter, Difficulty, GameMode } from '../../types/game.types';
@@ -70,6 +70,17 @@ const GameContent: FC<GameContentProps> = ({
   const [profileOpen, setProfileOpen] = useState(false);
   const [backgroundVisible, setBackgroundVisible] = useState(false);
   const { isMobile } = useIsMobileViewport();
+  const isShowingFinalFeedback = state.completionPhase === 'showing_final_feedback';
+  const isCompletionReady = state.completionPhase === 'complete';
+
+  useEffect(() => {
+    if (!state.gameOver) return;
+
+    setSettingsOpen(false);
+    setLeaderboardOpen(false);
+    setProfileOpen(false);
+  }, [state.gameOver]);
+
   const startFreePlay = useCallback(
     (nextDifficulty: Difficulty, nextContinent: ContinentFilter, nextGameMode: GameMode) => {
       if (
@@ -155,28 +166,30 @@ const GameContent: FC<GameContentProps> = ({
         currentGuessErrors={state.currentGuessErrors}
       />
 
-      <div
-        className={`fixed z-30 flex items-center ${
-          isMobile
-            ? 'gap-1.5 rounded-full border border-white/10 bg-slate-950/55 p-1.5 shadow-2xl backdrop-blur-xl'
-            : 'gap-3'
-        }`}
-        style={{
-          bottom: `max(var(--sab), ${isMobile ? '1rem' : '1.5rem'})`,
-          left: `max(var(--sal), ${isMobile ? '1rem' : '1.5rem'})`,
-        }}
-      >
-        {!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND ? (
-          <SettingsButton onClick={() => setSettingsOpen(true)} compact={isMobile} />
-        ) : (
-          <QuitChallengeButton compact={isMobile} />
-        )}
-        <ProfileButton onClick={() => setProfileOpen(true)} compact={isMobile} />
-        <LeaderboardButton onClick={() => setLeaderboardOpen(true)} compact={isMobile} />
-      </div>
+      {!state.gameOver && (
+        <div
+          className={`fixed z-30 flex items-center ${
+            isMobile
+              ? 'gap-1.5 rounded-full border border-white/10 bg-slate-950/55 p-1.5 shadow-2xl backdrop-blur-xl'
+              : 'gap-3'
+          }`}
+          style={{
+            bottom: `max(var(--sab), ${isMobile ? '1rem' : '1.5rem'})`,
+            left: `max(var(--sal), ${isMobile ? '1rem' : '1.5rem'})`,
+          }}
+        >
+          {!state.isDailyChallenge && state.challengeType !== ChallengeType.FRIEND ? (
+            <SettingsButton onClick={() => setSettingsOpen(true)} compact={isMobile} />
+          ) : (
+            <QuitChallengeButton compact={isMobile} />
+          )}
+          <ProfileButton onClick={() => setProfileOpen(true)} compact={isMobile} />
+          <LeaderboardButton onClick={() => setLeaderboardOpen(true)} compact={isMobile} />
+        </div>
+      )}
 
       <LeaderboardModal
-        open={leaderboardOpen}
+        open={leaderboardOpen && !isShowingFinalFeedback}
         onClose={() => setLeaderboardOpen(false)}
         difficulty={state.difficulty}
         continent={state.continent}
@@ -187,7 +200,7 @@ const GameContent: FC<GameContentProps> = ({
       />
 
       <SettingsPanel
-        open={settingsOpen}
+        open={settingsOpen && !state.gameOver}
         onClose={() => setSettingsOpen(false)}
         difficulty={state.difficulty}
         continent={state.continent}
@@ -205,7 +218,7 @@ const GameContent: FC<GameContentProps> = ({
       />
 
       <GameCompleteModal
-        open={state.gameOver}
+        open={isCompletionReady}
         runId={state.runId}
         score={state.score}
         baseScore={state.baseScore}
@@ -234,7 +247,10 @@ const GameContent: FC<GameContentProps> = ({
         onStartFreePlay={startFreePlay}
       />
 
-      <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfilePanel
+        open={profileOpen && !isShowingFinalFeedback}
+        onClose={() => setProfileOpen(false)}
+      />
     </div>
   );
 };
