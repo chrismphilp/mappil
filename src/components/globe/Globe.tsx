@@ -326,7 +326,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const getAltitude = useCallback(
     (d: any) => {
-      if (isLandMaskFeature(d)) return 0;
+      if (isLandMaskFeature(d)) return 0.0006;
       const name = d.properties.name_long;
       if (regionsFoundSet.has(name)) return 0.02;
       if (ULTRA_PRECISION_CAP_COUNTRIES.has(name) || HIGH_PRECISION_CAP_COUNTRIES.has(name)) {
@@ -384,7 +384,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={4}
+        globeCurvatureResolution={6}
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
