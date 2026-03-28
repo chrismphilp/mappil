@@ -195,16 +195,47 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const hoveredPolygonRef = useRef<any>(null);
   const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
+  const activeTouchPointerIdsRef = useRef<Set<number>>(new Set());
+  const suppressTouchTapRef = useRef(false);
 
   const handlePolygonHover = useCallback((polygon: any) => {
     hoveredPolygonRef.current = polygon;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      activeTouchPointerIdsRef.current.add(e.pointerId);
+
+      // Treat any multi-touch gesture as navigation only so pinch zoom never triggers a selection.
+      if (activeTouchPointerIdsRef.current.size > 1) {
+        suppressTouchTapRef.current = true;
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
     pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
   }, []);
 
+  const releaseTouchPointer = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return;
+
+    activeTouchPointerIdsRef.current.delete(e.pointerId);
+
+    if (activeTouchPointerIdsRef.current.size === 0) {
+      suppressTouchTapRef.current = false;
+    }
+  }, []);
+
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const shouldSuppressTap = e.pointerType === 'touch' && suppressTouchTapRef.current;
+    releaseTouchPointer(e);
+
+    if (shouldSuppressTap) {
+      pointerDownPos.current = { x: 0, y: 0, time: 0 };
+      return;
+    }
+
     // If OrbitControls or something swallowed pointerdown, default to current event
     const downTime = pointerDownPos.current.time || Date.now();
     const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
@@ -231,7 +262,12 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         }, 50);
       }
     }
-  }, [onRegionClick]);
+  }, [onRegionClick, releaseTouchPointer]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    releaseTouchPointer(e);
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+  }, [releaseTouchPointer]);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -339,6 +375,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
       onPointerDownCapture={handlePointerDown}
       onPointerUpCapture={handlePointerUp}
+      onPointerCancelCapture={handlePointerCancel}
     >
       <GlobeGL
         ref={globeRef}
