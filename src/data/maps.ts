@@ -126,6 +126,11 @@ const POPULATION_THRESHOLDS: Record<Difficulty, number> = {
 };
 
 export function getFilteredRegions(difficulty: Difficulty, continent?: ContinentFilter): string[] {
+  const geoJsonData = getGeoJsonData();
+  if (!geoJsonData?.features) {
+    return [];
+  }
+
   const threshold = POPULATION_THRESHOLDS[difficulty];
   let features = geoJsonData.features;
 
