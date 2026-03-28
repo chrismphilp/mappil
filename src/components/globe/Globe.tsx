@@ -133,8 +133,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
   const { isCoarsePointer } = useIsMobileViewport();
-  const [pointerInteractionEnabled, setPointerInteractionEnabled] = useState(true);
-  const [controlsReadyVersion, setControlsReadyVersion] = useState(0);
 
   const geoJsonData = getGeoJsonData();
   const landMaskData = getLandMaskData();
@@ -232,10 +230,88 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [flyToRegion]);
 
+  const hoveredPolygonRef = useRef<any>(null);
+  const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
+  const touchGestureRef = useRef<{ activePointerIds: Set<number>; suppressClick: boolean }>({
+    activePointerIds: new Set(),
+    suppressClick: false,
+  });
+
+  const handlePolygonHover = useCallback((polygon: any) => {
+    hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer) return;
+
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.add(e.pointerId);
+
+      if (touchGesture.activePointerIds.size > 1) {
+        touchGesture.suppressClick = true;
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
+    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+  }, [isCoarsePointer]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer) return;
+
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.delete(e.pointerId);
+
+      if (touchGesture.suppressClick) {
+        if (touchGesture.activePointerIds.size === 0) {
+          touchGesture.suppressClick = false;
+        }
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
+    const downTime = pointerDownPos.current.time || Date.now();
+    const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
+    const downY = pointerDownPos.current.time ? pointerDownPos.current.y : e.clientY;
+    const dx = e.clientX - downX;
+    const dy = e.clientY - downY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const duration = Date.now() - downTime;
+
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+
+    if (distance < 20 && duration < 600) {
+      if (hoveredPolygonRef.current) {
+        onRegionClick(hoveredPolygonRef.current.properties.name_long);
+      } else {
+        setTimeout(() => {
+          if (hoveredPolygonRef.current) {
+            onRegionClick(hoveredPolygonRef.current.properties.name_long);
+          }
+        }, 50);
+      }
+    }
+  }, [isCoarsePointer, onRegionClick]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    if (!isCoarsePointer || e.pointerType !== 'touch') return;
+
+    const touchGesture = touchGestureRef.current;
+    touchGesture.activePointerIds.delete(e.pointerId);
+    if (touchGesture.activePointerIds.size === 0) {
+      touchGesture.suppressClick = false;
+    }
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+  }, [isCoarsePointer]);
+
   const handlePolygonClick = useCallback((polygon: any) => {
-    if (isLandMaskFeature(polygon)) return;
+    if (isCoarsePointer || isLandMaskFeature(polygon)) return;
     onRegionClick(polygon.properties.name_long);
-  }, [onRegionClick]);
+  }, [isCoarsePointer, onRegionClick]);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -296,37 +372,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       cancelAnimationFrame(frameId);
     };
   }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
-
-  useEffect(() => {
-    const controls = globeRef.current?.controls?.();
-    if (!controls || !isCoarsePointer) {
-      setPointerInteractionEnabled(true);
-      return;
-    }
-
-    let restoreTimeout = 0;
-
-    const handleStart = () => {
-      window.clearTimeout(restoreTimeout);
-      setPointerInteractionEnabled(false);
-    };
-
-    const handleEnd = () => {
-      window.clearTimeout(restoreTimeout);
-      restoreTimeout = window.setTimeout(() => {
-        setPointerInteractionEnabled(true);
-      }, 120);
-    };
-
-    controls.addEventListener('start', handleStart);
-    controls.addEventListener('end', handleEnd);
-
-    return () => {
-      window.clearTimeout(restoreTimeout);
-      controls.removeEventListener('start', handleStart);
-      controls.removeEventListener('end', handleEnd);
-    };
-  }, [controlsReadyVersion, isCoarsePointer]);
 
   const getCapColor = useCallback(
     (d: any) => {
@@ -390,12 +435,16 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     requestAnimationFrame(() => {
       patchPolygonMaterials();
     });
-    setControlsReadyVersion((version) => version + 1);
     onReady?.();
   }, [onReady, patchPolygonMaterials, updateCameraClipping]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}>
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
+      onPointerDownCapture={handlePointerDown}
+      onPointerCancelCapture={handlePointerCancel}
+      onPointerUpCapture={handlePointerUp}
+    >
       <GlobeGL
         ref={globeRef}
         globeImageUrl={blueTexture}
@@ -408,7 +457,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
-        enablePointerInteraction={pointerInteractionEnabled}
         pointerEventsFilter={isPolygonPointerTarget}
         onGlobeReady={handleGlobeReady}
         polygonsData={globePolygons}
@@ -418,6 +466,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         polygonAltitude={getAltitude}
         polygonCapCurvatureResolution={getCapCurvatureResolution}
         polygonLabel={getLabel}
+        onPolygonHover={handlePolygonHover}
         onPolygonClick={handlePolygonClick}
         onZoom={handleZoom}
         polygonsTransitionDuration={0}
