@@ -109,7 +109,7 @@ function getTargetPixelRatio() {
   const hasCoarsePointer =
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(pointer: coarse)').matches;
-  const maxPixelRatio = hasCoarsePointer ? 0.85 : window.innerWidth < 768 ? 1 : 1.5;
+  const maxPixelRatio = window.innerWidth < 768 || hasCoarsePointer ? 1 : 1.5;
 
   return Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 }
@@ -133,6 +133,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState(getViewportDimensions);
   const { isCoarsePointer } = useIsMobileViewport();
+  const [pointerInteractionEnabled, setPointerInteractionEnabled] = useState(true);
+  const [controlsReadyVersion, setControlsReadyVersion] = useState(0);
 
   const geoJsonData = getGeoJsonData();
   const landMaskData = getLandMaskData();
@@ -283,6 +285,37 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     };
   }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
 
+  useEffect(() => {
+    const controls = globeRef.current?.controls?.();
+    if (!controls || !isCoarsePointer) {
+      setPointerInteractionEnabled(true);
+      return;
+    }
+
+    let restoreTimeout = 0;
+
+    const handleStart = () => {
+      window.clearTimeout(restoreTimeout);
+      setPointerInteractionEnabled(false);
+    };
+
+    const handleEnd = () => {
+      window.clearTimeout(restoreTimeout);
+      restoreTimeout = window.setTimeout(() => {
+        setPointerInteractionEnabled(true);
+      }, 120);
+    };
+
+    controls.addEventListener('start', handleStart);
+    controls.addEventListener('end', handleEnd);
+
+    return () => {
+      window.clearTimeout(restoreTimeout);
+      controls.removeEventListener('start', handleStart);
+      controls.removeEventListener('end', handleEnd);
+    };
+  }, [controlsReadyVersion, isCoarsePointer]);
+
   const getCapColor = useCallback(
     (d: any) => {
       if (isLandMaskFeature(d)) return DEFAULT_COUNTRY_CAP_COLOR;
@@ -329,35 +362,23 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   );
 
   const getStrokeColor = useCallback(
-    (d: any) =>
-      isLandMaskFeature(d)
-        ? 'rgba(0, 0, 0, 0)'
-        : isCoarsePointer
-          ? 'rgba(148, 163, 184, 0.24)'
-          : 'rgba(148, 163, 184, 0.32)',
-    [isCoarsePointer]
+    (d: any) => (isLandMaskFeature(d) ? 'rgba(0, 0, 0, 0)' : 'rgba(148, 163, 184, 0.32)'),
+    []
   );
   const getCapCurvatureResolution = useCallback((d: any) => {
-    if (isCoarsePointer) {
-      if (isLandMaskFeature(d)) return 2;
-      const name = d.properties.name_long;
-      if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 3;
-      if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 4;
-      return 6;
-    }
-
     if (isLandMaskFeature(d)) return 1;
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 2;
     if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 3;
     return 5;
-  }, [isCoarsePointer]);
+  }, []);
   const handleGlobeReady = useCallback(() => {
     globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
     updateCameraClipping();
     requestAnimationFrame(() => {
       patchPolygonMaterials();
     });
+    setControlsReadyVersion((version) => version + 1);
     onReady?.();
   }, [onReady, patchPolygonMaterials, updateCameraClipping]);
 
@@ -371,10 +392,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={isCoarsePointer ? 8 : 6}
-        showAtmosphere={!isCoarsePointer}
+        globeCurvatureResolution={6}
+        showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
+        enablePointerInteraction={pointerInteractionEnabled}
         pointerEventsFilter={isPolygonPointerTarget}
         onGlobeReady={handleGlobeReady}
         polygonsData={globePolygons}
