@@ -242,8 +242,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (!isCoarsePointer) return;
-
     if (e.pointerType === 'touch') {
       const touchGesture = touchGestureRef.current;
       touchGesture.activePointerIds.add(e.pointerId);
@@ -256,11 +254,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
 
     pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
-  }, [isCoarsePointer]);
+  }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!isCoarsePointer) return;
-
     if (e.pointerType === 'touch') {
       const touchGesture = touchGestureRef.current;
       touchGesture.activePointerIds.delete(e.pointerId);
@@ -295,10 +291,13 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         }, 50);
       }
     }
-  }, [isCoarsePointer, onRegionClick]);
+  }, [onRegionClick]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
-    if (!isCoarsePointer || e.pointerType !== 'touch') return;
+    if (e.pointerType !== 'touch') {
+      pointerDownPos.current = { x: 0, y: 0, time: 0 };
+      return;
+    }
 
     const touchGesture = touchGestureRef.current;
     touchGesture.activePointerIds.delete(e.pointerId);
@@ -306,12 +305,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       touchGesture.suppressClick = false;
     }
     pointerDownPos.current = { x: 0, y: 0, time: 0 };
-  }, [isCoarsePointer]);
-
-  const handlePolygonClick = useCallback((polygon: any) => {
-    if (isCoarsePointer || isLandMaskFeature(polygon)) return;
-    onRegionClick(polygon.properties.name_long);
-  }, [isCoarsePointer, onRegionClick]);
+  }, []);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -467,7 +461,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         polygonCapCurvatureResolution={getCapCurvatureResolution}
         polygonLabel={getLabel}
         onPolygonHover={handlePolygonHover}
-        onPolygonClick={handlePolygonClick}
         onZoom={handleZoom}
         polygonsTransitionDuration={0}
       />
