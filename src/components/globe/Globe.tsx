@@ -227,16 +227,44 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
 
   const hoveredPolygonRef = useRef<any>(null);
   const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
+  const touchGestureRef = useRef<{ activePointerIds: Set<number>; suppressClick: boolean }>({
+    activePointerIds: new Set(),
+    suppressClick: false,
+  });
 
   const handlePolygonHover = useCallback((polygon: any) => {
     hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.add(e.pointerId);
+
+      if (touchGesture.activePointerIds.size > 1) {
+        touchGesture.suppressClick = true;
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
     pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
   }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      const touchGesture = touchGestureRef.current;
+      touchGesture.activePointerIds.delete(e.pointerId);
+
+      if (touchGesture.suppressClick) {
+        if (touchGesture.activePointerIds.size === 0) {
+          touchGesture.suppressClick = false;
+        }
+        pointerDownPos.current = { x: 0, y: 0, time: 0 };
+        return;
+      }
+    }
+
     // If OrbitControls or something swallowed pointerdown, default to current event
     const downTime = pointerDownPos.current.time || Date.now();
     const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
@@ -263,7 +291,22 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         }, 50);
       }
     }
+
+    if (e.pointerType === 'touch' && touchGestureRef.current.activePointerIds.size === 0) {
+      touchGestureRef.current.suppressClick = false;
+    }
   }, [onRegionClick]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return;
+
+    const touchGesture = touchGestureRef.current;
+    touchGesture.activePointerIds.delete(e.pointerId);
+    if (touchGesture.activePointerIds.size === 0) {
+      touchGesture.suppressClick = false;
+    }
+    pointerDownPos.current = { x: 0, y: 0, time: 0 };
+  }, []);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -385,6 +428,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     <div
       style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
       onPointerDownCapture={handlePointerDown}
+      onPointerCancelCapture={handlePointerCancel}
       onPointerUpCapture={handlePointerUp}
     >
       <GlobeGL
