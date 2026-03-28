@@ -318,7 +318,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       const name = d.properties.name_long;
       if (flyToRegion && name === flyToRegion) return 'rgba(251, 191, 36, 0.85)';
       if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
-      return 'rgba(71, 85, 105, 0.6)';
+      return 'rgba(82, 96, 116, 0.6)';
     },
     [regionsFoundSet, flyToRegion]
   );
@@ -356,7 +356,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     [regionsFoundSet]
   );
 
-  const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
+  const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.26)', []);
   const getCapCurvatureResolution = useCallback((d: any) => {
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 1;
