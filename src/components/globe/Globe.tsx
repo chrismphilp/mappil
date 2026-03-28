@@ -12,6 +12,7 @@ const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Djibouti',
   'Egypt',
   'Eritrea',
+  'India',
   'Niger',
   'Norway',
   'Oman',
@@ -21,6 +22,7 @@ const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Sudan',
   'United States',
   'Uruguay',
+  'Uzbekistan',
   'Yemen',
 ]);
 const ULTRA_PRECISION_CAP_COUNTRIES = new Set([
