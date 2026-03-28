@@ -46,7 +46,6 @@ const DEFAULT_COUNTRY_CAP_COLOR = 'rgb(71, 85, 105)';
 const FOUND_COUNTRY_CAP_COLOR = 'rgb(52, 211, 153)';
 const FLY_TO_COUNTRY_CAP_COLOR = 'rgb(251, 191, 36)';
 const FOUND_POLYGON_ALTITUDE = 0.008;
-const CLICK_CAMERA_MOVE_THRESHOLD = 2;
 
 interface GlobeProps {
   regionsFound: string[];
@@ -226,106 +225,10 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [flyToRegion]);
 
-  const hoveredPolygonRef = useRef<any>(null);
-  const pointerDownPos = useRef({ x: 0, y: 0, time: 0 });
-  const gestureStateRef = useRef<{
-    cameraX: number;
-    cameraY: number;
-    cameraZ: number;
-    hasCameraSnapshot: boolean;
-    suppressClick: boolean;
-  }>({
-    cameraX: 0,
-    cameraY: 0,
-    cameraZ: 0,
-    hasCameraSnapshot: false,
-    suppressClick: false,
-  });
-
-  const handlePolygonHover = useCallback((polygon: any) => {
-    hoveredPolygonRef.current = isLandMaskFeature(polygon) ? null : polygon;
-  }, []);
-
-  const snapshotPointerCamera = useCallback(() => {
-    const camera = globeRef.current?.camera?.();
-    if (!camera) {
-      gestureStateRef.current.hasCameraSnapshot = false;
-      return;
-    }
-
-    gestureStateRef.current.cameraX = camera.position.x;
-    gestureStateRef.current.cameraY = camera.position.y;
-    gestureStateRef.current.cameraZ = camera.position.z;
-    gestureStateRef.current.hasCameraSnapshot = true;
-  }, []);
-
-  const updateGestureSuppressionFromCamera = useCallback(() => {
-    const gestureState = gestureStateRef.current;
-    if (!gestureState.hasCameraSnapshot) return;
-
-    const camera = globeRef.current?.camera?.();
-    if (!camera) return;
-
-    const dx = camera.position.x - gestureState.cameraX;
-    const dy = camera.position.y - gestureState.cameraY;
-    const dz = camera.position.z - gestureState.cameraZ;
-    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-    if (distance > CLICK_CAMERA_MOVE_THRESHOLD) {
-      gestureState.suppressClick = true;
-    }
-  }, []);
-
-  const resetGestureState = useCallback(() => {
-    pointerDownPos.current = { x: 0, y: 0, time: 0 };
-    gestureStateRef.current.hasCameraSnapshot = false;
-    gestureStateRef.current.suppressClick = false;
-  }, []);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    gestureStateRef.current.suppressClick = false;
-    snapshotPointerCamera();
-    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
-  }, [snapshotPointerCamera]);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    updateGestureSuppressionFromCamera();
-    if (gestureStateRef.current.suppressClick) {
-      resetGestureState();
-      return;
-    }
-
-    // If OrbitControls or something swallowed pointerdown, default to current event
-    const downTime = pointerDownPos.current.time || Date.now();
-    const downX = pointerDownPos.current.time ? pointerDownPos.current.x : e.clientX;
-    const downY = pointerDownPos.current.time ? pointerDownPos.current.y : e.clientY;
-
-    const dx = e.clientX - downX;
-    const dy = e.clientY - downY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const duration = Date.now() - downTime;
-
-    // Reset pointer down state
-    resetGestureState();
-
-    // Relaxed tolerance for jittery touches/clicks (distance < 20px, duration < 600ms)
-    if (distance < 20 && duration < 600) {
-      if (hoveredPolygonRef.current) {
-        onRegionClick(hoveredPolygonRef.current.properties.name_long);
-      } else {
-        // Fallback for fast touch devices where hover state might lag by 1 frame
-        setTimeout(() => {
-          if (hoveredPolygonRef.current) {
-            onRegionClick(hoveredPolygonRef.current.properties.name_long);
-          }
-        }, 50);
-      }
-    }
-  }, [onRegionClick, resetGestureState, updateGestureSuppressionFromCamera]);
-
-  const handlePointerCancel = useCallback(() => {
-    resetGestureState();
-  }, [resetGestureState]);
+  const handlePolygonClick = useCallback((polygon: any) => {
+    if (isLandMaskFeature(polygon)) return;
+    onRegionClick(polygon.properties.name_long);
+  }, [onRegionClick]);
 
   const patchPolygonMaterials = useCallback(() => {
     const scene = globeRef.current?.scene?.();
@@ -377,22 +280,6 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
       cancelAnimationFrame(frameId);
     };
   }, [patchPolygonMaterials, geoJsonData, regionsFound, flyToRegion]);
-
-  useEffect(() => {
-    const controls = globeRef.current?.controls?.();
-    if (!controls) return;
-
-    const handleControlsChange = () => {
-      if (!pointerDownPos.current.time) return;
-      updateGestureSuppressionFromCamera();
-    };
-
-    controls.addEventListener('change', handleControlsChange);
-
-    return () => {
-      controls.removeEventListener('change', handleControlsChange);
-    };
-  }, [updateGestureSuppressionFromCamera]);
 
   const getCapColor = useCallback(
     (d: any) => {
@@ -460,12 +347,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   }, [onReady, patchPolygonMaterials, updateCameraClipping]);
 
   return (
-    <div
-      style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
-      onPointerDownCapture={handlePointerDown}
-      onPointerCancelCapture={handlePointerCancel}
-      onPointerUpCapture={handlePointerUp}
-    >
+    <div style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}>
       <GlobeGL
         ref={globeRef}
         globeImageUrl={blueTexture}
@@ -487,7 +369,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         polygonAltitude={getAltitude}
         polygonCapCurvatureResolution={getCapCurvatureResolution}
         polygonLabel={getLabel}
-        onPolygonHover={handlePolygonHover}
+        onPolygonClick={handlePolygonClick}
         onZoom={handleZoom}
         polygonsTransitionDuration={0}
       />
