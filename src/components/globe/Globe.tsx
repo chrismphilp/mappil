@@ -355,7 +355,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     []
   );
   const getCapCurvatureResolution = useCallback((d: any) => {
-    if (isLandMaskFeature(d)) return 1;
+    if (isLandMaskFeature(d)) return 6;
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 2;
     if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 3;
