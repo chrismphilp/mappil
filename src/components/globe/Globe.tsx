@@ -357,9 +357,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getCapCurvatureResolution = useCallback((d: any) => {
     if (isLandMaskFeature(d)) return 6;
     const name = d.properties.name_long;
-    if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 3;
-    if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 4;
-    return 6;
+    if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 2;
+    if (HIGH_PRECISION_CAP_COUNTRIES.has(name)) return 3;
+    return 5;
   }, []);
   const handleGlobeReady = useCallback(() => {
     globeRef.current?.renderer()?.setPixelRatio(getTargetPixelRatio());
@@ -384,7 +384,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeCurvatureResolution={6}
+        globeCurvatureResolution={4}
         showAtmosphere={true}
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.2}
