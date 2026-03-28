@@ -1,14 +1,6 @@
 import { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL from 'react-globe.gl';
 import { getGeoJsonData } from '../../data/maps';
-import {
-  createOceanTextureDataUrl,
-  GLOBE_THEME,
-  getFoundCountryLabelHtml,
-  getPolygonCapColor,
-  getPolygonSideColor,
-  getPolygonStrokeColor,
-} from './globeTheme';
 
 const HIGH_PRECISION_CAP_COUNTRIES = new Set([
   'Algeria',
@@ -167,7 +159,17 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     }
   }, [updateCameraClipping]);
 
-  const globeTexture = useMemo(() => createOceanTextureDataUrl(), []);
+  const blueTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 2;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#0f172a'; // A slightly blue, deep dark color to serve as oceans
+      ctx.fillRect(0, 0, 2, 2);
+    }
+    return canvas.toDataURL('image/png');
+  }, []);
 
   // Stop auto-rotate when zoomed in
   const AUTO_ROTATE_ALTITUDE = 1.8;
@@ -276,10 +278,9 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getCapColor = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
-      return getPolygonCapColor({
-        isFlyTo: flyToRegion === name,
-        isFound: regionsFoundSet.has(name),
-      });
+      if (flyToRegion && name === flyToRegion) return 'rgba(251, 191, 36, 0.85)';
+      if (regionsFoundSet.has(name)) return 'rgba(52, 211, 153, 0.85)';
+      return 'rgba(71, 85, 105, 0.6)';
     },
     [regionsFoundSet, flyToRegion]
   );
@@ -287,7 +288,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getSideColor = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
-      return getPolygonSideColor({ isFound: regionsFoundSet.has(name) });
+      if (regionsFoundSet.has(name)) return 'rgba(16, 185, 129, 0.6)';
+      return '';
     },
     [regionsFoundSet]
   );
@@ -308,12 +310,15 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const getLabel = useCallback(
     (d: any) => {
       const name = d.properties.name_long;
-      return getFoundCountryLabelHtml(name, regionsFoundSet.has(name));
+      if (regionsFoundSet.has(name)) {
+        return `<span style="color: #34d399; font-family: Inter, sans-serif; font-size: 13px;">${name} ✓</span>`;
+      }
+      return '';
     },
     [regionsFoundSet]
   );
 
-  const getStrokeColor = useCallback(() => getPolygonStrokeColor(), []);
+  const getStrokeColor = useCallback(() => 'rgba(148, 163, 184, 0.2)', []);
   const getCapCurvatureResolution = useCallback((d: any) => {
     const name = d.properties.name_long;
     if (ULTRA_PRECISION_CAP_COUNTRIES.has(name)) return 1;
@@ -337,7 +342,7 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
     >
       <GlobeGL
         ref={globeRef}
-        globeImageUrl={globeTexture}
+        globeImageUrl={blueTexture}
         rendererConfig={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
         animateIn={false}
         width={dimensions.width}
@@ -345,8 +350,8 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
         backgroundColor="rgba(0,0,0,0)"
         globeCurvatureResolution={4}
         showAtmosphere={true}
-        atmosphereColor={GLOBE_THEME.atmosphereColor}
-        atmosphereAltitude={GLOBE_THEME.atmosphereAltitude}
+        atmosphereColor="#3b82f6"
+        atmosphereAltitude={0.2}
         onGlobeReady={handleGlobeReady}
         polygonsData={geoJsonData?.features}
         polygonCapColor={getCapColor}
