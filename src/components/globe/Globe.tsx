@@ -140,8 +140,11 @@ const Globe: FC<GlobeProps> = ({ regionsFound, flyToRegion, onRegionClick, onRea
   const landMaskData = getLandMaskData();
   const regionsFoundSet = useMemo(() => new Set(regionsFound), [regionsFound]);
   const globePolygons = useMemo(
-    () => [...(landMaskData?.features ?? []), ...(geoJsonData?.features ?? [])],
-    [geoJsonData, landMaskData]
+    () =>
+      isCoarsePointer
+        ? [...(geoJsonData?.features ?? [])]
+        : [...(landMaskData?.features ?? []), ...(geoJsonData?.features ?? [])],
+    [geoJsonData, isCoarsePointer, landMaskData]
   );
   const updateCameraClipping = useCallback(() => {
     const globe = globeRef.current;
