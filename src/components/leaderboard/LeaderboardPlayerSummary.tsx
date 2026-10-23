@@ -59,7 +59,7 @@ const LeaderboardPlayerSummary = ({
   );
 
   return (
-    <div className={`rounded-[1.5rem] border p-4 ${toneClasses.shell}`}>
+    <div className={`rounded-3xl border p-4 ${toneClasses.shell}`}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">

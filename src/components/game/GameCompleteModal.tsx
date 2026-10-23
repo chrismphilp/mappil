@@ -819,7 +819,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             transition={{ type: 'spring', stiffness: 210, damping: 22 }}
             className="bg-slate-900/92 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 w-[92vw] max-w-lg lg:max-w-4xl max-h-[92dvh] overflow-y-auto text-left shadow-2xl"
           >
-            <div className="rounded-[2rem] border border-cyan-400/18 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.12),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-5 sm:p-6 mb-5">
+            <div className="rounded-4xl border border-cyan-400/18 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.12),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-5 sm:p-6 mb-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -848,7 +848,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                     {correctAnswers} correct, {skippedCount} skipped, {formatDuration(durationSecs)} on the clock.
                   </p>
                 </div>
-                <div className="shrink-0 rounded-3xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-center min-w-[5.5rem]">
+                <div className="shrink-0 rounded-3xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-center min-w-22">
                   <div className="text-3xl font-black text-cyan-300 leading-none">{grade.letter}</div>
                   <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/80 mt-1">{grade.label}</div>
                 </div>
@@ -992,7 +992,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                 Recommended Next Step
               </div>
               <div className={`grid gap-4 ${nextSuggestion ? 'lg:grid-cols-2' : ''}`}>
-                <div className="rounded-2xl bg-gradient-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4">
+                <div className="rounded-2xl bg-linear-to-r from-emerald-500/12 to-cyan-500/12 border border-emerald-500/20 p-4">
                   <div className="text-white font-semibold text-lg">{primaryAction.label}</div>
                   <div className="text-sm text-slate-300 mt-1">{primaryAction.helper}</div>
                 </div>
@@ -1027,7 +1027,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
                     }}
                     placeholder="Enter username"
                     maxLength={20}
-                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-800/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-hidden focus:border-cyan-500/50"
                   />
                   <button
                     type="submit"
@@ -1062,7 +1062,7 @@ const GameCompleteModal: FC<GameCompleteModalProps> = ({
             <div className="grid gap-3 sm:grid-cols-2">
               {renderActionButton(
                 primaryAction,
-                'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-center sm:col-span-2',
+                'w-full py-3 rounded-xl bg-linear-to-r from-emerald-500 to-cyan-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-center sm:col-span-2',
               )}
 
               {nextSuggestion &&

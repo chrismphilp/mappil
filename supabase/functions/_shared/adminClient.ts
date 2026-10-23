@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.98.0';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import {
   type BlockedUsernameRule,
   DEFAULT_BLOCKED_USERNAME_RULES,

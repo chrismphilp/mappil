@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.98.0';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 
 interface SupabaseSchemaErrorLike {
   code?: string | null;
@@ -40,11 +40,11 @@ export function isMissingSupabaseColumnError(
   );
 }
 
-export async function insertWithOptionalColumns<Row extends Record<string, unknown>>(
+export async function insertWithOptionalColumns(
   supabase: SupabaseClient,
   table: string,
-  payload: Row,
-  fallbackPayload: Row,
+  payload: Record<string, unknown>,
+  fallbackPayload: Record<string, unknown>,
   optionalColumns: readonly string[],
 ) {
   let { error } = await supabase.from(table).insert(payload);

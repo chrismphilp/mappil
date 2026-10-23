@@ -120,7 +120,7 @@ function RulesetBestCard({ best }: { best: RulesetBest }) {
 
 function RecentRunCard({ run }: { run: RunRecord }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/8 bg-slate-900/60 p-4">
+    <div className="rounded-3xl border border-white/8 bg-slate-900/60 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
@@ -236,10 +236,10 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs"
           />
           <div
-            className="fixed inset-0 z-[61] flex items-end justify-center p-0 sm:items-center sm:p-6"
+            className="fixed inset-0 z-61 flex items-end justify-center p-0 sm:items-center sm:p-6"
             onClick={(event) => {
               if (event.target === event.currentTarget) {
                 onClose();
@@ -251,7 +251,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
               animate={isMobile ? { y: 0 } : { y: 0, opacity: 1, scale: 1 }}
               exit={isMobile ? { y: '100%' } : { y: 28, opacity: 0, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-              className="relative flex h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_24%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] shadow-[0_30px_120px_rgba(2,6,23,0.55)] sm:h-[min(88dvh,54rem)] sm:rounded-[2rem]"
+              className="relative flex h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-4xl border border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_24%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] shadow-[0_30px_120px_rgba(2,6,23,0.55)] sm:h-[min(88dvh,54rem)] sm:rounded-4xl"
             >
               <button
                 type="button"
@@ -267,7 +267,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
 
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-14 sm:px-6 sm:pb-6 sm:pt-6">
                 <div className="mx-auto flex w-full flex-col gap-5">
-                  <section className="rounded-[2rem] border border-cyan-400/14 bg-slate-900/55 p-5 sm:p-6">
+                  <section className="rounded-4xl border border-cyan-400/14 bg-slate-900/55 p-5 sm:p-6">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                       <div>
                         <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-200/70">
@@ -324,7 +324,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                   </section>
 
                   {profile.summary.totalRuns === 0 ? (
-                    <section className="rounded-[2rem] border border-white/8 bg-slate-900/55 px-6 py-10 text-center">
+                    <section className="rounded-4xl border border-white/8 bg-slate-900/55 px-6 py-10 text-center">
                       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-cyan-400/16 bg-cyan-500/10 text-cyan-100">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 2v20" />
@@ -338,7 +338,7 @@ const ProfilePanel: FC<ProfilePanelProps> = ({ open, onClose }) => {
                     </section>
                   ) : (
                     <>
-                      <section className="grid gap-4 lg:grid-cols-[1.06fr,0.94fr]">
+                      <section className="grid gap-4 lg:grid-cols-[1.06fr_0.94fr]">
                         <div className="rounded-[1.75rem] border border-white/8 bg-slate-900/55 p-5">
                           <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
                             Favorite Ruleset

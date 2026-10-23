@@ -40,7 +40,7 @@ function getPodiumMetal(rank: number) {
       score: 'text-amber-200',
       shell:
         'border-amber-300/18 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),transparent_46%),linear-gradient(180deg,rgba(251,191,36,0.10),rgba(15,23,42,0.84))]',
-      height: 'sm:min-h-[15rem]',
+      height: 'sm:min-h-60',
       order: 'sm:order-2',
     };
   }
@@ -51,7 +51,7 @@ function getPodiumMetal(rank: number) {
       score: 'text-slate-100',
       shell:
         'border-slate-200/12 bg-[radial-gradient(circle_at_top,rgba(226,232,240,0.16),transparent_46%),linear-gradient(180deg,rgba(226,232,240,0.06),rgba(15,23,42,0.82))]',
-      height: 'sm:min-h-[13rem]',
+      height: 'sm:min-h-52',
       order: 'sm:order-1',
     };
   }
@@ -61,7 +61,7 @@ function getPodiumMetal(rank: number) {
     score: 'text-orange-200',
     shell:
       'border-orange-300/12 bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.16),transparent_46%),linear-gradient(180deg,rgba(251,146,60,0.06),rgba(15,23,42,0.82))]',
-    height: 'sm:min-h-[12rem]',
+    height: 'sm:min-h-48',
     order: 'sm:order-3',
   };
 }

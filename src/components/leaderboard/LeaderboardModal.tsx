@@ -73,7 +73,7 @@ function LeaderboardSkeleton() {
           <div
             key={index}
             className={`rounded-[1.75rem] border border-white/6 bg-slate-800/55 p-4 ${
-              index === 0 ? 'sm:order-2 sm:min-h-[15rem]' : index === 1 ? 'sm:order-1 sm:min-h-[13rem]' : 'sm:order-3 sm:min-h-[12rem]'
+              index === 0 ? 'sm:order-2 sm:min-h-60' : index === 1 ? 'sm:order-1 sm:min-h-52' : 'sm:order-3 sm:min-h-48'
             }`}
           >
             <div className="h-10 w-10 rounded-full bg-slate-700/70" />
@@ -91,7 +91,7 @@ function LeaderboardSkeleton() {
         {[0, 1, 2, 3].map((index) => (
           <div
             key={index}
-            className="rounded-[1.5rem] border border-white/6 bg-slate-800/55 p-4"
+            className="rounded-3xl border border-white/6 bg-slate-800/55 p-4"
           >
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-full bg-slate-700/70" />
@@ -277,7 +277,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center"
+          className="fixed inset-0 z-60 flex items-end justify-center sm:items-center"
         >
           <div className="absolute inset-0 bg-black/70" onClick={onClose} />
           <motion.div
@@ -285,7 +285,7 @@ const LeaderboardModal: FC<LeaderboardModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.94, opacity: 0, y: 28 }}
             transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-            className={`relative flex h-[92dvh] w-full flex-col overflow-y-auto rounded-t-[2rem] border border-white/10 px-4 pt-4 shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-[2rem] sm:px-6 sm:pt-6 ${toneClasses.shell}`}
+            className={`relative flex h-[92dvh] w-full flex-col overflow-y-auto rounded-t-4xl border border-white/10 px-4 pt-4 shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-4xl sm:px-6 sm:pt-6 ${toneClasses.shell}`}
             style={{ paddingBottom: 'max(1rem, var(--sab))' }}
           >
             <div className="shrink-0 space-y-4 border-b border-white/6 pb-4">

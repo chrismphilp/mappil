@@ -421,7 +421,7 @@ export function useGameState(
       isDailyChallenge,
     }),
   );
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const selectRegion = useCallback((region: string) => {
     dispatch({ type: ActionType.SELECT_REGION, region });

@@ -91,7 +91,7 @@ const FeedbackOverlay: FC<FeedbackOverlayProps> = ({ feedback, currentGuessError
         transition={{ duration: 0.25 }}
         className="fixed top-[38%] sm:top-1/3 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
       >
-        <div className="rounded-3xl border border-white/10 bg-slate-950/70 px-6 py-4 text-center backdrop-blur-xl shadow-2xl min-w-[13rem]">
+        <div className="rounded-3xl border border-white/10 bg-slate-950/70 px-6 py-4 text-center backdrop-blur-xl shadow-2xl min-w-52">
           <span className={`block text-3xl sm:text-4xl font-bold drop-shadow-2xl ${titleClassName}`}>
             {title}
           </span>
