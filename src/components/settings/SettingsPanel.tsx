@@ -206,7 +206,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             className={
               isMobile
                 ? 'fixed bottom-0 left-0 right-0 z-50 flex h-[85dvh] flex-col overflow-hidden'
-                : 'fixed left-0 top-0 bottom-0 z-50 w-[26rem] max-w-[calc(100vw-3rem)] overflow-hidden'
+                : 'fixed left-0 top-0 bottom-0 z-50 w-104 max-w-[calc(100vw-3rem)] overflow-hidden'
             }
           >
             <div
@@ -244,7 +244,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                     }}
                     placeholder="Set username"
                     maxLength={20}
-                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-hidden focus:border-cyan-500/50"
                   />
                   <button
                     onClick={handleSaveUsername}
@@ -279,7 +279,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
             <div className="flex flex-col gap-2">
               <a
                 href="/play?daily=true"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
+                className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 font-bold text-center transition-colors shadow-lg shadow-amber-500/10"
               >
                 Play Daily Challenge
               </a>
@@ -393,7 +393,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 onReset();
                 onClose();
               }}
-              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-rose-500/20 to-red-500/20 hover:from-rose-500/30 hover:to-red-500/30 border border-rose-500/25 text-rose-300 font-bold text-center transition-colors shadow-lg shadow-rose-500/10"
+              className="w-full px-4 py-3 rounded-xl bg-linear-to-r from-rose-500/20 to-red-500/20 hover:from-rose-500/30 hover:to-red-500/30 border border-rose-500/25 text-rose-300 font-bold text-center transition-colors shadow-lg shadow-rose-500/10"
             >
               Reset Current Game
             </button>
@@ -407,7 +407,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({
                 clearProfile();
                 setUsernameInput('');
               }}
-              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-slate-700/70 to-slate-800/90 hover:from-slate-600/80 hover:to-slate-700/95 border border-white/10 text-slate-100 font-bold text-center transition-colors shadow-lg shadow-slate-950/35"
+              className="w-full px-4 py-3 rounded-xl bg-linear-to-r from-slate-700/70 to-slate-800/90 hover:from-slate-600/80 hover:to-slate-700/95 border border-white/10 text-slate-100 font-bold text-center transition-colors shadow-lg shadow-slate-950/35"
             >
               Clear Local Progress
             </button>

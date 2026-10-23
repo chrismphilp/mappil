@@ -23,7 +23,7 @@ function getToneClasses(tone: LeaderboardTone) {
   if (tone === 'daily') {
     return {
       active:
-        'border-amber-400/35 bg-gradient-to-r from-amber-400/20 to-orange-400/16 text-amber-100 shadow-[0_10px_30px_rgba(251,191,36,0.14)]',
+        'border-amber-400/35 bg-linear-to-r from-amber-400/20 to-orange-400/16 text-amber-100 shadow-[0_10px_30px_rgba(251,191,36,0.14)]',
       context:
         'border-amber-400/30 bg-amber-400/12 text-amber-100',
     };
@@ -32,7 +32,7 @@ function getToneClasses(tone: LeaderboardTone) {
   if (tone === 'friend') {
     return {
       active:
-        'border-fuchsia-400/35 bg-gradient-to-r from-fuchsia-500/18 to-violet-400/16 text-fuchsia-100 shadow-[0_10px_30px_rgba(192,132,252,0.14)]',
+        'border-fuchsia-400/35 bg-linear-to-r from-fuchsia-500/18 to-violet-400/16 text-fuchsia-100 shadow-[0_10px_30px_rgba(192,132,252,0.14)]',
       context:
         'border-fuchsia-400/30 bg-fuchsia-400/12 text-fuchsia-100',
     };
@@ -40,7 +40,7 @@ function getToneClasses(tone: LeaderboardTone) {
 
   return {
     active:
-      'border-cyan-400/35 bg-gradient-to-r from-cyan-400/18 to-emerald-400/16 text-cyan-100 shadow-[0_10px_30px_rgba(34,211,238,0.14)]',
+      'border-cyan-400/35 bg-linear-to-r from-cyan-400/18 to-emerald-400/16 text-cyan-100 shadow-[0_10px_30px_rgba(34,211,238,0.14)]',
     context:
       'border-cyan-400/30 bg-cyan-400/12 text-cyan-100',
   };

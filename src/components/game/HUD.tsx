@@ -170,7 +170,7 @@ const HUD: FC<HUDProps> = ({
               <FinderTarget
                 regionToFind={regionToFind}
                 className="flex max-w-full items-center gap-3"
-                textClassName="min-w-0 break-words"
+                textClassName="min-w-0 wrap-break-word"
               />
             </motion.div>
           </AnimatePresence>

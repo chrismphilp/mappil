@@ -70,7 +70,7 @@ const LeaderboardRow = ({
 
   return (
     <div
-      className={`rounded-[1.5rem] border p-4 transition-colors ${
+      className={`rounded-3xl border p-4 transition-colors ${
         entry.isCurrentPlayer
           ? toneClasses.current
           : 'border-white/6 bg-slate-800/55'

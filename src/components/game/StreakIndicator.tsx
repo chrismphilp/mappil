@@ -47,7 +47,7 @@ const StreakIndicator: FC<StreakIndicatorProps> = ({ streak }) => {
         </AnimatePresence>
       </div>
       <span
-        className={`min-w-[4.75rem] rounded-full border px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.24em] text-center ${STREAK_BADGE[streakState.key]}`}
+        className={`min-w-19 rounded-full border px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.24em] text-center ${STREAK_BADGE[streakState.key]}`}
       >
         {streakState.label}
       </span>

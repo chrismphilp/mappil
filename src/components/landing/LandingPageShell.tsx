@@ -37,14 +37,14 @@ const LandingPageShell = ({ content }: LandingPageShellProps) => {
       <GameViewportClient {...content.gameProps} />
 
       <div className="relative z-0 min-h-screen pointer-events-none">
-        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-linear-to-t from-slate-950 via-slate-950/60 to-transparent" />
       </div>
 
       <div className="fixed bottom-6 right-6 z-30 pointer-events-auto">
         <button
           type="button"
           onClick={() => setShowAbout((current) => !current)}
-          className="w-12 h-12 flex items-center justify-center bg-slate-800/85 hover:bg-slate-700/85 backdrop-blur border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
+          className="w-12 h-12 flex items-center justify-center bg-slate-800/85 hover:bg-slate-700/85 backdrop-blur-sm border border-slate-600 rounded-full text-slate-200 shadow-xl transition-all"
           aria-label={showAbout ? 'Close About Mappil' : 'About Mappil'}
         >
           <svg
@@ -125,7 +125,7 @@ const LandingPageShell = ({ content }: LandingPageShellProps) => {
                     {content.introEyebrow}
                   </p>
                 )}
-                <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-blue-400 to-emerald-400 pb-2">
+                <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-br from-cyan-300 via-blue-400 to-emerald-400 pb-2">
                   {content.heading}
                 </h1>
                 <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
@@ -134,7 +134,7 @@ const LandingPageShell = ({ content }: LandingPageShellProps) => {
                 <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                   <Link
                     href={content.primaryCta.href}
-                    className="inline-block px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-500/25 transition-transform hover:scale-105 active:scale-95"
+                    className="inline-block px-8 py-4 bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-500/25 transition-transform hover:scale-105 active:scale-95"
                   >
                     {content.primaryCta.label}
                   </Link>
